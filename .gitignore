@@ -29,9 +29,12 @@ npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 .pnpm-debug.log*
+dev.log
 
-# env files (can opt-in for committing if needed)
+# env files — .env.example is the committed template, everything else
+# (real secrets) stays local
 .env*
+!.env.example
 
 # vercel
 .vercel
@@ -39,6 +42,9 @@ yarn-error.log*
 # local-dev-only upload fallback (see src/lib/storage.ts) — never durable,
 # never meant to be committed
 /public/uploads
+
+# local-dev-only embedded Postgres data (see scripts/dev-db.mjs)
+/.devdb
 
 # typescript
 *.tsbuildinfo

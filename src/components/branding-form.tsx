@@ -12,7 +12,6 @@ export function BrandingForm({ tenant }: { tenant: Tenant }) {
   return (
     <form
       action={formAction}
-      encType="multipart/form-data"
       className="flex max-w-lg flex-col gap-4 rounded-lg border border-gray-200 bg-white p-4"
     >
       <label className="flex flex-col gap-1 text-sm font-medium text-gray-700">

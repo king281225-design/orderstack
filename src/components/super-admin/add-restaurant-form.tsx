@@ -35,7 +35,7 @@ export function AddRestaurantForm() {
         <input
           name="slug"
           required
-          pattern="[a-z0-9-]+"
+          pattern="[a-z0-9\-]+"
           placeholder="e.g. spice-corner"
           className="rounded-md border border-gray-300 px-3 py-1.5 text-sm focus:border-gray-900 focus:outline-none"
         />

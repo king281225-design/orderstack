@@ -9,7 +9,8 @@
     "lint": "eslint",
     "db:migrate": "prisma migrate dev",
     "db:seed": "prisma db seed",
-    "db:studio": "prisma studio"
+    "db:studio": "prisma studio",
+    "dev:db": "node scripts/dev-db.mjs"
   },
   "dependencies": {
     "@prisma/adapter-pg": "^7.10.0",
@@ -31,8 +32,10 @@
     "@types/qrcode": "^1.5.6",
     "@types/react": "^19",
     "@types/react-dom": "^19",
+    "embedded-postgres": "^18.4.0-beta.17",
     "eslint": "^9",
     "eslint-config-next": "16.3.4",
+    "playwright-core": "^1.63.0",
     "tailwindcss": "^4",
     "tsx": "^4.23.13",
     "typescript": "^5"
@@ -41,6 +44,7 @@
     "@prisma/engines@7.10.0": true,
     "prisma@7.10.0": true,
     "unrs-resolver@1.12.2": true,
-    "esbuild@0.28.2": true
+    "esbuild@0.28.2": true,
+    "@embedded-postgres/windows-x64@18.4.0-beta.17": true
   }
 }
