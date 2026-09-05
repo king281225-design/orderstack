@@ -1,0 +1,157 @@
+// OrderStack v1 schema.
+// Tenant isolation rule: every query against a tenant-scoped model (Category,
+// Item, Order, OrderItem, and non-super-admin User rows) MUST filter by
+// tenantId. Never trust a slug or id from the client alone — always re-derive
+// tenantId from the authenticated session or the public tenant lookup, and
+// pass it explicitly into every query. See src/lib/data/*.ts — those are the
+// only places allowed to call `prisma.category`, `prisma.item`, etc. directly;
+// route/action code should go through them, not raw Prisma calls.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum Role {
+  SUPER_ADMIN
+  OWNER
+  STAFF
+}
+
+enum TenantStatus {
+  ACTIVE
+  SUSPENDED
+}
+
+enum FulfillmentType {
+  DELIVERY
+  TAKEAWAY
+}
+
+enum PaymentMethod {
+  UPI
+  COD
+}
+
+enum OrderStatus {
+  PENDING
+  ACCEPTED
+  PREPARING
+  READY
+  COMPLETED
+  CANCELLED
+}
+
+model Tenant {
+  id             String       @id @default(cuid())
+  slug           String       @unique
+  name           String
+  tagline        String?
+  logoUrl        String?
+  colorPrimary   String       @default("#111827")
+  colorSecondary String       @default("#f97316")
+  colorAccent    String       @default("#ffffff")
+  isOpen         Boolean      @default(true)
+  status         TenantStatus @default(ACTIVE)
+  plan           String       @default("launch")
+  upiId          String?
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+
+  users      User[]
+  categories Category[]
+  items      Item[]
+  orders     Order[]
+
+  @@map("tenants")
+}
+
+model User {
+  id           String   @id @default(cuid())
+  tenantId     String?
+  tenant       Tenant?  @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  email        String   @unique
+  passwordHash String
+  role         Role
+  name         String?
+  createdAt    DateTime @default(now())
+
+  @@index([tenantId])
+  @@map("users")
+}
+
+model Category {
+  id        String   @id @default(cuid())
+  tenantId  String
+  tenant    Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  name      String
+  sortOrder Int      @default(0)
+  createdAt DateTime @default(now())
+
+  items Item[]
+
+  @@index([tenantId])
+  @@map("categories")
+}
+
+model Item {
+  id          String   @id @default(cuid())
+  tenantId    String
+  tenant      Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  categoryId  String
+  category    Category @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+  name        String
+  description String?
+  priceCents  Int
+  imageUrl    String?
+  isAvailable Boolean  @default(true)
+  sortOrder   Int      @default(0)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  orderItems OrderItem[]
+
+  @@index([tenantId])
+  @@index([categoryId])
+  @@map("items")
+}
+
+model Order {
+  id              String          @id @default(cuid())
+  orderNumber     Int             @default(autoincrement())
+  tenantId        String
+  tenant          Tenant          @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  customerName    String
+  customerPhone   String
+  fulfillmentType FulfillmentType
+  deliveryAddress String?
+  paymentMethod   PaymentMethod
+  status          OrderStatus     @default(PENDING)
+  totalCents      Int
+  notes           String?
+  createdAt       DateTime        @default(now())
+  updatedAt       DateTime        @updatedAt
+
+  items OrderItem[]
+
+  @@index([tenantId])
+  @@index([tenantId, status])
+  @@map("orders")
+}
+
+model OrderItem {
+  id                 String  @id @default(cuid())
+  orderId            String
+  order               Order  @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  itemId             String?
+  item                Item?  @relation(fields: [itemId], references: [id], onDelete: SetNull)
+  nameSnapshot       String
+  priceCentsSnapshot Int
+  quantity           Int
+
+  @@index([orderId])
+  @@map("order_items")
+}
