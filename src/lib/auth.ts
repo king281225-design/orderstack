@@ -9,10 +9,10 @@ const SESSION_DURATION = "7d";
 const SESSION_MAX_AGE_SECONDS = 7 * 24 * 60 * 60;
 
 function getSecretKey() {
-  const secret = process.env.AUTH_SECRET;
+  const secret = process.env.JWT_SECRET;
   if (!secret || secret.length < 16) {
     throw new Error(
-      "AUTH_SECRET is missing or too short. Set a long random value in .env " +
+      "JWT_SECRET is missing or too short. Set a long random value in .env " +
         "(see .env.example) before starting the server.",
     );
   }

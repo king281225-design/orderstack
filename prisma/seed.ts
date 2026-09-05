@@ -2,12 +2,12 @@
 // to log in and start adding restaurants. Safe to run more than once — it
 // only creates the account if no super admin exists yet.
 //
-// Run with: npx prisma db seed   (needs DATABASE_URL set to a real Postgres)
+// Run with: npx prisma db seed   (needs DATABASE_URL set to a real MySQL instance)
 import { PrismaClient } from "@prisma/client";
-import { PrismaPg } from "@prisma/adapter-pg";
+import { PrismaMariaDb } from "@prisma/adapter-mariadb";
 import bcrypt from "bcryptjs";
 
-const adapter = new PrismaPg({ connectionString: process.env.DATABASE_URL });
+const adapter = new PrismaMariaDb(process.env.DATABASE_URL ?? "");
 const prisma = new PrismaClient({ adapter });
 
 async function main() {

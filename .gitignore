@@ -43,9 +43,6 @@ dev.log
 # never meant to be committed
 /public/uploads
 
-# local-dev-only embedded Postgres data (see scripts/dev-db.mjs)
-/.devdb
-
 # typescript
 *.tsbuildinfo
 next-env.d.ts

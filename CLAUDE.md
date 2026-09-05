@@ -6,21 +6,28 @@ Guidance for Claude Code when working in this repository. Source of truth for sc
 
 A multi-tenant restaurant ordering platform: restaurant owners manage a menu and take orders, customers order from a public per-restaurant page, and a platform super-admin (the user) manually onboards restaurants. The original brief was a 44-section full SaaS (self-serve billing, custom domains, AI menu OCR, kitchen display, coupons, etc.) — that's a 2–3 month build. This project deliberately cuts scope to ship a real, working, single-purpose product for 1–5 real restaurants by **Monday, September 14, 2026**. Everything cut is a fast-follow, not abandoned — see Roadmap below.
 
-**Launch bar:** a real site, on a real domain, backed by a real Postgres database, with 1–5 real restaurants taking real orders — not a demo, not client-side-only storage.
+**Launch bar:** a real site, on a real domain, backed by a real database, with 1–5 real restaurants taking real orders — not a demo, not client-side-only storage. (Database is now MySQL, not Postgres — see the MySQL/R2 migration note below.)
 
 ## Current status
 
 As of **2026-09-05**, the user said "implement it" without answering the plan's open decisions below — proceeded on the plan's defaults rather than blocking on them, per instruction to flag and continue. The full v1 codebase now exists and builds cleanly (Days 1–9 of the day-by-day plan, code-wise):
 
 - Next.js App Router + TypeScript scaffold, Tailwind v4, ESLint clean, `npx tsc --noEmit` clean, `npm run build` clean.
-- Prisma schema (`prisma/schema.prisma`) for Tenant/User/Category/Item/Order/OrderItem, using **Prisma 7's driver-adapter model** (`@prisma/adapter-pg` — Prisma 7 dropped `datasource { url }` from schema.prisma; the CLI reads the connection string from `prisma.config.ts`, `PrismaClient` gets it via the adapter in `src/lib/prisma.ts`). Every tenant-scoped query goes through `src/lib/data/*.ts`, which take `tenantId` as a required argument — see the schema's header comment for the isolation rule.
+- Prisma schema (`prisma/schema.prisma`) for Tenant/User/Category/Item/Order/OrderItem, using **Prisma 7's driver-adapter model** (the CLI reads the connection string from `prisma.config.ts`; `PrismaClient` gets it via an adapter in `src/lib/prisma.ts`). Every tenant-scoped query goes through `src/lib/data/*.ts`, which take `tenantId` as a required argument — see the schema's header comment for the isolation rule.
 - Auth: `bcryptjs` password hashing + `jose`-signed JWT session cookie (`src/lib/auth.ts`), not NextAuth/Lucia — see "Auth implementation note" below for why. `src/proxy.ts` (Next 16 renamed `middleware.ts` → `proxy.ts`) gates `/dashboard` and `/super-admin` at the edge; every action/page re-checks the session server-side too.
 - Menu CRUD, branding (logo/colors/tagline/UPI ID), order dashboard with status transitions + polling refresh, super-admin restaurant creation + stats, public storefront (`/r/<slug>`) with cart (localStorage) + checkout (delivery/takeaway, UPI QR generated via `qrcode` / COD) + order status tracking page (polls a small API route).
-- Image uploads (`src/lib/storage.ts`): writes to `/public/uploads` locally; switches to Vercel Blob automatically once `BLOB_READ_WRITE_TOKEN` is set (real durable storage — required before going live, see below).
 
-**Update (same day, preview pass):** the user asked to see it working before proceeding, so rather than wait on a Neon/Supabase account, a throwaway local Postgres was spun up with `embedded-postgres` (`scripts/dev-db.mjs`, `npm run dev:db` — no install, no service, no account, project-scoped to `.devdb/`) and the whole flow was actually driven end-to-end with `playwright-core` against the running dev server: super-admin login → create restaurant → owner login → add menu category/item → set branding + UPI ID → public storefront → add to cart → checkout (both Cash on Delivery and UPI, the latter confirmed rendering a real scannable QR) → order-status page → back to the owner dashboard seeing the live order → Accept transitions it. `npx prisma migrate dev` and `npm run db:seed` both ran for real (not just typechecked) and worked. Two real bugs surfaced and were fixed: an invalid regex in the restaurant-slug `pattern` attribute, and a redundant `encType` on two forms that use a function action (React sets it automatically; specifying it too threw a console warning). This embedded-Postgres path is a **local dev/preview convenience only** — production still needs a real Neon/Supabase database per the plan; nothing about that changed.
+**Update — first preview pass (2026-09-05, still Postgres):** the user asked to see it working before proceeding, so rather than wait on a Neon/Supabase account, a throwaway local Postgres was spun up (embedded, no install/service/account) and the whole flow was driven end-to-end with `playwright-core`: super-admin → create restaurant → owner → menu → branding + UPI ID → storefront → cart → checkout (COD and UPI, the latter confirmed rendering a real scannable QR) → order-status page → dashboard picking up the live order → status transitions. `npx prisma migrate dev` / `npm run db:seed` both ran for real. Two real bugs surfaced and got fixed: an invalid regex in the restaurant-slug `pattern` attribute, and a redundant `encType` on two forms using a function action (React sets it automatically; specifying it too threw a console warning). This Postgres path is now superseded — see next update — but the bug fixes and the verification approach carried forward.
 
-**Still not done, and can't be from this chat:** no Neon/Supabase project exists yet, nothing is deployed, and no real restaurant's real data has been loaded. Days 10–12 (loading a real restaurant's real menu, phone bug-bash, production deploy) are inherently the user's to do once those accounts exist. See "Running locally / deploying" below.
+**Update — MySQL + R2 migration (same day):** the user pasted real MySQL + Cloudflare R2 credentials mid-conversation with a comment referencing "lecture video storage" and a `dmc_dev` database — nothing like that exists anywhere in OrderStack's domain (restaurants/menus/orders, not lectures), so this was flagged rather than acted on blindly. After two rounds of clarifying questions (contradictory answers surfaced and were re-confirmed), the resolved intent was: **keep OrderStack's actual product (restaurants, not lectures) but move its database from Postgres to this MySQL server, in a new `orderstack` database (not `dmc_dev`, which is a different project's), and use the R2 credentials for image storage instead of Vercel Blob.** That's what's built now — the "lecture video" framing was never acted on; flag to the user if that's actually wanted as a separate feature.
+
+Concretely:
+- **Database:** MySQL via `@prisma/adapter-mariadb` (works against MySQL and MariaDB). `DATABASE_URL` in `.env` points at the user's local MySQL server (`127.0.0.1:3306`), database `orderstack` — created for real via `npx prisma migrate dev`, which connected, created the database, and applied the migration against the live server (not just typechecked). MySQL forced two real schema changes vs. the original Postgres version: `Order.orderNumber` needed `@unique` (MySQL requires an `AUTO_INCREMENT` column to be indexed, unlike Postgres), and R2/S3 URLs needed `@db.Text` on `logoUrl`/`imageUrl` (MySQL's default `String` is `VARCHAR(191)`, too short for a signed URL).
+- **Auth secret renamed:** `AUTH_SECRET` → `JWT_SECRET` throughout (`src/lib/auth.ts`, `.env`), matching the variable name the user's credentials used.
+- **Image storage rewritten** (`src/lib/storage.ts`): uploads now go to Cloudflare R2 (S3-compatible, via `@aws-sdk/client-s3`) under an `orderstack/` key prefix — the bucket (`dmc`) is shared with whatever the credentials' other, unrelated project is, so the prefix keeps the two from colliding. Reads go through `src/app/api/media/[...key]/route.ts`, which signs a short-lived GET URL server-side (`@aws-sdk/s3-request-presigner`) and redirects — R2 credentials never reach the browser, and it works whether or not the bucket has public access configured. Falls back to `/public/uploads` if R2 env vars aren't set. Verified for real: uploaded an actual photo through the owner's menu-item form, confirmed the resulting `/api/media/...` URL 307-redirects to a signed R2 URL that serves back `200` with the correct `content-type`.
+- **Removed:** the Postgres-specific migration history, `@prisma/adapter-pg`, `@vercel/blob`, and the embedded-Postgres local-dev tooling (`scripts/dev-db.mjs`, `embedded-postgres`) — all superseded by the above. `playwright-core` (browser-driven verification) was kept; it's DB-agnostic.
+
+**Still not done, and can't be from this chat:** the plan's original stack (§3) said Neon/Supabase + Vercel Blob — that's no longer what's built; if the user wants to go back to it later, this whole migration note is the diff to reverse. Nothing is deployed yet, and no real restaurant's real data has been loaded. Days 10–12 (loading a real restaurant's real menu, phone bug-bash, production deploy) are inherently the user's to do. See "Running locally / deploying" below.
 
 ## Open decisions (the plan's "Next step" — still unanswered, proceeding on defaults)
 
@@ -49,7 +56,7 @@ The user hasn't confirmed these; the build above assumes the defaults on the rig
 - Basic aggregate stats: orders, revenue, active restaurants
 
 **Infrastructure**
-- Real PostgreSQL with tenant isolation enforced **at the query level** (not just app-level filtering)
+- Real MySQL (was Postgres — see migration note) with tenant isolation enforced **at the query level** (not just app-level filtering)
 - Real authentication: hashed passwords, real sessions
 - Deployed on a real domain; tested end-to-end on mobile and desktop
 
@@ -68,14 +75,14 @@ If asked to build any of these before launch, push back and point to the trade-o
 | Layer | Choice | Why |
 |---|---|---|
 | Framework | Next.js (App Router) + TypeScript | One codebase for frontend + API routes; deploys cleanly to Vercel |
-| Database | PostgreSQL via Neon or Supabase | Real managed Postgres; free tier covers launch scale |
+| Database | **MySQL** (was Postgres — see migration note above) | User-provided MySQL server; `@prisma/adapter-mariadb` |
 | ORM | Prisma | Fast schema iteration, type-safe queries, easy tenant-scoping |
-| Auth | NextAuth (credentials provider) or Lucia | Real sessions without building auth from scratch |
-| File storage | Supabase Storage or Vercel Blob | Real image uploads for logos and menu photos |
+| Auth | Hand-rolled JWT session (was going to be NextAuth/Lucia) | See "Auth implementation note" below |
+| File storage | **Cloudflare R2** (was Vercel Blob) | User-provided R2 bucket; S3-compatible via `@aws-sdk/client-s3` |
 | Styling | Tailwind CSS | Fast per-tenant theming, matches the demo's approach |
-| Hosting | Vercel | Zero-downtime deploys, custom domain support, generous free tier |
+| Hosting | Vercel (unconfirmed — plan default, not revisited since the DB/storage pivot) | Zero-downtime deploys, custom domain support, generous free tier |
 
-Keep the ideas proven in the earlier demo (tenant-namespaced data, theme-as-config, isolated order queues) but back them with a real database and real accounts — no client-side-only storage in v1.
+Keep the ideas proven in the earlier demo (tenant-namespaced data, theme-as-config, isolated order queues) but back them with a real database and real accounts — no client-side-only storage in v1. The DB/storage row changes above came from the user's own credentials, not a plan revision — if deploying to Vercel specifically still matters, double-check compatibility with the MySQL host (whether it's reachable from Vercel's network) before assuming it carries over unchanged.
 
 ## Day-by-day plan
 
@@ -109,17 +116,15 @@ The plan named "NextAuth (credentials provider) or Lucia" — the actual build u
 
 ## Running locally / deploying (what's left is the user's half of §5)
 
-**Trying it out locally right now, no accounts needed:** `npm run dev:db` in one terminal (starts a throwaway local Postgres via `embedded-postgres`, prints the `DATABASE_URL` to use — already set in `.env`), then `npx prisma migrate dev` + `npm run db:seed` once, then `npm run dev`. This is exactly the path already verified in the preview pass above — not hypothetical.
+**Already working right now, on this machine:** `.env` has real, live credentials — the MySQL server at `127.0.0.1:3306` (database `orderstack`, already migrated + seeded) and the R2 bucket. `npm run dev`, sign in at `/login` with the seeded super-admin (`SUPER_ADMIN_EMAIL`/`SUPER_ADMIN_PASSWORD` in `.env`), add a restaurant, sign in as its owner, build the real menu (photo uploads land in R2 for real), then open `/r/<slug>` to place a test order. This whole path — migrate, seed, menu CRUD with a real R2-uploaded photo, storefront, checkout, order dashboard — has actually been run, not just typechecked.
 
-**Going to a real, deployed instance for the actual 1–5 restaurants:**
-1. **Provision Postgres** — create a Neon or Supabase project, copy its connection string into `DATABASE_URL` in `.env` (copy `.env.example` → `.env` first if starting fresh), replacing the local `dev:db` one.
-2. **Generate a real `AUTH_SECRET`** if not already set — `.env` already has one auto-generated by the initial scaffold; rotate it before real use if that file was ever shared.
-3. `npx prisma migrate dev --name init` against the real `DATABASE_URL`, then `npm run db:seed`.
-4. `npm run dev`, sign in at `/login` with the super-admin credentials, add a restaurant, sign in as its owner, build the real menu, then open `/r/<slug>` to place a test order.
-5. **Before going live on Vercel:** set `DATABASE_URL`, `AUTH_SECRET`, `SUPER_ADMIN_EMAIL`/`SUPER_ADMIN_PASSWORD` as env vars in the Vercel dashboard, and create a Blob store there to get `BLOB_READ_WRITE_TOKEN` — without it, uploaded photos land on Vercel's ephemeral filesystem and will vanish.
-6. Point the domain's DNS at Vercel once deployed.
+**Before going live for real (deploying, a real domain, real restaurants):**
+1. Decide on hosting — the plan defaulted to Vercel, but that hasn't been reconfirmed since the MySQL/R2 pivot. If the MySQL server is only reachable on localhost/LAN, either expose it securely or move to a hosted MySQL (PlanetScale, RDS, etc.) before deploying.
+2. Rotate the R2 API token before production — the one in `.env` is explicitly marked dev-only by the user who provided it.
+3. Set `DATABASE_URL`, `JWT_SECRET`, `R2_*`, `SUPER_ADMIN_EMAIL`/`SUPER_ADMIN_PASSWORD` as env vars wherever it's deployed.
+4. Point the domain's DNS at the deployment once live.
 
-Do this real-database pass before Day 10 of the plan (loading the actual restaurant's data).
+Do this before Day 10 of the plan (loading the actual restaurant's data).
 
 ## Post-launch roadmap
 

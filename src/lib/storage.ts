@@ -2,27 +2,65 @@ import "server-only";
 import { randomUUID } from "crypto";
 import { mkdir, writeFile } from "fs/promises";
 import path from "path";
+import { S3Client, PutObjectCommand } from "@aws-sdk/client-s3";
 
 /**
- * Real image uploads for logos and menu photos (plan §3: "Vercel Blob or
- * Supabase Storage"). If BLOB_READ_WRITE_TOKEN is set (create a Blob store
- * in the Vercel dashboard), uploads go to Vercel Blob and are durable in
- * production. Without it, this falls back to writing into /public/uploads —
- * fine for local dev, but NOT durable on Vercel (its filesystem is
- * read-only/ephemeral at runtime), so set the token before going live.
+ * Real image uploads for logos and menu photos, backed by Cloudflare R2
+ * (S3-compatible). The bucket ("dmc") is shared with another, unrelated
+ * project — everything OrderStack writes lives under the `orderstack/`
+ * prefix so the two don't collide.
+ *
+ * The bucket is treated as private: uploads go straight to R2 via
+ * PutObjectCommand, and reads go through /api/media/[...key], which signs a
+ * short-lived GET URL server-side and redirects to it (see that route) —
+ * the R2 credentials never reach the browser, and this works regardless of
+ * whether the bucket has public access configured.
+ *
+ * Without R2 credentials set, this falls back to writing into
+ * /public/uploads — fine for local dev, but NOT durable once deployed.
  */
+const R2_PREFIX = "orderstack";
+
+export function isR2Configured(): boolean {
+  return Boolean(
+    process.env.R2_ACCESS_KEY_ID && process.env.R2_SECRET_ACCESS_KEY && process.env.R2_BUCKET,
+  );
+}
+
+export function getR2Client(): S3Client {
+  const endpoint =
+    process.env.R2_ENDPOINT ||
+    (process.env.R2_ACCOUNT_ID
+      ? `https://${process.env.R2_ACCOUNT_ID}.r2.cloudflarestorage.com`
+      : undefined);
+  if (!endpoint) {
+    throw new Error("R2_ENDPOINT (or R2_ACCOUNT_ID) must be set to use R2 storage.");
+  }
+  return new S3Client({
+    region: "auto",
+    endpoint,
+    credentials: {
+      accessKeyId: process.env.R2_ACCESS_KEY_ID!,
+      secretAccessKey: process.env.R2_SECRET_ACCESS_KEY!,
+    },
+  });
+}
+
 export async function saveUpload(file: File, folder: "logos" | "items"): Promise<string> {
   const ext = safeExt(file.name);
-  const filename = `${folder}/${randomUUID()}${ext}`;
+  const key = `${R2_PREFIX}/${folder}/${randomUUID()}${ext}`;
 
-  if (process.env.BLOB_READ_WRITE_TOKEN) {
-    const { put } = await import("@vercel/blob");
-    const blob = await put(filename, file, {
-      access: "public",
-      token: process.env.BLOB_READ_WRITE_TOKEN,
-      addRandomSuffix: false,
-    });
-    return blob.url;
+  if (isR2Configured()) {
+    const bytes = Buffer.from(await file.arrayBuffer());
+    await getR2Client().send(
+      new PutObjectCommand({
+        Bucket: process.env.R2_BUCKET!,
+        Key: key,
+        Body: bytes,
+        ContentType: file.type || "application/octet-stream",
+      }),
+    );
+    return `/api/media/${key}`;
   }
 
   const uploadsDir = path.join(process.cwd(), "public", "uploads", folder);

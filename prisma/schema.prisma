@@ -12,7 +12,7 @@ generator client {
 }
 
 datasource db {
-  provider = "postgresql"
+  provider = "mysql"
 }
 
 enum Role {
@@ -50,7 +50,9 @@ model Tenant {
   slug           String       @unique
   name           String
   tagline        String?
-  logoUrl        String?
+  // R2/S3 URLs (presigned or otherwise) regularly exceed MySQL's default
+  // VARCHAR(191) for a String field, so these are explicitly TEXT.
+  logoUrl        String?      @db.Text
   colorPrimary   String       @default("#111827")
   colorSecondary String       @default("#f97316")
   colorAccent    String       @default("#ffffff")
@@ -104,9 +106,9 @@ model Item {
   categoryId  String
   category    Category @relation(fields: [categoryId], references: [id], onDelete: Cascade)
   name        String
-  description String?
+  description String?  @db.Text
   priceCents  Int
-  imageUrl    String?
+  imageUrl    String?  @db.Text
   isAvailable Boolean  @default(true)
   sortOrder   Int      @default(0)
   createdAt   DateTime @default(now())
@@ -121,17 +123,19 @@ model Item {
 
 model Order {
   id              String          @id @default(cuid())
-  orderNumber     Int             @default(autoincrement())
+  // MySQL requires an AUTO_INCREMENT column to be indexed (unique or
+  // primary) — unlike Postgres, it can't sit on a plain non-key column.
+  orderNumber     Int             @unique @default(autoincrement())
   tenantId        String
   tenant          Tenant          @relation(fields: [tenantId], references: [id], onDelete: Cascade)
   customerName    String
   customerPhone   String
   fulfillmentType FulfillmentType
-  deliveryAddress String?
+  deliveryAddress String?         @db.Text
   paymentMethod   PaymentMethod
   status          OrderStatus     @default(PENDING)
   totalCents      Int
-  notes           String?
+  notes           String?         @db.Text
   createdAt       DateTime        @default(now())
   updatedAt       DateTime        @updatedAt
 
@@ -145,9 +149,9 @@ model Order {
 model OrderItem {
   id                 String  @id @default(cuid())
   orderId            String
-  order               Order  @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  order              Order   @relation(fields: [orderId], references: [id], onDelete: Cascade)
   itemId             String?
-  item                Item?  @relation(fields: [itemId], references: [id], onDelete: SetNull)
+  item               Item?   @relation(fields: [itemId], references: [id], onDelete: SetNull)
   nameSnapshot       String
   priceCentsSnapshot Int
   quantity           Int
