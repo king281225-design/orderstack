@@ -51,6 +51,9 @@ export default async function DashboardLayout({ children }: { children: React.Re
           <Link href="/dashboard/tables" className="text-gray-600 hover:text-gray-900">
             Tables
           </Link>
+          <Link href="/dashboard/kitchen" className="text-gray-600 hover:text-gray-900">
+            Kitchen
+          </Link>
           <a
             href={`/r/${tenant.slug}`}
             target="_blank"

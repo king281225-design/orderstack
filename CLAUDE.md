@@ -126,11 +126,25 @@ The plan named "NextAuth (credentials provider) or Lucia" — the actual build u
 
 Do this before Day 10 of the plan (loading the actual restaurant's data).
 
-## Post-launch roadmap
+## Post-launch roadmap — module status (updated 2026-09-05)
 
-- **Week 2–3:** ~~Self-serve restaurant signup~~ **done** — see below. ~~Razorpay integration~~ **built, dormant** — see below. Stripe wasn't asked for, so not built. Email/WhatsApp order notifications still needs a provider (Resend/Twilio/WhatsApp Business API) and credentials.
-- **Month 2:** ~~Coupons~~ **done**, ~~QR table ordering for dine-in~~ **done** — see below. Custom domains, subscription billing automation, and kitchen display system are still open — the first two need a live deployment/domain to mean anything.
-- **Month 3+:** AI-assisted menu import from photos/PDFs, delivery-zone radius pricing, analytics dashboards, staff roles/permissions.
+**Done (7):** self-serve restaurant signup · Razorpay online payment (built, dormant until real keys are added) · coupons · QR table ordering for dine-in · sample/mockup menu quick-start (added on request, wasn't on the original roadmap) · auto-accept orders on confirmed Razorpay payment · kitchen display system.
+
+**Left (7):**
+- Email/WhatsApp order notifications — blocked, needs a notification provider (Resend/Twilio/WhatsApp Business API) and credentials nobody has given me.
+- Custom domains per restaurant — blocked, needs a live deployment/domain to mean anything.
+- Subscription billing automation (charging *restaurants* a platform fee) — blocked on a real business decision first (actual plan tiers/pricing don't exist yet — `Tenant.plan` is just a free-text default), then Razorpay Subscriptions on top.
+- AI-assisted menu import from photos/PDFs — blocked, needs an AI/OCR provider and credentials.
+- Delivery-zone radius pricing — partially blocked: true GPS-radius pricing needs a geocoding API (credentials), but a simplified manual-zone version (owner defines named zones with flat fees, customer picks one at checkout) is buildable now with no external account.
+- Analytics dashboards — buildable now, no blockers.
+- Staff roles/permissions — buildable now, no blockers (the `STAFF` role already exists in the schema; there's just no way yet for an owner to create one or to actually restrict what it can do — `requireTenantSession()` treats `OWNER` and `STAFF` identically everywhere today).
+
+(Stripe was named alongside Razorpay in the original plan but never actually asked for, so it's not counted as "left" — only build it if asked.)
+
+### Original tiering, for reference
+- **Week 2–3:** self-serve signup, Razorpay/Stripe, notifications.
+- **Month 2:** coupons, QR table ordering, custom domains, subscription billing, kitchen display.
+- **Month 3+:** AI menu import, delivery-zone pricing, analytics, staff roles.
 
 ### Self-serve restaurant signup (built 2026-09-05)
 
@@ -184,6 +198,15 @@ User asked for UPI payment confirmation to auto-accept the order. Flagged a real
 - `autoAcceptOnPaid` (`src/lib/data/orders.ts`), called from inside both `markPaymentStatus` (client-verification path) and `setPaymentStatusByRazorpayOrderId` (webhook path) within the same `prisma.$transaction` that sets `paymentStatus: PAID` — so payment confirmation and the status bump are atomic, not two separate writes that could race. It only ever moves `PENDING -> ACCEPTED`, via an `updateMany` conditioned on `status: "PENDING"` in the `WHERE` clause: an order the owner already advanced further, or cancelled, is left alone (the condition just matches nothing), and a webhook retry after the flip already happened is a harmless no-op for the same reason.
 - **Verified for real against the live database**, not just asserted from reading the code: since creating a genuine Razorpay order needs real credentials nobody has, the test called the actual shipped functions directly (via `tsx`, bypassing only the "ask Razorpay's real API for an order id" step) against four real orders in the live MySQL database, confirming: (1) the client-verification path auto-accepts a fresh Pending order, (2) the webhook path does too, (3) an order the owner had already **cancelled** stays cancelled even after payment confirms — it is not resurrected to Accepted, and (4) a **failed** payment does not auto-accept anything. All four passed.
 - One throwaway wrinkle from testing this way: Next.js's `"server-only"` import guard isn't a real installed package (Next aliases it internally) — running the data-layer code outside Next via `tsx` needed it installed and briefly neutralized to import at all. Installed, used, then fully uninstalled again once the test ran; nothing about this is part of the shipped app.
+
+### Kitchen display system (built 2026-09-05)
+
+Last remaining buildable Month-2 item — custom domains needs a live deployment and subscription billing needs real plan pricing decided first, so both are still blocked.
+
+- `/dashboard/kitchen`: the same active orders and the same `advanceOrderStatusAction` the regular Orders tab already uses, laid out as a 4-column Kanban board (New/Accepted/Preparing/Ready) in large, high-contrast text meant to be read from across a kitchen rather than up close. No new schema, no new server actions — purely a different view over data that already existed.
+- Polls every 5s (vs. the regular dashboard's 8s) via the existing `AutoRefresh` component, since a kitchen screen benefits more from catching a new order quickly.
+- Hit the same `react-hooks/purity` issue a third time (after the coupons page and, within this same session, again here): showing "Xm ago" per order needs `Date.now()`, which can't be called directly inside any component body, page or otherwise. Rather than re-solve it ad hoc, added `src/lib/time.ts` (`nowMs()`) as the standing fix — a plain non-component wrapper function, called once per page render and passed down, so this doesn't need rediscovering a fourth time.
+- Verified for real: seeded 3 real orders via the actual customer checkout flow, opened the kitchen board and confirmed all 3 appeared in "New," then drove one order through Accept → Start preparing → Ready → Served and confirmed it moved column to column with the counts updating correctly at each step.
 
 ## Trade-off menu (only if Sep 14 is truly fixed and scope must shrink further)
 
