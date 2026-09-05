@@ -2,13 +2,20 @@
 
 import { revalidatePath } from "next/cache";
 import { requireTenantSession } from "@/lib/auth";
-import { advanceOrderStatus } from "@/lib/data/orders";
+import { advanceOrderStatus, markOrderPaid } from "@/lib/data/orders";
 import { setTenantOpen } from "@/lib/data/tenants";
 import type { OrderStatus } from "@prisma/client";
 
 export async function advanceOrderStatusAction(orderId: string, to: OrderStatus) {
   const session = await requireTenantSession();
   await advanceOrderStatus(session.tenantId, orderId, to);
+  revalidatePath("/dashboard");
+}
+
+/** Manual reconciliation for COD/UPI orders (see schema comment on Order.paymentStatus). */
+export async function markOrderPaidAction(orderId: string) {
+  const session = await requireTenantSession();
+  await markOrderPaid(session.tenantId, orderId);
   revalidatePath("/dashboard");
 }
 

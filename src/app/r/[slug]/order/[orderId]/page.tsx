@@ -3,7 +3,15 @@ import { getTenantBySlug } from "@/lib/data/tenants";
 import { getOrderForTenant } from "@/lib/data/orders";
 import { buildUpiQr } from "@/lib/upi";
 import { formatINR } from "@/lib/money";
+import { getRazorpayKeyId } from "@/lib/payments/razorpay";
 import { OrderStatusView } from "@/components/storefront/order-status-view";
+import { RazorpayPayNowButton } from "@/components/storefront/razorpay-pay-now-button";
+
+const PAYMENT_METHOD_LABEL = {
+  UPI: "UPI",
+  COD: "Cash on delivery",
+  RAZORPAY: "Paid online",
+} as const;
 
 export const dynamic = "force-dynamic";
 
@@ -50,6 +58,28 @@ export default async function OrderStatusPage({
         </section>
       )}
 
+      {order.paymentMethod === "RAZORPAY" &&
+        order.paymentStatus === "PENDING" &&
+        order.razorpayOrderId &&
+        order.status !== "CANCELLED" && (
+          <section className="flex flex-col items-center gap-2 rounded-lg border border-gray-200 bg-white p-4 text-center">
+            <p className="text-sm font-medium text-gray-900">Payment not completed</p>
+            <p className="text-xs text-gray-500">
+              Looks like the payment window was closed before finishing. You can try again below.
+            </p>
+            <RazorpayPayNowButton
+              slug={slug}
+              orderId={order.id}
+              razorpayOrderId={order.razorpayOrderId}
+              keyId={getRazorpayKeyId() ?? ""}
+              amountCents={order.totalCents}
+              restaurantName={tenant.name}
+              customerName={order.customerName}
+              customerPhone={order.customerPhone}
+            />
+          </section>
+        )}
+
       <section className="rounded-lg border border-gray-200 bg-white p-4">
         <h2 className="mb-2 text-sm font-semibold text-gray-900">Order details</h2>
         <ul className="flex flex-col divide-y divide-gray-100 text-sm">
@@ -68,7 +98,9 @@ export default async function OrderStatusPage({
         </div>
         <p className="mt-2 text-xs text-gray-500">
           {order.fulfillmentType === "DELIVERY" ? `Delivery to ${order.deliveryAddress}` : "Takeaway"} ·{" "}
-          {order.paymentMethod === "UPI" ? "UPI" : "Cash on delivery"}
+          {PAYMENT_METHOD_LABEL[order.paymentMethod]}
+          {order.paymentMethod === "RAZORPAY" &&
+            ` (${order.paymentStatus === "PAID" ? "paid" : order.paymentStatus === "FAILED" ? "failed" : "pending"})`}
         </p>
       </section>
     </div>

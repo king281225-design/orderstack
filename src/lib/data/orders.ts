@@ -1,7 +1,7 @@
 import "server-only";
 import { prisma } from "@/lib/prisma";
 import { getItemsForOrder } from "@/lib/data/menu";
-import type { FulfillmentType, OrderStatus, PaymentMethod } from "@prisma/client";
+import type { FulfillmentType, OrderStatus, PaymentMethod, PaymentStatus } from "@prisma/client";
 
 export type CartLine = { itemId: string; quantity: number };
 
@@ -98,4 +98,58 @@ export async function advanceOrderStatus(tenantId: string, orderId: string, to: 
     throw new InvalidTransitionError(`Cannot move an order from ${order.status} to ${to}.`);
   }
   return prisma.order.update({ where: { id: orderId }, data: { status: to } });
+}
+
+/** Links a newly created order to the Razorpay order created for it (see src/lib/payments/razorpay.ts). */
+export async function attachRazorpayOrder(tenantId: string, orderId: string, razorpayOrderId: string) {
+  return prisma.order.updateMany({
+    where: { id: orderId, tenantId },
+    data: { razorpayOrderId },
+  });
+}
+
+/**
+ * Owner-facing manual reconciliation for COD/UPI orders (the plan's
+ * "reconciled manually"), scoped to the session's tenant like every other
+ * dashboard action.
+ */
+export async function markOrderPaid(tenantId: string, orderId: string) {
+  return prisma.order.updateMany({
+    where: { id: orderId, tenantId },
+    data: { paymentStatus: "PAID" },
+  });
+}
+
+/**
+ * Tenant-scoped verification path for Razorpay checkout — called right
+ * after the client-side checkout succeeds, with a signature already
+ * verified by the caller (see verifyRazorpayPaymentAction).
+ */
+export async function markPaymentStatus(
+  tenantId: string,
+  orderId: string,
+  status: PaymentStatus,
+  razorpayPaymentId?: string,
+) {
+  return prisma.order.updateMany({
+    where: { id: orderId, tenantId },
+    data: { paymentStatus: status, ...(razorpayPaymentId ? { razorpayPaymentId } : {}) },
+  });
+}
+
+/**
+ * Webhook path only (src/app/api/webhooks/razorpay/route.ts) — there's no
+ * session/slug to scope by here, only Razorpay's own order id, which is
+ * why razorpayOrderId is unique: this is the sole lookup key, and it's only
+ * ever trusted after the caller has verified the webhook signature.
+ */
+export async function setPaymentStatusByRazorpayOrderId(
+  razorpayOrderId: string,
+  status: PaymentStatus,
+  razorpayPaymentId?: string,
+) {
+  return prisma.order.updateMany({
+    where: { razorpayOrderId },
+    data: { paymentStatus: status, ...(razorpayPaymentId ? { razorpayPaymentId } : {}) },
+  });
 }

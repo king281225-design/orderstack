@@ -1,19 +1,33 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { useCart } from "@/lib/cart";
 import { formatINR } from "@/lib/money";
-import { placeOrderAction } from "@/app/r/[slug]/actions";
+import { placeOrderAction, verifyRazorpayPaymentAction } from "@/app/r/[slug]/actions";
+import { loadRazorpayCheckout, openRazorpayCheckout } from "@/lib/razorpay-client";
 
-export function CheckoutForm({ slug, hasUpi }: { slug: string; hasUpi: boolean }) {
+export function CheckoutForm({
+  slug,
+  restaurantName,
+  hasUpi,
+  hasRazorpay,
+}: {
+  slug: string;
+  restaurantName: string;
+  hasUpi: boolean;
+  hasRazorpay: boolean;
+}) {
   const { lines, totalCents, clear } = useCart();
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
   const [fulfillmentType, setFulfillmentType] = useState<"DELIVERY" | "TAKEAWAY">("TAKEAWAY");
-  const [paymentMethod, setPaymentMethod] = useState<"UPI" | "COD">(hasUpi ? "UPI" : "COD");
+  const [paymentMethod, setPaymentMethod] = useState<"UPI" | "COD" | "RAZORPAY">(
+    hasRazorpay ? "RAZORPAY" : hasUpi ? "UPI" : "COD",
+  );
+  const formRef = useRef<HTMLFormElement>(null);
 
   if (lines.length === 0) {
     return (
@@ -45,15 +59,63 @@ export function CheckoutForm({ slug, hasUpi }: { slug: string; hasUpi: boolean }
         setError(result.error);
         return;
       }
-      if (result.orderId) {
+      if (!result.orderId) return;
+
+      // Cash on delivery / UPI QR: the order's placed, nothing left to do here.
+      if (!result.razorpay) {
         clear();
         router.push(`/r/${slug}/order/${result.orderId}`);
+        return;
+      }
+
+      // Razorpay: the order exists (payment PENDING) — open the checkout
+      // widget. Whatever happens next (paid, dismissed, closed tab), the
+      // order-status page can pick up from there, so it's always safe to
+      // land the customer there once the order itself is created.
+      const orderId = result.orderId;
+      const { keyId, razorpayOrderId, amountCents } = result.razorpay;
+      try {
+        await loadRazorpayCheckout();
+        openRazorpayCheckout({
+          key: keyId,
+          amount: amountCents,
+          currency: "INR",
+          order_id: razorpayOrderId,
+          name: restaurantName,
+          prefill: { name: fields.customerName, contact: fields.customerPhone },
+          theme: {
+            color:
+              (formRef.current && getComputedStyle(formRef.current).getPropertyValue("--brand-primary").trim()) ||
+              undefined,
+          },
+          handler: (response) => {
+            startTransition(async () => {
+              await verifyRazorpayPaymentAction(
+                slug,
+                orderId,
+                response.razorpay_order_id,
+                response.razorpay_payment_id,
+                response.razorpay_signature,
+              );
+              clear();
+              router.push(`/r/${slug}/order/${orderId}`);
+            });
+          },
+          modal: {
+            ondismiss: () => {
+              clear();
+              router.push(`/r/${slug}/order/${orderId}`);
+            },
+          },
+        });
+      } catch {
+        setError("Could not open the payment window. Please try again.");
       }
     });
   }
 
   return (
-    <form action={handleSubmit} className="flex flex-col gap-5">
+    <form ref={formRef} action={handleSubmit} className="flex flex-col gap-5">
       <section className="rounded-lg border border-gray-200 bg-white p-3">
         <h2 className="mb-2 text-sm font-semibold text-gray-900">Your order</h2>
         <ul className="flex flex-col divide-y divide-gray-100 text-sm">
@@ -125,7 +187,20 @@ export function CheckoutForm({ slug, hasUpi }: { slug: string; hasUpi: boolean }
 
       <fieldset className="flex flex-col gap-1">
         <legend className="text-sm font-medium text-gray-700">Payment</legend>
-        <div className="flex gap-3">
+        <div className="flex flex-wrap gap-3">
+          {hasRazorpay && (
+            <button
+              type="button"
+              onClick={() => setPaymentMethod("RAZORPAY")}
+              className={`rounded-md border px-3 py-1.5 text-sm font-medium ${
+                paymentMethod === "RAZORPAY"
+                  ? "border-gray-900 bg-gray-900 text-white"
+                  : "border-gray-300 text-gray-700"
+              }`}
+            >
+              Pay online (Card/UPI/Netbanking)
+            </button>
+          )}
           {hasUpi && (
             <button
               type="button"

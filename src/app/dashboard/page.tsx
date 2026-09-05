@@ -2,7 +2,7 @@ import { requireTenantSession } from "@/lib/auth";
 import { listOrdersForTenant } from "@/lib/data/orders";
 import { getTenantById } from "@/lib/data/tenants";
 import { formatINR } from "@/lib/money";
-import { advanceOrderStatusAction, toggleOpenAction } from "@/app/dashboard/actions";
+import { advanceOrderStatusAction, markOrderPaidAction, toggleOpenAction } from "@/app/dashboard/actions";
 import { AutoRefresh } from "@/components/auto-refresh";
 import type { Order, OrderItem, OrderStatus } from "@prisma/client";
 
@@ -23,6 +23,12 @@ const STATUS_STYLE: Record<OrderStatus, string> = {
   COMPLETED: "bg-green-100 text-green-800",
   CANCELLED: "bg-gray-200 text-gray-600",
 };
+
+const PAYMENT_METHOD_LABEL = {
+  UPI: "UPI",
+  COD: "Cash on delivery",
+  RAZORPAY: "Online",
+} as const;
 
 export default async function DashboardOrdersPage() {
   const session = await requireTenantSession();
@@ -131,14 +137,25 @@ function OrderCard({ order }: { order: Order & { items: OrderItem[] } }) {
         ))}
       </ul>
 
-      <div className="mb-3 flex flex-wrap gap-x-4 gap-y-1 text-xs text-gray-500">
+      <div className="mb-3 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-gray-500">
         <span>{order.fulfillmentType === "DELIVERY" ? "Delivery" : "Takeaway"}</span>
         {order.deliveryAddress && <span>{order.deliveryAddress}</span>}
-        <span>{order.paymentMethod === "UPI" ? "UPI" : "Cash on delivery"}</span>
+        <span>{PAYMENT_METHOD_LABEL[order.paymentMethod]}</span>
+        <span
+          className={`rounded-full px-2 py-0.5 text-xs font-medium ${
+            order.paymentStatus === "PAID"
+              ? "bg-green-100 text-green-700"
+              : order.paymentStatus === "FAILED"
+                ? "bg-red-100 text-red-700"
+                : "bg-amber-100 text-amber-700"
+          }`}
+        >
+          {order.paymentStatus === "PAID" ? "Paid" : order.paymentStatus === "FAILED" ? "Payment failed" : "Unpaid"}
+        </span>
         <span className="font-medium text-gray-700">{formatINR(order.totalCents)}</span>
       </div>
 
-      <div className="flex gap-2">
+      <div className="flex flex-wrap gap-2">
         {next && (
           <form action={advanceOrderStatusAction.bind(null, order.id, next.to)}>
             <button
@@ -156,6 +173,17 @@ function OrderCard({ order }: { order: Order & { items: OrderItem[] } }) {
               className="rounded-md border border-red-300 px-3 py-1.5 text-sm font-semibold text-red-600 hover:bg-red-50"
             >
               Cancel
+            </button>
+          </form>
+        )}
+        {order.paymentStatus === "PENDING" && (
+          <form action={markOrderPaidAction.bind(null, order.id)}>
+            <button
+              type="submit"
+              className="rounded-md border border-gray-300 px-3 py-1.5 text-sm font-semibold text-gray-700 hover:bg-gray-50"
+              title="Manual reconciliation — mark this order as paid"
+            >
+              Mark as paid
             </button>
           </form>
         )}

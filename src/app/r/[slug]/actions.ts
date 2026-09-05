@@ -2,7 +2,19 @@
 
 import { z } from "zod";
 import { getTenantBySlug } from "@/lib/data/tenants";
-import { createOrder, EmptyCartError, InvalidItemsError } from "@/lib/data/orders";
+import {
+  attachRazorpayOrder,
+  createOrder,
+  EmptyCartError,
+  InvalidItemsError,
+  markPaymentStatus,
+} from "@/lib/data/orders";
+import {
+  createRazorpayOrder,
+  getRazorpayKeyId,
+  isRazorpayConfigured,
+  verifyCheckoutSignature,
+} from "@/lib/payments/razorpay";
 
 const cartLineSchema = z.object({
   itemId: z.string().min(1),
@@ -14,11 +26,16 @@ const checkoutSchema = z.object({
   customerPhone: z.string().min(6, "Enter a valid phone number."),
   fulfillmentType: z.enum(["DELIVERY", "TAKEAWAY"]),
   deliveryAddress: z.string().optional(),
-  paymentMethod: z.enum(["UPI", "COD"]),
+  paymentMethod: z.enum(["UPI", "COD", "RAZORPAY"]),
   notes: z.string().optional(),
 });
 
-export type PlaceOrderResult = { error?: string; orderId?: string };
+export type PlaceOrderResult = {
+  error?: string;
+  orderId?: string;
+  /** Present only for paymentMethod RAZORPAY — the client opens Razorpay's checkout with these. */
+  razorpay?: { keyId: string; razorpayOrderId: string; amountCents: number };
+};
 
 /**
  * Called directly from the client checkout form (not a <form action>), so
@@ -50,6 +67,11 @@ export async function placeOrderAction(
   if (data.fulfillmentType === "DELIVERY" && !data.deliveryAddress?.trim()) {
     return { error: "Delivery address is required for delivery orders." };
   }
+  if (data.paymentMethod === "RAZORPAY" && !isRazorpayConfigured()) {
+    // Shouldn't normally happen — the UI hides this option when unconfigured —
+    // but a stale client-side cache or a direct call shouldn't silently break.
+    return { error: "Online payment isn't set up yet. Please choose UPI or Cash on Delivery." };
+  }
 
   try {
     const order = await createOrder(tenant.id, {
@@ -61,10 +83,49 @@ export async function placeOrderAction(
       paymentMethod: data.paymentMethod,
       notes: data.notes?.trim() || null,
     });
+
+    if (data.paymentMethod === "RAZORPAY") {
+      const razorpayOrder = await createRazorpayOrder(order.totalCents, order.id);
+      await attachRazorpayOrder(tenant.id, order.id, razorpayOrder.id);
+      return {
+        orderId: order.id,
+        razorpay: {
+          keyId: getRazorpayKeyId()!,
+          razorpayOrderId: razorpayOrder.id,
+          amountCents: order.totalCents,
+        },
+      };
+    }
+
     return { orderId: order.id };
   } catch (err) {
     if (err instanceof EmptyCartError) return { error: "Your cart is empty." };
     if (err instanceof InvalidItemsError) return { error: err.message };
     return { error: "Could not place order. Please try again." };
   }
+}
+
+export type VerifyPaymentResult = { ok: boolean };
+
+/**
+ * Called from the client right after Razorpay's checkout widget reports
+ * success. Verifies the signature server-side before trusting it — the
+ * webhook (src/app/api/webhooks/razorpay/route.ts) is the authoritative
+ * confirmation in case this call never happens (closed tab, network drop).
+ */
+export async function verifyRazorpayPaymentAction(
+  slug: string,
+  orderId: string,
+  razorpayOrderId: string,
+  razorpayPaymentId: string,
+  razorpaySignature: string,
+): Promise<VerifyPaymentResult> {
+  const tenant = await getTenantBySlug(slug);
+  if (!tenant) return { ok: false };
+
+  const valid = verifyCheckoutSignature(razorpayOrderId, razorpayPaymentId, razorpaySignature);
+  if (!valid) return { ok: false };
+
+  await markPaymentStatus(tenant.id, orderId, "PAID", razorpayPaymentId);
+  return { ok: true };
 }

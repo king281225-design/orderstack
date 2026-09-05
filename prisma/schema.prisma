@@ -34,6 +34,13 @@ enum FulfillmentType {
 enum PaymentMethod {
   UPI
   COD
+  RAZORPAY
+}
+
+enum PaymentStatus {
+  PENDING
+  PAID
+  FAILED
 }
 
 enum OrderStatus {
@@ -122,22 +129,34 @@ model Item {
 }
 
 model Order {
-  id              String          @id @default(cuid())
+  id                String          @id @default(cuid())
   // MySQL requires an AUTO_INCREMENT column to be indexed (unique or
   // primary) — unlike Postgres, it can't sit on a plain non-key column.
-  orderNumber     Int             @unique @default(autoincrement())
-  tenantId        String
-  tenant          Tenant          @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  customerName    String
-  customerPhone   String
-  fulfillmentType FulfillmentType
-  deliveryAddress String?         @db.Text
-  paymentMethod   PaymentMethod
-  status          OrderStatus     @default(PENDING)
-  totalCents      Int
-  notes           String?         @db.Text
-  createdAt       DateTime        @default(now())
-  updatedAt       DateTime        @updatedAt
+  orderNumber       Int             @unique @default(autoincrement())
+  tenantId          String
+  tenant            Tenant          @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  customerName      String
+  customerPhone     String
+  fulfillmentType   FulfillmentType
+  deliveryAddress   String?         @db.Text
+  paymentMethod     PaymentMethod
+  // Kitchen/fulfillment status (accept -> preparing -> ready -> completed) —
+  // separate from paymentStatus below, which tracks money, not food.
+  status            OrderStatus     @default(PENDING)
+  totalCents        Int
+  notes             String?         @db.Text
+  // COD/UPI stay PENDING until the owner manually marks them paid (see
+  // markOrderPaid) — matches the plan's "reconciled manually". RAZORPAY
+  // orders are moved to PAID/FAILED automatically, by the client-side
+  // checkout-verification action and/or the webhook (src/lib/payments/
+  // razorpay.ts), whichever fires first.
+  paymentStatus     PaymentStatus   @default(PENDING)
+  // Set once a Razorpay order is created for this order; unique because
+  // it's a 1:1 link and the webhook looks orders up by it.
+  razorpayOrderId   String?         @unique
+  razorpayPaymentId String?
+  createdAt         DateTime        @default(now())
+  updatedAt         DateTime        @updatedAt
 
   items OrderItem[]
 
