@@ -128,9 +128,17 @@ Do this before Day 10 of the plan (loading the actual restaurant's data).
 
 ## Post-launch roadmap
 
-- **Week 2–3:** Razorpay/Stripe integration once the merchant account is approved; self-serve restaurant signup (turn the demo onboarding wizard into the real thing); email/WhatsApp order notifications.
+- **Week 2–3:** ~~Self-serve restaurant signup~~ **done** — see below. Razorpay/Stripe integration is still blocked on a KYC-verified merchant account (nothing to build yet without those credentials); email/WhatsApp order notifications still needs a provider (Resend/Twilio/WhatsApp Business API) and credentials.
 - **Month 2:** Coupons, QR table ordering for dine-in, custom domains, subscription billing automation, kitchen display system.
 - **Month 3+:** AI-assisted menu import from photos/PDFs, delivery-zone radius pricing, analytics dashboards, staff roles/permissions.
+
+### Self-serve restaurant signup (built 2026-09-05)
+
+The user asked for "the next module" without specifying which — of the three Week 2–3 items, this was the only one buildable without new external accounts (Razorpay/Stripe and notifications both need provider credentials nobody has given me), so I flagged that reasoning and built this one; said so explicitly rather than picking silently.
+
+- Public, unauthenticated `/signup` (`src/app/signup/`): restaurant name, an auto-slugified (editable) storefront link, owner email/password. Reuses `createTenantWithOwner` (`src/lib/data/tenants.ts`) — the same function the super-admin "add a restaurant" form uses; that path still works too, this is additive, not a replacement.
+- Self-serve-created restaurants default to **closed** (`isOpen: false`) — admin-created ones still default open — so a brand-new, empty storefront doesn't show as "open for orders" before the owner has built a menu. Verified for real: signed up through the actual form, confirmed the new storefront renders "Closed", confirmed a duplicate slug is rejected with a clear error.
+- **Known gap, flagged rather than silently shipped:** no CAPTCHA or rate limiting on `/signup` — anyone can script-create restaurants. Fine at current scale (1–5 real restaurants), but revisit before this is truly public.
 
 ## Trade-off menu (only if Sep 14 is truly fixed and scope must shrink further)
 

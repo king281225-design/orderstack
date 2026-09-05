@@ -58,12 +58,19 @@ export async function getPlatformStats() {
 export class SlugTakenError extends Error {}
 export class EmailTakenError extends Error {}
 
-/** Super-admin-only: create a restaurant plus its first owner login in one go. */
+/**
+ * Create a restaurant plus its first owner login in one go. Used from two
+ * places: the super-admin "add a restaurant" form (admin-assisted), and the
+ * public /signup form (self-serve) — this function itself doesn't check
+ * roles; the caller decides who's allowed to invoke it.
+ */
 export async function createTenantWithOwner(input: {
   slug: string;
   name: string;
   ownerEmail: string;
   ownerPassword: string;
+  /** Self-serve signups default closed until the owner has set up a menu; admin-created ones default open. */
+  isOpen?: boolean;
 }) {
   if (!isValidSlug(input.slug)) {
     throw new Error("Slug must be lowercase letters, numbers, and hyphens only.");
@@ -82,6 +89,7 @@ export async function createTenantWithOwner(input: {
     data: {
       slug: input.slug,
       name: input.name,
+      isOpen: input.isOpen ?? true,
       users: {
         create: {
           email: input.ownerEmail,
