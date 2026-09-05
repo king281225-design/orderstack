@@ -154,6 +154,24 @@ export async function markOrderPaid(tenantId: string, orderId: string) {
 }
 
 /**
+ * Only real, automatic payment confirmation (Razorpay) auto-accepts the
+ * order — a static UPI QR / Cash on Delivery order has no way to be
+ * verified automatically (no gateway, no webhook, nothing to poll for a
+ * direct bank-to-bank UPI transfer), so those stay manual, exactly as the
+ * plan's "reconciled manually" always intended. This only ever moves
+ * PENDING -> ACCEPTED: an order the owner already advanced further (or
+ * cancelled) is left alone, and a webhook retry after the flip already
+ * happened is a harmless no-op (the PENDING-only condition just matches
+ * nothing the second time).
+ */
+async function autoAcceptOnPaid(
+  tx: Pick<typeof prisma, "order">,
+  where: { id: string; tenantId: string } | { razorpayOrderId: string },
+) {
+  await tx.order.updateMany({ where: { ...where, status: "PENDING" }, data: { status: "ACCEPTED" } });
+}
+
+/**
  * Tenant-scoped verification path for Razorpay checkout — called right
  * after the client-side checkout succeeds, with a signature already
  * verified by the caller (see verifyRazorpayPaymentAction).
@@ -164,9 +182,13 @@ export async function markPaymentStatus(
   status: PaymentStatus,
   razorpayPaymentId?: string,
 ) {
-  return prisma.order.updateMany({
-    where: { id: orderId, tenantId },
-    data: { paymentStatus: status, ...(razorpayPaymentId ? { razorpayPaymentId } : {}) },
+  return prisma.$transaction(async (tx) => {
+    const result = await tx.order.updateMany({
+      where: { id: orderId, tenantId },
+      data: { paymentStatus: status, ...(razorpayPaymentId ? { razorpayPaymentId } : {}) },
+    });
+    if (status === "PAID") await autoAcceptOnPaid(tx, { id: orderId, tenantId });
+    return result;
   });
 }
 
@@ -181,8 +203,12 @@ export async function setPaymentStatusByRazorpayOrderId(
   status: PaymentStatus,
   razorpayPaymentId?: string,
 ) {
-  return prisma.order.updateMany({
-    where: { razorpayOrderId },
-    data: { paymentStatus: status, ...(razorpayPaymentId ? { razorpayPaymentId } : {}) },
+  return prisma.$transaction(async (tx) => {
+    const result = await tx.order.updateMany({
+      where: { razorpayOrderId },
+      data: { paymentStatus: status, ...(razorpayPaymentId ? { razorpayPaymentId } : {}) },
+    });
+    if (status === "PAID") await autoAcceptOnPaid(tx, { razorpayOrderId });
+    return result;
   });
 }
