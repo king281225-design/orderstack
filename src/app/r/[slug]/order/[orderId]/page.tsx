@@ -111,8 +111,12 @@ export default async function OrderStatusPage({
           </div>
         </div>
         <p className="mt-2 text-xs text-gray-500">
-          {order.fulfillmentType === "DELIVERY" ? `Delivery to ${order.deliveryAddress}` : "Takeaway"} ·{" "}
-          {PAYMENT_METHOD_LABEL[order.paymentMethod]}
+          {order.fulfillmentType === "DELIVERY"
+            ? `Delivery to ${order.deliveryAddress}`
+            : order.fulfillmentType === "DINE_IN"
+              ? `Table ${order.tableLabel}`
+              : "Takeaway"}{" "}
+          · {PAYMENT_METHOD_LABEL[order.paymentMethod]}
           {order.paymentMethod === "RAZORPAY" &&
             ` (${order.paymentStatus === "PAID" ? "paid" : order.paymentStatus === "FAILED" ? "failed" : "pending"})`}
         </p>

@@ -29,6 +29,7 @@ enum TenantStatus {
 enum FulfillmentType {
   DELIVERY
   TAKEAWAY
+  DINE_IN
 }
 
 enum PaymentMethod {
@@ -170,6 +171,10 @@ model Order {
   customerPhone     String
   fulfillmentType   FulfillmentType
   deliveryAddress   String?         @db.Text
+  // Set for DINE_IN orders placed via a table's QR link (?table=<label>) —
+  // no separate Table entity; labels are just whatever the QR grid on
+  // /dashboard/tables generated ("1", "2", ...), not a persisted resource.
+  tableLabel        String?
   paymentMethod     PaymentMethod
   // Kitchen/fulfillment status (accept -> preparing -> ready -> completed) —
   // separate from paymentStatus below, which tracks money, not food.

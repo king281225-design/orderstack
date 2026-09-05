@@ -138,7 +138,13 @@ function OrderCard({ order }: { order: Order & { items: OrderItem[] } }) {
       </ul>
 
       <div className="mb-3 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-gray-500">
-        <span>{order.fulfillmentType === "DELIVERY" ? "Delivery" : "Takeaway"}</span>
+        <span>
+          {order.fulfillmentType === "DELIVERY"
+            ? "Delivery"
+            : order.fulfillmentType === "DINE_IN"
+              ? `Table ${order.tableLabel}`
+              : "Takeaway"}
+        </span>
         {order.deliveryAddress && <span>{order.deliveryAddress}</span>}
         <span>{PAYMENT_METHOD_LABEL[order.paymentMethod]}</span>
         {order.discountCents > 0 && (

@@ -25,6 +25,7 @@ export async function createOrder(
     customerPhone: string;
     fulfillmentType: FulfillmentType;
     deliveryAddress?: string | null;
+    tableLabel?: string | null;
     paymentMethod: PaymentMethod;
     notes?: string | null;
     couponCode?: string | null;
@@ -82,6 +83,7 @@ export async function createOrder(
       customerPhone: input.customerPhone,
       fulfillmentType: input.fulfillmentType,
       deliveryAddress: input.deliveryAddress ?? null,
+      tableLabel: input.tableLabel ?? null,
       paymentMethod: input.paymentMethod,
       notes: input.notes ?? null,
       subtotalCents,

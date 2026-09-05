@@ -18,6 +18,9 @@ type CartContextValue = {
   setQuantity: (itemId: string, quantity: number) => void;
   removeItem: (itemId: string) => void;
   clear: () => void;
+  /** Set once from the ?table=<label> a table's QR code links to (see CaptureTableParam) — survives the hop to /checkout via localStorage, same as the cart itself. */
+  tableLabel: string | null;
+  setTableLabel: (label: string | null) => void;
 };
 
 const CartContext = createContext<CartContextValue | null>(null);
@@ -26,8 +29,13 @@ function storageKey(slug: string) {
   return `orderstack_cart_${slug}`;
 }
 
+function tableStorageKey(slug: string) {
+  return `orderstack_table_${slug}`;
+}
+
 export function CartProvider({ slug, children }: { slug: string; children: ReactNode }) {
   const [lines, setLines] = useState<CartLine[]>([]);
+  const [tableLabel, setTableLabelState] = useState<string | null>(null);
   const [hydrated, setHydrated] = useState(false);
 
   // Cart lives only in this viewer's browser (localStorage), namespaced per
@@ -36,12 +44,14 @@ export function CartProvider({ slug, children }: { slug: string; children: React
   useEffect(() => {
     try {
       const raw = window.localStorage.getItem(storageKey(slug));
+      const rawTable = window.localStorage.getItem(tableStorageKey(slug));
       // One-time hydration from an external store (localStorage) on mount —
       // window isn't available during SSR, so this can't be a lazy useState
       // initializer instead. Intentional exception to the "no setState in
       // effect" rule, not a derived-state anti-pattern.
       // eslint-disable-next-line react-hooks/set-state-in-effect
       if (raw) setLines(JSON.parse(raw));
+      if (rawTable) setTableLabelState(rawTable);
     } catch {
       // ignore corrupt/blocked storage
     }
@@ -56,6 +66,16 @@ export function CartProvider({ slug, children }: { slug: string; children: React
       // ignore blocked storage (private mode, quota, etc.)
     }
   }, [slug, lines, hydrated]);
+
+  useEffect(() => {
+    if (!hydrated) return;
+    try {
+      if (tableLabel) window.localStorage.setItem(tableStorageKey(slug), tableLabel);
+      else window.localStorage.removeItem(tableStorageKey(slug));
+    } catch {
+      // ignore blocked storage
+    }
+  }, [slug, tableLabel, hydrated]);
 
   const value = useMemo<CartContextValue>(() => {
     const addItem: CartContextValue["addItem"] = (item) => {
@@ -85,9 +105,20 @@ export function CartProvider({ slug, children }: { slug: string; children: React
 
     const totalCents = lines.reduce((sum, l) => sum + l.priceCents * l.quantity, 0);
     const itemCount = lines.reduce((sum, l) => sum + l.quantity, 0);
+    const setTableLabel = (label: string | null) => setTableLabelState(label);
 
-    return { lines, totalCents, itemCount, addItem, setQuantity, removeItem, clear };
-  }, [lines]);
+    return {
+      lines,
+      totalCents,
+      itemCount,
+      addItem,
+      setQuantity,
+      removeItem,
+      clear,
+      tableLabel,
+      setTableLabel,
+    };
+  }, [lines, tableLabel]);
 
   return <CartContext.Provider value={value}>{children}</CartContext.Provider>;
 }

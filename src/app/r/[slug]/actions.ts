@@ -33,8 +33,9 @@ const cartLineSchema = z.object({
 const checkoutSchema = z.object({
   customerName: z.string().min(1, "Name is required."),
   customerPhone: z.string().min(6, "Enter a valid phone number."),
-  fulfillmentType: z.enum(["DELIVERY", "TAKEAWAY"]),
+  fulfillmentType: z.enum(["DELIVERY", "TAKEAWAY", "DINE_IN"]),
   deliveryAddress: z.string().optional(),
+  tableLabel: z.string().optional(),
   paymentMethod: z.enum(["UPI", "COD", "RAZORPAY"]),
   notes: z.string().optional(),
   couponCode: z.string().optional(),
@@ -111,6 +112,9 @@ export async function placeOrderAction(
   if (data.fulfillmentType === "DELIVERY" && !data.deliveryAddress?.trim()) {
     return { error: "Delivery address is required for delivery orders." };
   }
+  if (data.fulfillmentType === "DINE_IN" && !data.tableLabel?.trim()) {
+    return { error: "Table is required for dine-in orders." };
+  }
   if (data.paymentMethod === "RAZORPAY" && !isRazorpayConfigured()) {
     // Shouldn't normally happen — the UI hides this option when unconfigured —
     // but a stale client-side cache or a direct call shouldn't silently break.
@@ -124,6 +128,7 @@ export async function placeOrderAction(
       customerPhone: data.customerPhone,
       fulfillmentType: data.fulfillmentType,
       deliveryAddress: data.deliveryAddress?.trim() || null,
+      tableLabel: data.tableLabel?.trim() || null,
       paymentMethod: data.paymentMethod,
       notes: data.notes?.trim() || null,
       couponCode: data.couponCode?.trim() || null,

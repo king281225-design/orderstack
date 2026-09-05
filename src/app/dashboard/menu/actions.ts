@@ -7,7 +7,9 @@ import {
   createItem,
   deleteCategory,
   deleteItem,
+  hasAnyMenuItems,
   renameCategory,
+  seedSampleMenu,
   updateItem,
 } from "@/lib/data/menu";
 import { rupeesToCents } from "@/lib/money";
@@ -87,5 +89,17 @@ export async function toggleItemAvailableAction(itemId: string, isAvailable: boo
 export async function deleteItemAction(itemId: string) {
   const session = await requireTenantSession();
   await deleteItem(session.tenantId, itemId);
+  revalidatePath("/dashboard/menu");
+}
+
+/**
+ * Quick-start for a brand-new restaurant with nothing on its menu yet —
+ * refuses if any item already exists, so it can never silently duplicate
+ * onto (or wipe) a real menu someone's already built.
+ */
+export async function loadSampleMenuAction() {
+  const session = await requireTenantSession();
+  if (await hasAnyMenuItems(session.tenantId)) return;
+  await seedSampleMenu(session.tenantId);
   revalidatePath("/dashboard/menu");
 }

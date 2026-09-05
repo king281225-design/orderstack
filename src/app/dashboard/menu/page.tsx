@@ -7,6 +7,7 @@ import { AddItemForm } from "@/components/menu/add-item-form";
 import {
   deleteCategoryAction,
   deleteItemAction,
+  loadSampleMenuAction,
   toggleItemAvailableAction,
 } from "@/app/dashboard/menu/actions";
 
@@ -25,7 +26,17 @@ export default async function MenuPage() {
 
       <section className="flex flex-col gap-6">
         {categories.length === 0 && (
-          <p className="text-sm text-gray-500">No categories yet — add one above to get started.</p>
+          <div className="flex flex-col items-start gap-2 rounded-lg border border-dashed border-gray-300 p-4">
+            <p className="text-sm text-gray-500">No categories yet — add one above to get started.</p>
+            <form action={loadSampleMenuAction}>
+              <button
+                type="submit"
+                className="rounded-md border border-gray-300 px-3 py-1.5 text-sm font-medium text-gray-700 hover:bg-gray-50"
+              >
+                Or load a sample menu to see how it looks
+              </button>
+            </form>
+          </div>
         )}
         {categories.map((category) => (
           <div key={category.id} className="rounded-lg border border-gray-200 bg-white p-4">

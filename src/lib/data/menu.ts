@@ -1,5 +1,6 @@
 import "server-only";
 import { prisma } from "@/lib/prisma";
+import { rupeesToCents } from "@/lib/money";
 
 /**
  * Every function here takes tenantId as an explicit, required argument and
@@ -106,4 +107,90 @@ export async function getItemsForOrder(tenantId: string, itemIds: string[]) {
   return prisma.item.findMany({
     where: { tenantId, id: { in: itemIds }, isAvailable: true },
   });
+}
+
+export async function hasAnyMenuItems(tenantId: string): Promise<boolean> {
+  const count = await prisma.item.count({ where: { tenantId } });
+  return count > 0;
+}
+
+/**
+ * A realistic starter menu — no photos (mock data, not real dishes to
+ * photograph). Only offered on the dashboard when the tenant has zero items,
+ * so it can't silently duplicate an owner's real menu.
+ */
+const SAMPLE_MENU: {
+  category: string;
+  items: { name: string; priceRupees: number; description: string }[];
+}[] = [
+  {
+    category: "Starters",
+    items: [
+      {
+        name: "Paneer Tikka",
+        priceRupees: 249,
+        description: "Char-grilled cottage cheese marinated in yogurt and spices.",
+      },
+      {
+        name: "Chicken 65",
+        priceRupees: 279,
+        description: "Spicy, deep-fried chicken tossed with curry leaves.",
+      },
+      {
+        name: "Veg Spring Rolls",
+        priceRupees: 199,
+        description: "Crispy rolls stuffed with mixed vegetables.",
+      },
+    ],
+  },
+  {
+    category: "Mains",
+    items: [
+      {
+        name: "Butter Chicken",
+        priceRupees: 399,
+        description: "Tandoori chicken simmered in a creamy tomato gravy.",
+      },
+      {
+        name: "Dal Makhani",
+        priceRupees: 249,
+        description: "Black lentils slow-cooked overnight with butter and cream.",
+      },
+      {
+        name: "Veg Biryani",
+        priceRupees: 279,
+        description: "Fragrant basmati rice layered with spiced vegetables.",
+      },
+      {
+        name: "Palak Paneer",
+        priceRupees: 269,
+        description: "Cottage cheese cubes in a smooth spinach gravy.",
+      },
+    ],
+  },
+  {
+    category: "Beverages",
+    items: [
+      { name: "Masala Chai", priceRupees: 49, description: "Spiced Indian tea." },
+      { name: "Sweet Lassi", priceRupees: 89, description: "Chilled yogurt-based sweet drink." },
+      {
+        name: "Fresh Lime Soda",
+        priceRupees: 69,
+        description: "Refreshing lime soda, sweet or salted.",
+      },
+    ],
+  },
+];
+
+export async function seedSampleMenu(tenantId: string): Promise<void> {
+  for (const group of SAMPLE_MENU) {
+    const category = await createCategory(tenantId, group.category);
+    for (const item of group.items) {
+      await createItem(tenantId, category.id, {
+        name: item.name,
+        description: item.description,
+        priceCents: rupeesToCents(item.priceRupees),
+      });
+    }
+  }
 }

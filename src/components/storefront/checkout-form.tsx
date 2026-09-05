@@ -19,15 +19,37 @@ export function CheckoutForm({
   hasUpi: boolean;
   hasRazorpay: boolean;
 }) {
-  const { lines, totalCents, clear } = useCart();
+  const { lines, totalCents, clear, tableLabel } = useCart();
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
-  const [fulfillmentType, setFulfillmentType] = useState<"DELIVERY" | "TAKEAWAY">("TAKEAWAY");
+  // Lazy initializer, not a hardcoded default: by the time this page mounts,
+  // CartProvider (which persists across the client-side nav from the
+  // storefront page — same layout, not remounted) has usually already
+  // hydrated tableLabel from localStorage, so this needs to check it at
+  // mount rather than always start at Takeaway and rely solely on the
+  // render-time adjustment below to correct it after the fact.
+  const [fulfillmentType, setFulfillmentType] = useState<"DELIVERY" | "TAKEAWAY" | "DINE_IN">(
+    () => (tableLabel ? "DINE_IN" : "TAKEAWAY"),
+  );
+  const [manualTable, setManualTable] = useState("");
   const [paymentMethod, setPaymentMethod] = useState<"UPI" | "COD" | "RAZORPAY">(
     hasRazorpay ? "RAZORPAY" : hasUpi ? "UPI" : "COD",
   );
   const formRef = useRef<HTMLFormElement>(null);
+
+  // tableLabel hydrates from localStorage asynchronously (see CartProvider),
+  // so it's often still null on the very first render even when a QR scan
+  // set it a moment ago. Switching to Dine-in once it shows up is "adjusting
+  // state during render" — React's documented alternative to a
+  // setState-in-effect for exactly this case (comparing against a second
+  // state variable holding the last-seen value, not a ref — refs can't be
+  // read or written during render either).
+  const [prevTableLabel, setPrevTableLabel] = useState(tableLabel);
+  if (tableLabel !== prevTableLabel) {
+    setPrevTableLabel(tableLabel);
+    if (tableLabel) setFulfillmentType("DINE_IN");
+  }
 
   const [couponInput, setCouponInput] = useState("");
   const [appliedCoupon, setAppliedCoupon] = useState<{ code: string; discountCents: number } | null>(
@@ -78,6 +100,7 @@ export function CheckoutForm({
       customerPhone: String(formData.get("customerPhone") ?? ""),
       fulfillmentType,
       deliveryAddress: String(formData.get("deliveryAddress") ?? ""),
+      tableLabel: tableLabel ?? manualTable,
       paymentMethod,
       notes: String(formData.get("notes") ?? ""),
       couponCode: appliedCoupon?.code ?? "",
@@ -237,8 +260,8 @@ export function CheckoutForm({
 
       <fieldset className="flex flex-col gap-1">
         <legend className="text-sm font-medium text-gray-700">Fulfillment</legend>
-        <div className="flex gap-3">
-          {(["TAKEAWAY", "DELIVERY"] as const).map((opt) => (
+        <div className="flex flex-wrap gap-3">
+          {(["DINE_IN", "TAKEAWAY", "DELIVERY"] as const).map((opt) => (
             <button
               key={opt}
               type="button"
@@ -249,7 +272,7 @@ export function CheckoutForm({
                   : "border-gray-300 text-gray-700"
               }`}
             >
-              {opt === "TAKEAWAY" ? "Takeaway" : "Delivery"}
+              {opt === "TAKEAWAY" ? "Takeaway" : opt === "DELIVERY" ? "Delivery" : "Dine-in"}
             </button>
           ))}
         </div>
@@ -266,6 +289,24 @@ export function CheckoutForm({
           />
         </label>
       )}
+
+      {fulfillmentType === "DINE_IN" &&
+        (tableLabel ? (
+          <p className="text-sm text-gray-700">
+            Table: <span className="font-semibold">{tableLabel}</span>
+          </p>
+        ) : (
+          <label className="flex flex-col gap-1 text-sm font-medium text-gray-700">
+            Table number
+            <input
+              value={manualTable}
+              onChange={(e) => setManualTable(e.target.value)}
+              required
+              placeholder="e.g. 5"
+              className="rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-gray-900 focus:outline-none"
+            />
+          </label>
+        ))}
 
       <fieldset className="flex flex-col gap-1">
         <legend className="text-sm font-medium text-gray-700">Payment</legend>
