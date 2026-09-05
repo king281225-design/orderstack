@@ -128,15 +128,14 @@ Do this before Day 10 of the plan (loading the actual restaurant's data).
 
 ## Post-launch roadmap — module status (updated 2026-09-05)
 
-**Done (7):** self-serve restaurant signup · Razorpay online payment (built, dormant until real keys are added) · coupons · QR table ordering for dine-in · sample/mockup menu quick-start (added on request, wasn't on the original roadmap) · auto-accept orders on confirmed Razorpay payment · kitchen display system.
+**Done (8):** self-serve restaurant signup · Razorpay online payment (built, dormant until real keys are added) · coupons · QR table ordering for dine-in · sample/mockup menu quick-start (added on request, wasn't on the original roadmap) · auto-accept orders on confirmed Razorpay payment · kitchen display system · analytics dashboards.
 
-**Left (7):**
+**Left (6):**
 - Email/WhatsApp order notifications — blocked, needs a notification provider (Resend/Twilio/WhatsApp Business API) and credentials nobody has given me.
 - Custom domains per restaurant — blocked, needs a live deployment/domain to mean anything.
 - Subscription billing automation (charging *restaurants* a platform fee) — blocked on a real business decision first (actual plan tiers/pricing don't exist yet — `Tenant.plan` is just a free-text default), then Razorpay Subscriptions on top.
 - AI-assisted menu import from photos/PDFs — blocked, needs an AI/OCR provider and credentials.
 - Delivery-zone radius pricing — partially blocked: true GPS-radius pricing needs a geocoding API (credentials), but a simplified manual-zone version (owner defines named zones with flat fees, customer picks one at checkout) is buildable now with no external account.
-- Analytics dashboards — buildable now, no blockers.
 - Staff roles/permissions — buildable now, no blockers (the `STAFF` role already exists in the schema; there's just no way yet for an owner to create one or to actually restrict what it can do — `requireTenantSession()` treats `OWNER` and `STAFF` identically everywhere today).
 
 (Stripe was named alongside Razorpay in the original plan but never actually asked for, so it's not counted as "left" — only build it if asked.)
@@ -207,6 +206,15 @@ Last remaining buildable Month-2 item — custom domains needs a live deployment
 - Polls every 5s (vs. the regular dashboard's 8s) via the existing `AutoRefresh` component, since a kitchen screen benefits more from catching a new order quickly.
 - Hit the same `react-hooks/purity` issue a third time (after the coupons page and, within this same session, again here): showing "Xm ago" per order needs `Date.now()`, which can't be called directly inside any component body, page or otherwise. Rather than re-solve it ad hoc, added `src/lib/time.ts` (`nowMs()`) as the standing fix — a plain non-component wrapper function, called once per page render and passed down, so this doesn't need rediscovering a fourth time.
 - Verified for real: seeded 3 real orders via the actual customer checkout flow, opened the kitchen board and confirmed all 3 appeared in "New," then drove one order through Accept → Start preparing → Ready → Served and confirmed it moved column to column with the counts updating correctly at each step.
+
+### Analytics dashboards (built 2026-09-05)
+
+Followed the original Month-3+ tiering order (analytics listed before staff roles) since both were unblocked — no external account needed for either.
+
+- `/dashboard/analytics` (`src/lib/data/analytics.ts`): orders/revenue/average-order-value/cancellation-rate summary, a revenue-by-day bar chart, top-selling items, and a payment-method breakdown, over a 7/30/90-day range picker. All computed in application code from the existing `Order`/`OrderItem` tables — no new schema, no charting library (plain divs sized by percentage height). Cancelled orders are excluded from revenue/order-count figures throughout — a cancelled order was never real revenue, and counting it would make the two numbers tell inconsistent stories.
+- **Caught and fixed a real bug before it shipped**, not after: the first draft of "top-selling items" used Prisma's `groupBy` with `_sum` on both `quantity` and `priceCentsSnapshot` and multiplied the two sums together to get revenue — but `_sum` totals one column across matching rows independently; it can't express a per-row product like `quantity × price`. That would have produced wildly inflated numbers (e.g. an item ordered across 3 orders would multiply a 3×-summed quantity by a 3×-summed price, not add up the 3 real line totals). Caught by reasoning through what the aggregation actually computes, before ever running it — rewrote it to fetch matching line items and total `quantity × priceCentsSnapshot` per line in application code instead.
+- **A second real bug did make it to a screenshot before being caught**: the revenue-by-day bar chart rendered as a completely empty box — every bar was 0px tall. The bar's height was set via inline `style={{ height: '<pct>%' }}`, but its immediate parent only had `flex-1` (which sizes width in a flex row, not height) and no explicit height of its own — a percentage height can only resolve against a parent with a *defined* height, so it silently computed against nothing. Fixed by giving that parent `h-full` (so it fills the chart's own fixed `h-40`) and anchoring the bar with `absolute bottom-0` for robustness. Reverified with a fresh screenshot showing a real, correctly-sized bar.
+- Verified for real against the live database: seeded 5 orders through the actual checkout flow, cancelled one from the dashboard, and confirmed the analytics page showed exactly 4 orders / the correct revenue total / a 20% cancellation rate / the right per-item breakdown that summed back to the same revenue figure.
 
 ## Trade-off menu (only if Sep 14 is truly fixed and scope must shrink further)
 
