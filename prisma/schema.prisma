@@ -52,6 +52,11 @@ enum OrderStatus {
   CANCELLED
 }
 
+enum DiscountType {
+  PERCENT
+  FIXED
+}
+
 model Tenant {
   id             String       @id @default(cuid())
   slug           String       @unique
@@ -74,8 +79,34 @@ model Tenant {
   categories Category[]
   items      Item[]
   orders     Order[]
+  coupons    Coupon[]
 
   @@map("tenants")
+}
+
+model Coupon {
+  id              String       @id @default(cuid())
+  tenantId        String
+  tenant          Tenant       @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  // Stored uppercase; unique per tenant, not globally — two restaurants can
+  // both run a "WELCOME10" code without colliding.
+  code            String
+  discountType    DiscountType
+  // PERCENT: 1-100 (percent off). FIXED: cents off.
+  discountValue   Int
+  minOrderCents   Int          @default(0)
+  // null = unlimited redemptions.
+  maxRedemptions  Int?
+  redemptionCount Int          @default(0)
+  isActive        Boolean      @default(true)
+  expiresAt       DateTime?
+  createdAt       DateTime     @default(now())
+
+  orders Order[]
+
+  @@unique([tenantId, code])
+  @@index([tenantId])
+  @@map("coupons")
 }
 
 model User {
@@ -143,7 +174,17 @@ model Order {
   // Kitchen/fulfillment status (accept -> preparing -> ready -> completed) —
   // separate from paymentStatus below, which tracks money, not food.
   status            OrderStatus     @default(PENDING)
+  // totalCents is what's actually charged (subtotal - discountCents).
+  // subtotalCents is the pre-discount sum of order items, kept so history
+  // shows both — never recomputed from current item prices, and the
+  // coupon's discount is snapshotted here too, not re-read from the coupon
+  // (whose value/status can change or be deleted after the fact).
+  subtotalCents     Int
   totalCents        Int
+  couponId          String?
+  coupon            Coupon?         @relation(fields: [couponId], references: [id], onDelete: SetNull)
+  couponCode        String?
+  discountCents     Int             @default(0)
   notes             String?         @db.Text
   // COD/UPI stay PENDING until the owner manually marks them paid (see
   // markOrderPaid) — matches the plan's "reconciled manually". RAZORPAY
@@ -162,6 +203,7 @@ model Order {
 
   @@index([tenantId])
   @@index([tenantId, status])
+  @@index([couponId])
   @@map("orders")
 }
 

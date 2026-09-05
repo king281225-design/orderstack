@@ -141,6 +141,11 @@ function OrderCard({ order }: { order: Order & { items: OrderItem[] } }) {
         <span>{order.fulfillmentType === "DELIVERY" ? "Delivery" : "Takeaway"}</span>
         {order.deliveryAddress && <span>{order.deliveryAddress}</span>}
         <span>{PAYMENT_METHOD_LABEL[order.paymentMethod]}</span>
+        {order.discountCents > 0 && (
+          <span className="text-green-700">
+            Coupon {order.couponCode} (−{formatINR(order.discountCents)})
+          </span>
+        )}
         <span
           className={`rounded-full px-2 py-0.5 text-xs font-medium ${
             order.paymentStatus === "PAID"

@@ -92,9 +92,23 @@ export default async function OrderStatusPage({
             </li>
           ))}
         </ul>
-        <div className="mt-2 flex justify-between border-t border-gray-100 pt-2 text-sm font-semibold">
-          <span>Total</span>
-          <span>{formatINR(order.totalCents)}</span>
+        <div className="mt-2 border-t border-gray-100 pt-2 text-sm">
+          {order.discountCents > 0 && (
+            <>
+              <div className="flex justify-between text-gray-500">
+                <span>Subtotal</span>
+                <span>{formatINR(order.subtotalCents)}</span>
+              </div>
+              <div className="flex justify-between text-green-700">
+                <span>Coupon {order.couponCode}</span>
+                <span>−{formatINR(order.discountCents)}</span>
+              </div>
+            </>
+          )}
+          <div className="flex justify-between font-semibold">
+            <span>Total</span>
+            <span>{formatINR(order.totalCents)}</span>
+          </div>
         </div>
         <p className="mt-2 text-xs text-gray-500">
           {order.fulfillmentType === "DELIVERY" ? `Delivery to ${order.deliveryAddress}` : "Takeaway"} ·{" "}

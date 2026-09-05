@@ -1,6 +1,7 @@
 import "server-only";
 import { prisma } from "@/lib/prisma";
 import { getItemsForOrder } from "@/lib/data/menu";
+import { validateCoupon, tryRedeemCoupon, CouponRedemptionLimitError } from "@/lib/data/coupons";
 import type { FulfillmentType, OrderStatus, PaymentMethod, PaymentStatus } from "@prisma/client";
 
 export type CartLine = { itemId: string; quantity: number };
@@ -12,7 +13,9 @@ export class InvalidItemsError extends Error {}
  * Creates an order for a public customer. Prices and item names are always
  * re-read from the tenant-scoped item table here — the client only ever
  * sends itemId + quantity, never a price, so a tampered cart can't change
- * what gets charged.
+ * what gets charged. Same rule for couponCode: whatever discount the
+ * checkout page previewed client-side is recomputed from scratch here —
+ * see validateCoupon.
  */
 export async function createOrder(
   tenantId: string,
@@ -24,6 +27,7 @@ export async function createOrder(
     deliveryAddress?: string | null;
     paymentMethod: PaymentMethod;
     notes?: string | null;
+    couponCode?: string | null;
   },
 ) {
   const cart = input.cart.filter((l) => l.quantity > 0);
@@ -46,7 +50,30 @@ export async function createOrder(
     };
   });
 
-  const totalCents = lines.reduce((sum, l) => sum + l.priceCentsSnapshot * l.quantity, 0);
+  const subtotalCents = lines.reduce((sum, l) => sum + l.priceCentsSnapshot * l.quantity, 0);
+
+  // Cart/item validation happens above, before touching the coupon, so a
+  // cart that's about to fail anyway doesn't burn a redemption first.
+  let couponId: string | null = null;
+  let couponCode: string | null = null;
+  let discountCents = 0;
+
+  if (input.couponCode?.trim()) {
+    const { coupon, discountCents: computed } = await validateCoupon(
+      tenantId,
+      input.couponCode,
+      subtotalCents,
+    );
+    const redeemed = await tryRedeemCoupon(coupon.id, coupon.maxRedemptions);
+    if (!redeemed) {
+      throw new CouponRedemptionLimitError("This coupon just reached its redemption limit.");
+    }
+    couponId = coupon.id;
+    couponCode = coupon.code;
+    discountCents = computed;
+  }
+
+  const totalCents = Math.max(0, subtotalCents - discountCents);
 
   return prisma.order.create({
     data: {
@@ -57,7 +84,11 @@ export async function createOrder(
       deliveryAddress: input.deliveryAddress ?? null,
       paymentMethod: input.paymentMethod,
       notes: input.notes ?? null,
+      subtotalCents,
       totalCents,
+      couponId,
+      couponCode,
+      discountCents,
       items: { create: lines },
     },
     include: { items: true },

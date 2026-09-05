@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { useCart } from "@/lib/cart";
 import { formatINR } from "@/lib/money";
-import { placeOrderAction, verifyRazorpayPaymentAction } from "@/app/r/[slug]/actions";
+import { placeOrderAction, previewCouponAction, verifyRazorpayPaymentAction } from "@/app/r/[slug]/actions";
 import { loadRazorpayCheckout, openRazorpayCheckout } from "@/lib/razorpay-client";
 
 export function CheckoutForm({
@@ -29,6 +29,36 @@ export function CheckoutForm({
   );
   const formRef = useRef<HTMLFormElement>(null);
 
+  const [couponInput, setCouponInput] = useState("");
+  const [appliedCoupon, setAppliedCoupon] = useState<{ code: string; discountCents: number } | null>(
+    null,
+  );
+  const [couponError, setCouponError] = useState<string | null>(null);
+  const [isApplyingCoupon, startCouponTransition] = useTransition();
+
+  function handleApplyCoupon() {
+    setCouponError(null);
+    if (!couponInput.trim()) return;
+    startCouponTransition(async () => {
+      const result = await previewCouponAction(slug, couponInput, totalCents);
+      if (result.error) {
+        setCouponError(result.error);
+        setAppliedCoupon(null);
+        return;
+      }
+      setAppliedCoupon({ code: result.code!, discountCents: result.discountCents! });
+    });
+  }
+
+  function handleRemoveCoupon() {
+    setAppliedCoupon(null);
+    setCouponInput("");
+    setCouponError(null);
+  }
+
+  const discountCents = appliedCoupon?.discountCents ?? 0;
+  const payableCents = Math.max(0, totalCents - discountCents);
+
   if (lines.length === 0) {
     return (
       <div className="rounded-lg border border-dashed border-gray-300 p-6 text-center text-sm text-gray-500">
@@ -50,6 +80,7 @@ export function CheckoutForm({
       deliveryAddress: String(formData.get("deliveryAddress") ?? ""),
       paymentMethod,
       notes: String(formData.get("notes") ?? ""),
+      couponCode: appliedCoupon?.code ?? "",
     };
     const cart = lines.map((l) => ({ itemId: l.itemId, quantity: l.quantity }));
 
@@ -128,11 +159,62 @@ export function CheckoutForm({
             </li>
           ))}
         </ul>
-        <div className="mt-2 flex justify-between border-t border-gray-100 pt-2 text-sm font-semibold">
-          <span>Total</span>
-          <span>{formatINR(totalCents)}</span>
+        <div className="mt-2 border-t border-gray-100 pt-2 text-sm">
+          <div className="flex justify-between">
+            <span className={appliedCoupon ? "text-gray-500" : "font-semibold"}>Subtotal</span>
+            <span className={appliedCoupon ? "text-gray-500" : "font-semibold"}>
+              {formatINR(totalCents)}
+            </span>
+          </div>
+          {appliedCoupon && (
+            <div className="flex justify-between text-green-700">
+              <span>Coupon {appliedCoupon.code}</span>
+              <span>−{formatINR(discountCents)}</span>
+            </div>
+          )}
+          {appliedCoupon && (
+            <div className="mt-1 flex justify-between border-t border-gray-100 pt-1 font-semibold">
+              <span>Total</span>
+              <span>{formatINR(payableCents)}</span>
+            </div>
+          )}
         </div>
       </section>
+
+      <div className="flex flex-col gap-1">
+        {appliedCoupon ? (
+          <div className="flex items-center justify-between rounded-md border border-green-200 bg-green-50 px-3 py-2 text-sm text-green-800">
+            <span>
+              <strong>{appliedCoupon.code}</strong> applied — you saved {formatINR(discountCents)}
+            </span>
+            <button
+              type="button"
+              onClick={handleRemoveCoupon}
+              className="font-medium text-green-800 underline"
+            >
+              Remove
+            </button>
+          </div>
+        ) : (
+          <div className="flex gap-2">
+            <input
+              value={couponInput}
+              onChange={(e) => setCouponInput(e.target.value.toUpperCase())}
+              placeholder="Have a coupon code?"
+              className="flex-1 rounded-md border border-gray-300 px-3 py-2 text-sm uppercase focus:border-gray-900 focus:outline-none"
+            />
+            <button
+              type="button"
+              onClick={handleApplyCoupon}
+              disabled={isApplyingCoupon || !couponInput.trim()}
+              className="rounded-md border border-gray-300 px-3 py-2 text-sm font-medium text-gray-700 disabled:opacity-50"
+            >
+              {isApplyingCoupon ? "Checking…" : "Apply"}
+            </button>
+          </div>
+        )}
+        {couponError && <p className="text-sm text-red-600">{couponError}</p>}
+      </div>
 
       <label className="flex flex-col gap-1 text-sm font-medium text-gray-700">
         Your name
@@ -245,7 +327,7 @@ export function CheckoutForm({
         className="rounded-md px-4 py-2.5 text-sm font-semibold text-white disabled:opacity-50"
         style={{ backgroundColor: "var(--brand-primary)" }}
       >
-        {isPending ? "Placing order…" : `Place order · ${formatINR(totalCents)}`}
+        {isPending ? "Placing order…" : `Place order · ${formatINR(payableCents)}`}
       </button>
     </form>
   );

@@ -10,6 +10,15 @@ import {
   markPaymentStatus,
 } from "@/lib/data/orders";
 import {
+  validateCoupon,
+  CouponNotFoundError,
+  CouponInactiveError,
+  CouponExpiredError,
+  CouponRedemptionLimitError,
+  CouponMinOrderError,
+} from "@/lib/data/coupons";
+import { formatINR } from "@/lib/money";
+import {
   createRazorpayOrder,
   getRazorpayKeyId,
   isRazorpayConfigured,
@@ -28,6 +37,7 @@ const checkoutSchema = z.object({
   deliveryAddress: z.string().optional(),
   paymentMethod: z.enum(["UPI", "COD", "RAZORPAY"]),
   notes: z.string().optional(),
+  couponCode: z.string().optional(),
 });
 
 export type PlaceOrderResult = {
@@ -36,6 +46,40 @@ export type PlaceOrderResult = {
   /** Present only for paymentMethod RAZORPAY — the client opens Razorpay's checkout with these. */
   razorpay?: { keyId: string; razorpayOrderId: string; amountCents: number };
 };
+
+export type PreviewCouponResult = { error?: string; discountCents?: number; code?: string };
+
+function couponErrorMessage(err: unknown): string {
+  if (err instanceof CouponNotFoundError) return "That coupon code doesn't exist.";
+  if (err instanceof CouponInactiveError) return "That coupon isn't active anymore.";
+  if (err instanceof CouponExpiredError) return "That coupon has expired.";
+  if (err instanceof CouponRedemptionLimitError) return "That coupon has reached its redemption limit.";
+  if (err instanceof CouponMinOrderError) {
+    return `That coupon needs a minimum order of ${formatINR(err.minOrderCents)}.`;
+  }
+  return "Could not apply that coupon.";
+}
+
+/**
+ * Live preview only, called as the customer types a code in — never trusted
+ * for the actual charge. placeOrderAction/createOrder recompute the
+ * discount from scratch when the order is actually placed.
+ */
+export async function previewCouponAction(
+  slug: string,
+  code: string,
+  subtotalCents: number,
+): Promise<PreviewCouponResult> {
+  const tenant = await getTenantBySlug(slug);
+  if (!tenant) return { error: "Restaurant not found." };
+
+  try {
+    const { coupon, discountCents } = await validateCoupon(tenant.id, code, subtotalCents);
+    return { discountCents, code: coupon.code };
+  } catch (err) {
+    return { error: couponErrorMessage(err) };
+  }
+}
 
 /**
  * Called directly from the client checkout form (not a <form action>), so
@@ -82,6 +126,7 @@ export async function placeOrderAction(
       deliveryAddress: data.deliveryAddress?.trim() || null,
       paymentMethod: data.paymentMethod,
       notes: data.notes?.trim() || null,
+      couponCode: data.couponCode?.trim() || null,
     });
 
     if (data.paymentMethod === "RAZORPAY") {
@@ -101,6 +146,15 @@ export async function placeOrderAction(
   } catch (err) {
     if (err instanceof EmptyCartError) return { error: "Your cart is empty." };
     if (err instanceof InvalidItemsError) return { error: err.message };
+    if (
+      err instanceof CouponNotFoundError ||
+      err instanceof CouponInactiveError ||
+      err instanceof CouponExpiredError ||
+      err instanceof CouponRedemptionLimitError ||
+      err instanceof CouponMinOrderError
+    ) {
+      return { error: couponErrorMessage(err) };
+    }
     return { error: "Could not place order. Please try again." };
   }
 }
