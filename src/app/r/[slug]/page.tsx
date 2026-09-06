@@ -36,6 +36,40 @@ export default async function StorefrontPage({
           </a>
         </div>
       )}
+      {(tenant.googleRating || tenant.googleReviewUrl || tenant.instagramUrl || tenant.facebookUrl) && (
+        <div className="mx-auto flex max-w-xl flex-wrap items-center justify-center gap-x-4 gap-y-2 px-4 pt-3 text-sm">
+          {tenant.googleRating != null && (
+            <span className="flex items-center gap-1 font-medium text-gray-700">
+              <span aria-hidden>⭐</span>
+              {tenant.googleRating.toFixed(1)}
+              {tenant.googleReviewCount != null && (
+                <span className="text-gray-500">({tenant.googleReviewCount} reviews)</span>
+              )}
+            </span>
+          )}
+          {tenant.googleReviewUrl && (
+            <a
+              href={tenant.googleReviewUrl}
+              target="_blank"
+              rel="noreferrer"
+              className="underline"
+              style={{ color: "var(--brand-primary)" }}
+            >
+              Rate us on Google
+            </a>
+          )}
+          {tenant.instagramUrl && (
+            <a href={tenant.instagramUrl} target="_blank" rel="noreferrer" className="underline text-gray-600">
+              Instagram
+            </a>
+          )}
+          {tenant.facebookUrl && (
+            <a href={tenant.facebookUrl} target="_blank" rel="noreferrer" className="underline text-gray-600">
+              Facebook
+            </a>
+          )}
+        </div>
+      )}
       <MenuBrowser categories={categories} />
     </>
   );

@@ -83,6 +83,71 @@ export function BrandingForm({ tenant }: { tenant: Tenant }) {
         />
       </label>
 
+      <div className="flex flex-col gap-3 border-t border-gray-100 pt-4">
+        <p className="text-sm font-semibold text-gray-900">Reviews &amp; social (shown on your menu page)</p>
+        <p className="-mt-2 text-xs text-gray-500">
+          There&apos;s no live-syncing Google widget here — enter your own rating and a link to
+          your Google Business page, and update it yourself whenever it changes.
+        </p>
+        <label className="flex flex-col gap-1 text-sm font-medium text-gray-700">
+          Google review link
+          <input
+            name="googleReviewUrl"
+            type="url"
+            defaultValue={tenant.googleReviewUrl ?? ""}
+            placeholder="https://g.page/r/your-restaurant/review"
+            className="rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-gray-900 focus:outline-none"
+          />
+        </label>
+        <div className="grid grid-cols-2 gap-3">
+          <label className="flex flex-col gap-1 text-sm font-medium text-gray-700">
+            Rating (0–5)
+            <input
+              name="googleRating"
+              type="number"
+              step="0.1"
+              min="0"
+              max="5"
+              defaultValue={tenant.googleRating ?? ""}
+              placeholder="4.5"
+              className="rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-gray-900 focus:outline-none"
+            />
+          </label>
+          <label className="flex flex-col gap-1 text-sm font-medium text-gray-700">
+            Number of reviews
+            <input
+              name="googleReviewCount"
+              type="number"
+              min="0"
+              step="1"
+              defaultValue={tenant.googleReviewCount ?? ""}
+              placeholder="230"
+              className="rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-gray-900 focus:outline-none"
+            />
+          </label>
+        </div>
+        <label className="flex flex-col gap-1 text-sm font-medium text-gray-700">
+          Instagram link
+          <input
+            name="instagramUrl"
+            type="url"
+            defaultValue={tenant.instagramUrl ?? ""}
+            placeholder="https://instagram.com/yourrestaurant"
+            className="rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-gray-900 focus:outline-none"
+          />
+        </label>
+        <label className="flex flex-col gap-1 text-sm font-medium text-gray-700">
+          Facebook link
+          <input
+            name="facebookUrl"
+            type="url"
+            defaultValue={tenant.facebookUrl ?? ""}
+            placeholder="https://facebook.com/yourrestaurant"
+            className="rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-gray-900 focus:outline-none"
+          />
+        </label>
+      </div>
+
       {state.error && <p className="text-sm text-red-600">{state.error}</p>}
       {state.success && <p className="text-sm text-green-600">Saved.</p>}
 

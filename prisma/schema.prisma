@@ -99,6 +99,14 @@ model Tenant {
   // /dashboard/menu) — shown to customers as a link on the storefront.
   menuDocumentUrl        String?            @db.Text
   menuDocumentType       String? // "pdf" | "image"
+  // Manual entry, shown on the storefront menu page — there's no live Google
+  // Places/Business API credential, so this is the owner typing in their own
+  // rating/link rather than a real-time synced widget. See CLAUDE.md.
+  googleReviewUrl        String?            @db.Text
+  googleRating           Float?
+  googleReviewCount      Int?
+  instagramUrl           String?            @db.Text
+  facebookUrl            String?            @db.Text
   createdAt              DateTime           @default(now())
   updatedAt              DateTime           @updatedAt
 

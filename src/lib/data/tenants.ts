@@ -126,6 +126,11 @@ export async function updateTenantBranding(
     colorSecondary?: string;
     colorAccent?: string;
     upiId?: string | null;
+    googleReviewUrl?: string | null;
+    googleRating?: number | null;
+    googleReviewCount?: number | null;
+    instagramUrl?: string | null;
+    facebookUrl?: string | null;
   },
 ) {
   return prisma.tenant.update({ where: { id: tenantId }, data });

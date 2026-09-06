@@ -6,6 +6,8 @@ import { formatINR } from "@/lib/money";
 import { AddCategoryForm } from "@/components/menu/add-category-form";
 import { AddItemForm } from "@/components/menu/add-item-form";
 import { UploadMenuDocumentForm } from "@/components/menu/upload-menu-document-form";
+import { AiMenuImportForm } from "@/components/menu/ai-menu-import-form";
+import { isAiMenuImportConfigured } from "@/lib/ai/menu-import";
 import {
   deleteCategoryAction,
   deleteItemAction,
@@ -28,6 +30,18 @@ export default async function MenuPage() {
       </section>
 
       <AddItemForm categories={categories.map((c) => ({ id: c.id, name: c.name }))} />
+
+      {isAiMenuImportConfigured() ? (
+        <AiMenuImportForm />
+      ) : (
+        <div className="rounded-lg border border-dashed border-gray-300 bg-gray-50 p-4">
+          <h3 className="mb-1 text-sm font-semibold text-gray-900">AI menu import (not yet enabled)</h3>
+          <p className="text-xs text-gray-500">
+            Upload a photo or PDF of your menu and have categories/items added automatically — this
+            needs an ANTHROPIC_API_KEY set on the server to turn on.
+          </p>
+        </div>
+      )}
 
       <UploadMenuDocumentForm menuDocumentUrl={tenant?.menuDocumentUrl ?? null} />
 
