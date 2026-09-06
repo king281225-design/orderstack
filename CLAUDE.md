@@ -245,6 +245,14 @@ User gave several directives in one message: email notifications first (not What
 - Migrated for real against the live MySQL database: dropping the old free-text `plan` column (which had 16 non-null values across existing test tenants) needed the same hand-placed-migration workaround as previous destructive-looking changes in this project (`prisma migrate dev` won't confirm non-interactively).
 - Verified for real: super-admin's Plans section shows all three correct prices; changed a real tenant's plan via the dropdown and confirmed it persisted.
 
+### Real bug: hardcopy menu upload failing on real-sized files (fixed 2026-09-06)
+
+User hit this live: uploading a hardcopy menu photo/PDF threw a raw Next.js "Body exceeded 8mb limit" overlay. A scanned multi-page PDF or a full-resolution phone photo of a paper menu routinely exceeds 8MB — this was always going to happen with real files, not an edge case.
+
+- Raised `next.config.ts`'s `serverActions.bodySizeLimit` from `8mb` to `25mb` — but that alone didn't fix it. A **second, separate** limit exists: Next 16's `experimental.proxyClientMaxBodySize` (default 10MB), which `src/proxy.ts` (the renamed middleware, gating all of `/dashboard/*`) buffers every request body against *before* any server action sees it. Past that cap it silently truncates rather than erroring, which surfaced as a confusing downstream `Unexpected end of form` in the action's own multipart parser — not the size-limit error one might expect, and something only the actual server log (not the browser error overlay) showed clearly (`Request body exceeded 10MB for /dashboard/menu`). Raised to `25mb` to match.
+- Also added a client-side 20MB check on the upload form itself (leaves headroom under the 25mb server caps for multipart overhead) — a real file over that shows an immediate, clear message instead of uploading the whole thing first only for the server to reject it.
+- **Verified for real, both directions:** a real 12MB PDF (over the old 8MB cap) now uploads successfully with no server warnings; a real 22MB PDF is caught client-side with the new message and the upload button disabled, before any network request happens.
+
 ## Trade-off menu (only if Sep 14 is truly fixed and scope must shrink further)
 
 At most one of these; the rest slide to week 2 regardless:
