@@ -1,9 +1,9 @@
-import { requireTenantSession } from "@/lib/auth";
+import { requireOwnerSession } from "@/lib/auth";
 import { getTenantById } from "@/lib/data/tenants";
 import { BrandingForm } from "@/components/branding-form";
 
 export default async function BrandingPage() {
-  const session = await requireTenantSession();
+  const session = await requireOwnerSession();
   const tenant = await getTenantById(session.tenantId);
   if (!tenant) return null;
 

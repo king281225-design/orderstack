@@ -102,3 +102,18 @@ export async function requireTenantSession(): Promise<SessionPayload & { tenantI
   }
   return session as SessionPayload & { tenantId: string };
 }
+
+/**
+ * Owner-only session with a guaranteed tenantId — for pages/actions staff
+ * must not reach: branding, coupons, tables, analytics, and staff
+ * management itself (see CLAUDE.md's staff-roles note for the reasoning).
+ * The dashboard nav also hides these links from staff so this should only
+ * ever trigger on a deliberate direct URL visit.
+ */
+export async function requireOwnerSession(): Promise<SessionPayload & { tenantId: string }> {
+  const session = await requireRole("OWNER");
+  if (!session.tenantId) {
+    throw new AuthError("Session has no tenant");
+  }
+  return session as SessionPayload & { tenantId: string };
+}

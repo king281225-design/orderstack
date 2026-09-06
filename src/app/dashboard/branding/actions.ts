@@ -1,7 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { requireTenantSession } from "@/lib/auth";
+import { requireOwnerSession } from "@/lib/auth";
 import { updateTenantBranding } from "@/lib/data/tenants";
 import { saveUpload } from "@/lib/storage";
 
@@ -11,7 +11,7 @@ export async function updateBrandingAction(
   _prev: BrandingState,
   formData: FormData,
 ): Promise<BrandingState> {
-  const session = await requireTenantSession();
+  const session = await requireOwnerSession();
 
   const name = String(formData.get("name") ?? "").trim();
   const tagline = String(formData.get("tagline") ?? "").trim();

@@ -1,7 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { requireTenantSession } from "@/lib/auth";
+import { requireOwnerSession } from "@/lib/auth";
 import { createCoupon, setCouponActive, deleteCoupon, CouponCodeTakenError } from "@/lib/data/coupons";
 import { rupeesToCents } from "@/lib/money";
 import type { DiscountType } from "@prisma/client";
@@ -13,7 +13,7 @@ export async function createCouponAction(
   _prev: CouponActionState,
   formData: FormData,
 ): Promise<CouponActionState> {
-  const session = await requireTenantSession();
+  const session = await requireOwnerSession();
 
   const code = String(formData.get("code") ?? "").trim();
   const discountType = String(formData.get("discountType") ?? "PERCENT") as DiscountType;
@@ -50,13 +50,13 @@ export async function createCouponAction(
 }
 
 export async function setCouponActiveAction(couponId: string, isActive: boolean) {
-  const session = await requireTenantSession();
+  const session = await requireOwnerSession();
   await setCouponActive(session.tenantId, couponId, isActive);
   revalidatePath("/dashboard/coupons");
 }
 
 export async function deleteCouponAction(couponId: string) {
-  const session = await requireTenantSession();
+  const session = await requireOwnerSession();
   await deleteCoupon(session.tenantId, couponId);
   revalidatePath("/dashboard/coupons");
 }

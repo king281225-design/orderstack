@@ -1,5 +1,5 @@
 import { headers } from "next/headers";
-import { requireTenantSession } from "@/lib/auth";
+import { requireOwnerSession } from "@/lib/auth";
 import { getTenantById } from "@/lib/data/tenants";
 import { buildTableQrDataUrl } from "@/lib/table-qr";
 import { PrintButton } from "@/components/print-button";
@@ -11,7 +11,7 @@ export default async function TablesPage({
 }: {
   searchParams: Promise<{ count?: string }>;
 }) {
-  const session = await requireTenantSession();
+  const session = await requireOwnerSession();
   const tenant = await getTenantById(session.tenantId);
   if (!tenant) return null;
 

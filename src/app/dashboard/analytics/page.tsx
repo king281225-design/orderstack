@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { requireTenantSession } from "@/lib/auth";
+import { requireOwnerSession } from "@/lib/auth";
 import { getAnalyticsSummary, getTopItems } from "@/lib/data/analytics";
 import { formatINR } from "@/lib/money";
 
@@ -18,7 +18,7 @@ export default async function AnalyticsPage({
 }: {
   searchParams: Promise<{ days?: string }>;
 }) {
-  const session = await requireTenantSession();
+  const session = await requireOwnerSession();
   const { days: daysParam } = await searchParams;
   const days = RANGE_OPTIONS.includes(Number(daysParam) as (typeof RANGE_OPTIONS)[number])
     ? Number(daysParam)

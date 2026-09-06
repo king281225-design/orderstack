@@ -1,11 +1,11 @@
-import { requireTenantSession } from "@/lib/auth";
+import { requireOwnerSession } from "@/lib/auth";
 import { listCouponsForTenant } from "@/lib/data/coupons";
 import { formatINR } from "@/lib/money";
 import { AddCouponForm } from "@/components/coupons/add-coupon-form";
 import { deleteCouponAction, setCouponActiveAction } from "@/app/dashboard/coupons/actions";
 
 export default async function CouponsPage() {
-  const session = await requireTenantSession();
+  const session = await requireOwnerSession();
   const coupons = await listCouponsForTenant(session.tenantId);
 
   return (

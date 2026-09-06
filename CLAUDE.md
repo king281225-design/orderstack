@@ -128,15 +128,14 @@ Do this before Day 10 of the plan (loading the actual restaurant's data).
 
 ## Post-launch roadmap — module status (updated 2026-09-05)
 
-**Done (8):** self-serve restaurant signup · Razorpay online payment (built, dormant until real keys are added) · coupons · QR table ordering for dine-in · sample/mockup menu quick-start (added on request, wasn't on the original roadmap) · auto-accept orders on confirmed Razorpay payment · kitchen display system · analytics dashboards.
+**Done (9):** self-serve restaurant signup · Razorpay online payment (built, dormant until real keys are added) · coupons · QR table ordering for dine-in · sample/mockup menu quick-start (added on request, wasn't on the original roadmap) · auto-accept orders on confirmed Razorpay payment · kitchen display system · analytics dashboards · staff roles/permissions.
 
-**Left (6):**
-- Email/WhatsApp order notifications — blocked, needs a notification provider (Resend/Twilio/WhatsApp Business API) and credentials nobody has given me.
-- Custom domains per restaurant — blocked, needs a live deployment/domain to mean anything.
-- Subscription billing automation (charging *restaurants* a platform fee) — blocked on a real business decision first (actual plan tiers/pricing don't exist yet — `Tenant.plan` is just a free-text default), then Razorpay Subscriptions on top.
-- AI-assisted menu import from photos/PDFs — blocked, needs an AI/OCR provider and credentials.
-- Delivery-zone radius pricing — partially blocked: true GPS-radius pricing needs a geocoding API (credentials), but a simplified manual-zone version (owner defines named zones with flat fees, customer picks one at checkout) is buildable now with no external account.
-- Staff roles/permissions — buildable now, no blockers (the `STAFF` role already exists in the schema; there's just no way yet for an owner to create one or to actually restrict what it can do — `requireTenantSession()` treats `OWNER` and `STAFF` identically everywhere today).
+**Left (5) — all genuinely blocked on something outside this chat:**
+- Email/WhatsApp order notifications — needs a notification provider (Resend/Twilio/WhatsApp Business API) and credentials nobody has given me.
+- Custom domains per restaurant — needs a live deployment/domain to mean anything.
+- Subscription billing automation (charging *restaurants* a platform fee) — needs a real business decision first (actual plan tiers/pricing don't exist yet — `Tenant.plan` is just a free-text default), then Razorpay Subscriptions on top.
+- AI-assisted menu import from photos/PDFs — needs an AI/OCR provider and credentials.
+- Delivery-zone radius pricing — partially blocked: true GPS-radius pricing needs a geocoding API (credentials), but a simplified manual-zone version (owner defines named zones with flat fees, customer picks one at checkout) would be buildable with no external account, if wanted.
 
 (Stripe was named alongside Razorpay in the original plan but never actually asked for, so it's not counted as "left" — only build it if asked.)
 
@@ -215,6 +214,15 @@ Followed the original Month-3+ tiering order (analytics listed before staff role
 - **Caught and fixed a real bug before it shipped**, not after: the first draft of "top-selling items" used Prisma's `groupBy` with `_sum` on both `quantity` and `priceCentsSnapshot` and multiplied the two sums together to get revenue — but `_sum` totals one column across matching rows independently; it can't express a per-row product like `quantity × price`. That would have produced wildly inflated numbers (e.g. an item ordered across 3 orders would multiply a 3×-summed quantity by a 3×-summed price, not add up the 3 real line totals). Caught by reasoning through what the aggregation actually computes, before ever running it — rewrote it to fetch matching line items and total `quantity × priceCentsSnapshot` per line in application code instead.
 - **A second real bug did make it to a screenshot before being caught**: the revenue-by-day bar chart rendered as a completely empty box — every bar was 0px tall. The bar's height was set via inline `style={{ height: '<pct>%' }}`, but its immediate parent only had `flex-1` (which sizes width in a flex row, not height) and no explicit height of its own — a percentage height can only resolve against a parent with a *defined* height, so it silently computed against nothing. Fixed by giving that parent `h-full` (so it fills the chart's own fixed `h-40`) and anchoring the bar with `absolute bottom-0` for robustness. Reverified with a fresh screenshot showing a real, correctly-sized bar.
 - Verified for real against the live database: seeded 5 orders through the actual checkout flow, cancelled one from the dashboard, and confirmed the analytics page showed exactly 4 orders / the correct revenue total / a 20% cancellation rate / the right per-item breakdown that summed back to the same revenue figure.
+
+### Staff roles/permissions (built 2026-09-05)
+
+Last of the originally-listed roadmap items with zero blockers. The `STAFF` role already existed in the schema and `requireTenantSession()` already let staff in — there was just no way for an owner to create a staff login, and no actual restriction on what one could do once logged in.
+
+- `/dashboard/staff` (owner-only): create/remove staff logins (`src/lib/data/staff.ts`). Reuses the same `hashPassword`/session machinery as owner accounts — a staff login is a real `User` row with `role: STAFF`, not a separate concept.
+- **The permission split:** staff can reach Orders, Menu, and Kitchen (day-to-day order fulfillment and marking items sold out) but not Branding, Coupons, Tables, Analytics, or the Staff page itself (business configuration and reporting). Enforced with a new `requireOwnerSession()` alongside the existing `requireTenantSession()` in `src/lib/auth.ts` — swapped into the branding/coupons/tables/analytics/staff pages and their server actions. The dashboard nav also conditionally hides those links from staff (`session.role === "OWNER"` check in the layout), so a staff account never even sees links to pages it can't use.
+- **A real UX gap surfaced by testing, then fixed the same pass:** `requireOwnerSession()` throwing when staff hit an owner-only page directly by URL rendered Next's raw default error screen — functionally blocked, but not something to actually show a real staff member. Added `src/app/dashboard/error.tsx` as a proper error boundary with a plain "you don't have access" message and a link back to Orders.
+- Verified for real against the live database: created a staff login as the owner, signed in as that staff account and confirmed its nav shows only Orders/Menu/Kitchen, confirmed it can actually load Menu and Kitchen, confirmed direct URL visits to `/dashboard/branding` and `/dashboard/staff` are blocked (rendering the new friendly error page, not a crash), then signed back in as the owner and removed the staff login.
 
 ## Trade-off menu (only if Sep 14 is truly fixed and scope must shrink further)
 

@@ -15,6 +15,8 @@ export default async function DashboardLayout({ children }: { children: React.Re
   const tenant = await getTenantById(session.tenantId);
   if (!tenant) redirect("/login");
 
+  const isOwner = session.role === "OWNER";
+
   return (
     <div className="min-h-screen bg-gray-50">
       <header className="border-b border-gray-200 bg-white">
@@ -42,21 +44,28 @@ export default async function DashboardLayout({ children }: { children: React.Re
           <Link href="/dashboard/menu" className="text-gray-600 hover:text-gray-900">
             Menu
           </Link>
-          <Link href="/dashboard/branding" className="text-gray-600 hover:text-gray-900">
-            Branding
-          </Link>
-          <Link href="/dashboard/coupons" className="text-gray-600 hover:text-gray-900">
-            Coupons
-          </Link>
-          <Link href="/dashboard/tables" className="text-gray-600 hover:text-gray-900">
-            Tables
-          </Link>
           <Link href="/dashboard/kitchen" className="text-gray-600 hover:text-gray-900">
             Kitchen
           </Link>
-          <Link href="/dashboard/analytics" className="text-gray-600 hover:text-gray-900">
-            Analytics
-          </Link>
+          {isOwner && (
+            <>
+              <Link href="/dashboard/branding" className="text-gray-600 hover:text-gray-900">
+                Branding
+              </Link>
+              <Link href="/dashboard/coupons" className="text-gray-600 hover:text-gray-900">
+                Coupons
+              </Link>
+              <Link href="/dashboard/tables" className="text-gray-600 hover:text-gray-900">
+                Tables
+              </Link>
+              <Link href="/dashboard/analytics" className="text-gray-600 hover:text-gray-900">
+                Analytics
+              </Link>
+              <Link href="/dashboard/staff" className="text-gray-600 hover:text-gray-900">
+                Staff
+              </Link>
+            </>
+          )}
           <a
             href={`/r/${tenant.slug}`}
             target="_blank"
