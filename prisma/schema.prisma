@@ -58,23 +58,49 @@ enum DiscountType {
   FIXED
 }
 
+// Pricing/feature copy for each tier lives in code (src/lib/plans.ts), not
+// here — this just records which tier a tenant is on. Assigned manually by
+// the super-admin for now: real recurring auto-billing needs both real
+// Razorpay keys (pending) and a deployed public webhook URL (doesn't exist
+// yet), the same two blockers already flagged for one-time payments.
+enum PlanTier {
+  STARTER
+  ADVANCED
+  BUSINESS
+}
+
+enum SubscriptionStatus {
+  NONE
+  ACTIVE
+  PAST_DUE
+  CANCELLED
+}
+
 model Tenant {
-  id             String       @id @default(cuid())
-  slug           String       @unique
-  name           String
-  tagline        String?
+  id                     String             @id @default(cuid())
+  slug                   String             @unique
+  name                   String
+  tagline                String?
   // R2/S3 URLs (presigned or otherwise) regularly exceed MySQL's default
   // VARCHAR(191) for a String field, so these are explicitly TEXT.
-  logoUrl        String?      @db.Text
-  colorPrimary   String       @default("#111827")
-  colorSecondary String       @default("#f97316")
-  colorAccent    String       @default("#ffffff")
-  isOpen         Boolean      @default(true)
-  status         TenantStatus @default(ACTIVE)
-  plan           String       @default("launch")
-  upiId          String?
-  createdAt      DateTime     @default(now())
-  updatedAt      DateTime     @updatedAt
+  logoUrl                String?            @db.Text
+  colorPrimary           String             @default("#111827")
+  colorSecondary         String             @default("#f97316")
+  colorAccent            String             @default("#ffffff")
+  isOpen                 Boolean            @default(true)
+  status                 TenantStatus       @default(ACTIVE)
+  planTier               PlanTier           @default(STARTER)
+  // Subscription fields are dormant scaffolding — see the PlanTier comment.
+  subscriptionStatus     SubscriptionStatus @default(NONE)
+  razorpaySubscriptionId String?
+  upiId                  String?
+  // A photographed/scanned physical menu, offered as an alternative to
+  // building the digital menu item-by-item (see "hardcopy menu upload" on
+  // /dashboard/menu) — shown to customers as a link on the storefront.
+  menuDocumentUrl        String?            @db.Text
+  menuDocumentType       String? // "pdf" | "image"
+  createdAt              DateTime           @default(now())
+  updatedAt              DateTime           @updatedAt
 
   users      User[]
   categories Category[]
@@ -169,6 +195,9 @@ model Order {
   tenant            Tenant          @relation(fields: [tenantId], references: [id], onDelete: Cascade)
   customerName      String
   customerPhone     String
+  // Optional — only collected so an order-confirmation email can be sent
+  // (see src/lib/notifications/email.ts). Phone stays the required contact.
+  customerEmail     String?
   fulfillmentType   FulfillmentType
   deliveryAddress   String?         @db.Text
   // Set for DINE_IN orders placed via a table's QR link (?table=<label>) —

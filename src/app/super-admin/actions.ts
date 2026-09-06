@@ -2,7 +2,8 @@
 
 import { revalidatePath } from "next/cache";
 import { requireRole } from "@/lib/auth";
-import { createTenantWithOwner, setTenantStatus } from "@/lib/data/tenants";
+import { createTenantWithOwner, setTenantStatus, setTenantPlan } from "@/lib/data/tenants";
+import type { PlanTier } from "@prisma/client";
 
 export type CreateRestaurantState = { error: string | null; success: boolean };
 const initialOk: CreateRestaurantState = { error: null, success: false };
@@ -42,5 +43,12 @@ export async function createRestaurantAction(
 export async function setTenantStatusAction(tenantId: string, status: "ACTIVE" | "SUSPENDED") {
   await requireRole("SUPER_ADMIN");
   await setTenantStatus(tenantId, status);
+  revalidatePath("/super-admin");
+}
+
+/** Manual plan assignment — see the PlanTier comment in schema.prisma. */
+export async function setTenantPlanAction(tenantId: string, planTier: PlanTier) {
+  await requireRole("SUPER_ADMIN");
+  await setTenantPlan(tenantId, planTier);
   revalidatePath("/super-admin");
 }

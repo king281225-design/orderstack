@@ -98,6 +98,7 @@ export function CheckoutForm({
     const fields = {
       customerName: String(formData.get("customerName") ?? ""),
       customerPhone: String(formData.get("customerPhone") ?? ""),
+      customerEmail: String(formData.get("customerEmail") ?? ""),
       fulfillmentType,
       deliveryAddress: String(formData.get("deliveryAddress") ?? ""),
       tableLabel: tableLabel ?? manualTable,
@@ -254,6 +255,15 @@ export function CheckoutForm({
           name="customerPhone"
           type="tel"
           required
+          className="rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-gray-900 focus:outline-none"
+        />
+      </label>
+
+      <label className="flex flex-col gap-1 text-sm font-medium text-gray-700">
+        Email (optional — for an order confirmation)
+        <input
+          name="customerEmail"
+          type="email"
           className="rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-gray-900 focus:outline-none"
         />
       </label>

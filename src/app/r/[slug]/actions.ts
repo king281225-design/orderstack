@@ -1,7 +1,7 @@
 "use server";
 
 import { z } from "zod";
-import { getTenantBySlug } from "@/lib/data/tenants";
+import { getTenantBySlug, getOwnerEmail } from "@/lib/data/tenants";
 import {
   attachRazorpayOrder,
   createOrder,
@@ -9,6 +9,7 @@ import {
   InvalidItemsError,
   markPaymentStatus,
 } from "@/lib/data/orders";
+import { sendOwnerNewOrderEmail, sendCustomerOrderConfirmationEmail } from "@/lib/notifications/email";
 import {
   validateCoupon,
   CouponNotFoundError,
@@ -33,6 +34,7 @@ const cartLineSchema = z.object({
 const checkoutSchema = z.object({
   customerName: z.string().min(1, "Name is required."),
   customerPhone: z.string().min(6, "Enter a valid phone number."),
+  customerEmail: z.string().email("Enter a valid email, or leave it blank.").optional().or(z.literal("")),
   fulfillmentType: z.enum(["DELIVERY", "TAKEAWAY", "DINE_IN"]),
   deliveryAddress: z.string().optional(),
   tableLabel: z.string().optional(),
@@ -126,6 +128,7 @@ export async function placeOrderAction(
       cart: cartParsed.data,
       customerName: data.customerName,
       customerPhone: data.customerPhone,
+      customerEmail: data.customerEmail || null,
       fulfillmentType: data.fulfillmentType,
       deliveryAddress: data.deliveryAddress?.trim() || null,
       tableLabel: data.tableLabel?.trim() || null,
@@ -133,6 +136,16 @@ export async function placeOrderAction(
       notes: data.notes?.trim() || null,
       couponCode: data.couponCode?.trim() || null,
     });
+
+    // Fire-and-forget: never let an email problem block or fail the order
+    // itself (both functions already swallow their own errors, but the
+    // await here is intentionally not awaited-and-checked further).
+    getOwnerEmail(tenant.id).then((ownerEmail) => {
+      if (ownerEmail) void sendOwnerNewOrderEmail(ownerEmail, tenant.name, order);
+    });
+    if (order.customerEmail) {
+      void sendCustomerOrderConfirmationEmail(order.customerEmail, tenant.name, order);
+    }
 
     if (data.paymentMethod === "RAZORPAY") {
       const razorpayOrder = await createRazorpayOrder(order.totalCents, order.id);

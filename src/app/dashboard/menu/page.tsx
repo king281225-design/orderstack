@@ -1,9 +1,11 @@
 import Image from "next/image";
 import { requireTenantSession } from "@/lib/auth";
 import { listMenuForTenant } from "@/lib/data/menu";
+import { getTenantById } from "@/lib/data/tenants";
 import { formatINR } from "@/lib/money";
 import { AddCategoryForm } from "@/components/menu/add-category-form";
 import { AddItemForm } from "@/components/menu/add-item-form";
+import { UploadMenuDocumentForm } from "@/components/menu/upload-menu-document-form";
 import {
   deleteCategoryAction,
   deleteItemAction,
@@ -13,7 +15,10 @@ import {
 
 export default async function MenuPage() {
   const session = await requireTenantSession();
-  const categories = await listMenuForTenant(session.tenantId);
+  const [categories, tenant] = await Promise.all([
+    listMenuForTenant(session.tenantId),
+    getTenantById(session.tenantId),
+  ]);
 
   return (
     <div className="flex flex-col gap-8">
@@ -23,6 +28,8 @@ export default async function MenuPage() {
       </section>
 
       <AddItemForm categories={categories.map((c) => ({ id: c.id, name: c.name }))} />
+
+      <UploadMenuDocumentForm menuDocumentUrl={tenant?.menuDocumentUrl ?? null} />
 
       <section className="flex flex-col gap-6">
         {categories.length === 0 && (

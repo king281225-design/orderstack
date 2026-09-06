@@ -126,18 +126,16 @@ The plan named "NextAuth (credentials provider) or Lucia" — the actual build u
 
 Do this before Day 10 of the plan (loading the actual restaurant's data).
 
-## Post-launch roadmap — module status (updated 2026-09-05)
+## Post-launch roadmap — module status (updated 2026-09-06)
 
-**Done (9):** self-serve restaurant signup · Razorpay online payment (built, dormant until real keys are added) · coupons · QR table ordering for dine-in · sample/mockup menu quick-start (added on request, wasn't on the original roadmap) · auto-accept orders on confirmed Razorpay payment · kitchen display system · analytics dashboards · staff roles/permissions.
+**Done (12):** self-serve restaurant signup · Razorpay online payment (built, dormant until real keys are added) · coupons · QR table ordering for dine-in · sample/mockup menu quick-start · auto-accept orders on confirmed Razorpay payment · kitchen display system · analytics dashboards · staff roles/permissions · email order notifications (built, dormant until real keys are added) · subscription billing tiers/pricing (plan definitions + manual assignment; automated recurring billing itself is not built) · hardcopy menu upload (replaces AI-assisted menu import — see below).
 
-**Left (5) — all genuinely blocked on something outside this chat:**
-- Email/WhatsApp order notifications — needs a notification provider (Resend/Twilio/WhatsApp Business API) and credentials nobody has given me.
-- Custom domains per restaurant — needs a live deployment/domain to mean anything.
-- Subscription billing automation (charging *restaurants* a platform fee) — needs a real business decision first (actual plan tiers/pricing don't exist yet — `Tenant.plan` is just a free-text default), then Razorpay Subscriptions on top.
-- AI-assisted menu import from photos/PDFs — needs an AI/OCR provider and credentials.
-- Delivery-zone radius pricing — partially blocked: true GPS-radius pricing needs a geocoding API (credentials), but a simplified manual-zone version (owner defines named zones with flat fees, customer picks one at checkout) would be buildable with no external account, if wanted.
+**Left (3) — all genuinely blocked on something outside this chat:**
+- WhatsApp order notifications — user explicitly said email first, not WhatsApp; would need the WhatsApp Business API and credentials if wanted later.
+- Custom domains per restaurant — user said "later"; needs a live deployment/domain to mean anything regardless.
+- Actual recurring auto-billing for subscriptions — needs real Razorpay keys (pending) *and* a deployed public webhook URL (doesn't exist yet), same two blockers already flagged for one-time payments. Plan tiers/pricing/manual assignment are done; the automation on top isn't.
 
-(Stripe was named alongside Razorpay in the original plan but never actually asked for, so it's not counted as "left" — only build it if asked.)
+(Stripe was named alongside Razorpay in the original plan but never actually asked for, so it's not counted as "left" — only build it if asked. AI-assisted menu import was explicitly replaced by "hardcopy menu upload" per the user's own instruction — not left, just redefined.)
 
 ### Original tiering, for reference
 - **Week 2–3:** self-serve signup, Razorpay/Stripe, notifications.
@@ -223,6 +221,29 @@ Last of the originally-listed roadmap items with zero blockers. The `STAFF` role
 - **The permission split:** staff can reach Orders, Menu, and Kitchen (day-to-day order fulfillment and marking items sold out) but not Branding, Coupons, Tables, Analytics, or the Staff page itself (business configuration and reporting). Enforced with a new `requireOwnerSession()` alongside the existing `requireTenantSession()` in `src/lib/auth.ts` — swapped into the branding/coupons/tables/analytics/staff pages and their server actions. The dashboard nav also conditionally hides those links from staff (`session.role === "OWNER"` check in the layout), so a staff account never even sees links to pages it can't use.
 - **A real UX gap surfaced by testing, then fixed the same pass:** `requireOwnerSession()` throwing when staff hit an owner-only page directly by URL rendered Next's raw default error screen — functionally blocked, but not something to actually show a real staff member. Added `src/app/dashboard/error.tsx` as a proper error boundary with a plain "you don't have access" message and a link back to Orders.
 - Verified for real against the live database: created a staff login as the owner, signed in as that staff account and confirmed its nav shows only Orders/Menu/Kitchen, confirmed it can actually load Menu and Kitchen, confirmed direct URL visits to `/dashboard/branding` and `/dashboard/staff` are blocked (rendering the new friendly error page, not a crash), then signed back in as the owner and removed the staff login.
+
+### Hardcopy menu upload, email notifications, and subscription plan tiers (built 2026-09-06)
+
+User gave several directives in one message: email notifications first (not WhatsApp), custom domains later (no action), real subscription pricing (Starter ₹499 / Advanced ₹999 / Business ₹1999, "advance features" on the higher tiers), and hardcopy menu upload instead of AI-assisted menu import. All three buildable pieces went in this pass; flagged rather than guessed on the one genuinely ambiguous point (see below).
+
+**Hardcopy menu upload** — replaces AI menu import per the user's own instruction, not a scaled-down version of it:
+- `Tenant.menuDocumentUrl`/`menuDocumentType` (`.pdf` or image, via the existing R2/local upload pipeline in `src/lib/storage.ts`, extended to allow `.pdf` for a new `"menu-docs"` folder). No parsing, no OCR — it's just a photo or PDF of an existing paper menu, offered on `/dashboard/menu` for a restaurant that hasn't (or hasn't finished) building the digital item-by-item menu.
+- Shown as a "View full menu (PDF/photo)" link at the top of the public storefront when set, alongside whatever digital items do exist.
+- Verified for real: uploaded a real file through the actual dashboard form, confirmed "View current file" appears with a working link, confirmed the storefront link renders and points at the same file.
+
+**Email order notifications** — dormant until real credentials exist, same pattern as Razorpay:
+- Picked **Resend** as the provider since none was specified — simplest integration, real free tier — and said so rather than picking silently. `isEmailConfigured()` gates everything on `RESEND_API_KEY` (empty in `.env`); nothing else needs to change once it's set.
+- Two triggers from `placeOrderAction`, both fire-and-forget (a failed email never blocks or fails the order): the tenant's **owner** gets emailed on every new order (needs no new data — owner email already exists), and the **customer** gets a confirmation email if they gave one. Checkout gained an optional `customerEmail` field (`Order.customerEmail`, nullable) — phone stays the only required contact method.
+- **Flagged, not silently assumed:** without a domain verified in the Resend dashboard, the fallback sender (`onboarding@resend.dev`) can only deliver to the Resend account's *own* email, not arbitrary owners/customers — a Resend platform restriction, not a bug here. Real delivery needs `RESEND_FROM_EMAIL` on a verified domain.
+- **Verified what's actually verifiable without real credentials** (matches how the Razorpay preview was handled): confirmed an order with a `customerEmail` filled in places successfully with zero errors when Resend is unconfigured (today's actual state) — `isEmailConfigured()` correctly no-ops both send calls. Did not attempt to confirm actual delivery, since that needs a real API key nobody has given me.
+
+**Subscription plan tiers/pricing** — the pricing itself, not automated recurring billing:
+- `PlanTier` enum (`STARTER`/`ADVANCED`/`BUSINESS`) replaced the old free-text `Tenant.plan` (which nothing had ever actually read). Prices and feature-list copy live in code (`src/lib/plans.ts`) at the user's exact figures: ₹499/₹999/₹1999.
+- Super-admin gained a **Plans** section (pricing/feature cards) and a per-restaurant plan dropdown that updates immediately — assigned manually, the same way restaurant status already is.
+- **What "advance features" did NOT get built, flagged rather than guessed:** the user didn't say which existing modules (coupons? analytics? kitchen display? staff logins?) should actually be restricted to which tier, so nothing is gated — a Starter-plan restaurant can still use every feature today. The feature lists shown in super-admin are marketing copy only. Say which modules belong to which tier and the actual restriction is a small follow-up.
+- **What "automation" still needs, same two blockers as one-time Razorpay payments:** real Razorpay keys (pending) and a deployed public webhook URL (doesn't exist yet) — `Tenant.razorpaySubscriptionId`/`subscriptionStatus` exist as scaffolding but nothing creates or charges a real subscription yet. Manual plan assignment is the real, working mechanism for now.
+- Migrated for real against the live MySQL database: dropping the old free-text `plan` column (which had 16 non-null values across existing test tenants) needed the same hand-placed-migration workaround as previous destructive-looking changes in this project (`prisma migrate dev` won't confirm non-interactively).
+- Verified for real: super-admin's Plans section shows all three correct prices; changed a real tenant's plan via the dropdown and confirmed it persisted.
 
 ## Trade-off menu (only if Sep 14 is truly fixed and scope must shrink further)
 

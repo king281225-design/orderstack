@@ -23,6 +23,7 @@ export async function createOrder(
     cart: CartLine[];
     customerName: string;
     customerPhone: string;
+    customerEmail?: string | null;
     fulfillmentType: FulfillmentType;
     deliveryAddress?: string | null;
     tableLabel?: string | null;
@@ -81,6 +82,7 @@ export async function createOrder(
       tenantId,
       customerName: input.customerName,
       customerPhone: input.customerPhone,
+      customerEmail: input.customerEmail?.trim() || null,
       fulfillmentType: input.fulfillmentType,
       deliveryAddress: input.deliveryAddress ?? null,
       tableLabel: input.tableLabel ?? null,

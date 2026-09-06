@@ -1,6 +1,7 @@
 import "server-only";
 import { prisma } from "@/lib/prisma";
 import { hashPassword } from "@/lib/auth";
+import type { PlanTier } from "@prisma/client";
 
 const SLUG_RE = /^[a-z0-9]+(-[a-z0-9]+)*$/;
 
@@ -15,6 +16,15 @@ export async function getTenantBySlug(slug: string) {
 
 export async function getTenantById(id: string) {
   return prisma.tenant.findUnique({ where: { id } });
+}
+
+/** For the new-order owner-notification email — the tenant's OWNER login (not staff). */
+export async function getOwnerEmail(tenantId: string): Promise<string | null> {
+  const owner = await prisma.user.findFirst({
+    where: { tenantId, role: "OWNER" },
+    select: { email: true },
+  });
+  return owner?.email ?? null;
 }
 
 export async function listTenantsWithStats() {
@@ -123,4 +133,19 @@ export async function updateTenantBranding(
 
 export async function setTenantOpen(tenantId: string, isOpen: boolean) {
   return prisma.tenant.update({ where: { id: tenantId }, data: { isOpen } });
+}
+
+/**
+ * Super-admin-only, manual for now — see the PlanTier comment in schema.prisma
+ * for why this isn't wired to real recurring billing yet.
+ */
+export async function setTenantPlan(tenantId: string, planTier: PlanTier) {
+  return prisma.tenant.update({ where: { id: tenantId }, data: { planTier } });
+}
+
+export async function updateTenantMenuDocument(
+  tenantId: string,
+  data: { menuDocumentUrl: string | null; menuDocumentType: string | null },
+) {
+  return prisma.tenant.update({ where: { id: tenantId }, data });
 }

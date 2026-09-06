@@ -46,8 +46,11 @@ export function getR2Client(): S3Client {
   });
 }
 
-export async function saveUpload(file: File, folder: "logos" | "items"): Promise<string> {
-  const ext = safeExt(file.name);
+export async function saveUpload(
+  file: File,
+  folder: "logos" | "items" | "menu-docs",
+): Promise<string> {
+  const ext = safeExt(file.name, folder);
   const key = `${R2_PREFIX}/${folder}/${randomUUID()}${ext}`;
 
   if (isR2Configured()) {
@@ -71,8 +74,11 @@ export async function saveUpload(file: File, folder: "logos" | "items"): Promise
   return `/uploads/${folder}/${localName}`;
 }
 
-function safeExt(filename: string): string {
+// "menu-docs" additionally allows .pdf — a photographed/scanned hardcopy
+// menu (see src/app/dashboard/menu, "hardcopy menu upload"), not just images.
+function safeExt(filename: string, folder: "logos" | "items" | "menu-docs"): string {
   const ext = path.extname(filename).toLowerCase();
-  const allowed = [".png", ".jpg", ".jpeg", ".webp", ".gif"];
-  return allowed.includes(ext) ? ext : ".jpg";
+  const images = [".png", ".jpg", ".jpeg", ".webp", ".gif"];
+  if (folder === "menu-docs" && ext === ".pdf") return ext;
+  return images.includes(ext) ? ext : ".jpg";
 }

@@ -12,6 +12,7 @@ import {
   seedSampleMenu,
   updateItem,
 } from "@/lib/data/menu";
+import { updateTenantMenuDocument } from "@/lib/data/tenants";
 import { rupeesToCents } from "@/lib/money";
 import { saveUpload } from "@/lib/storage";
 
@@ -101,5 +102,46 @@ export async function loadSampleMenuAction() {
   const session = await requireTenantSession();
   if (await hasAnyMenuItems(session.tenantId)) return;
   await seedSampleMenu(session.tenantId);
+  revalidatePath("/dashboard/menu");
+}
+
+export type MenuDocActionState = { error: string | null };
+const docOk: MenuDocActionState = { error: null };
+
+/**
+ * "Hardcopy menu upload" — a photo or PDF of an existing paper menu, for a
+ * restaurant that hasn't built (or hasn't finished building) the digital
+ * item-by-item menu yet. Shown as a link on the storefront alongside
+ * whatever digital menu items do exist; not parsed or read in any way.
+ */
+export async function uploadMenuDocumentAction(
+  _prev: MenuDocActionState,
+  formData: FormData,
+): Promise<MenuDocActionState> {
+  const session = await requireTenantSession();
+  const file = formData.get("menuDocument");
+
+  if (!(file instanceof File) || file.size === 0) {
+    return { error: "Choose a photo or PDF first." };
+  }
+  const isPdf = file.type === "application/pdf" || file.name.toLowerCase().endsWith(".pdf");
+  const isImage = file.type.startsWith("image/");
+  if (!isPdf && !isImage) {
+    return { error: "Only images or PDFs are supported." };
+  }
+
+  const url = await saveUpload(file, "menu-docs");
+  await updateTenantMenuDocument(session.tenantId, {
+    menuDocumentUrl: url,
+    menuDocumentType: isPdf ? "pdf" : "image",
+  });
+
+  revalidatePath("/dashboard/menu");
+  return docOk;
+}
+
+export async function removeMenuDocumentAction() {
+  const session = await requireTenantSession();
+  await updateTenantMenuDocument(session.tenantId, { menuDocumentUrl: null, menuDocumentType: null });
   revalidatePath("/dashboard/menu");
 }

@@ -23,6 +23,19 @@ export default async function StorefrontPage({
       <Suspense fallback={null}>
         <CaptureTableParam />
       </Suspense>
+      {tenant.menuDocumentUrl && (
+        <div className="mx-auto max-w-xl px-4 pt-4">
+          <a
+            href={tenant.menuDocumentUrl}
+            target="_blank"
+            rel="noreferrer"
+            className="block rounded-md border border-gray-200 bg-white px-3 py-2 text-center text-sm font-medium underline"
+            style={{ color: "var(--brand-primary)" }}
+          >
+            View full menu ({tenant.menuDocumentType === "pdf" ? "PDF" : "photo"}) ↗
+          </a>
+        </div>
+      )}
       <MenuBrowser categories={categories} />
     </>
   );
