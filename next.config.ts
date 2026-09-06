@@ -1,6 +1,14 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
+  // tesseract.js (free OCR menu import, src/lib/ai/menu-import.ts) resolves
+  // its Node worker script relative to its own package directory at
+  // runtime — bundling it broke that path resolution (surfaced as
+  // "Cannot find module '...\tesseract.js\src\worker-script\node\index.js'"
+  // under a rewritten, nonexistent path). pdf-parse pulls in pdfjs-dist,
+  // which has similar Node-native/dynamic-require needs. Both are opted out
+  // of Server Component bundling so they load via plain Node `require`.
+  serverExternalPackages: ["tesseract.js", "pdf-parse"],
   experimental: {
     serverActions: {
       // Menu-photo/logo/hardcopy-menu-document uploads all go through Server

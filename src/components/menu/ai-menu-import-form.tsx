@@ -12,7 +12,7 @@ const initialState: AiMenuImportState = { error: null, categories: null };
 type EditableItem = { name: string; description: string; priceRupees: number; include: boolean };
 type EditableCategory = { name: string; items: EditableItem[] };
 
-export function AiMenuImportForm() {
+export function AiMenuImportForm({ claudeConfigured }: { claudeConfigured: boolean }) {
   const [state, formAction, extracting] = useActionState(previewAiMenuImportAction, initialState);
   const [edited, setEdited] = useState<EditableCategory[] | null>(null);
   const [isConfirming, startConfirm] = useTransition();
@@ -154,24 +154,40 @@ export function AiMenuImportForm() {
     <div className="rounded-lg border border-gray-200 bg-white p-4">
       <h3 className="mb-1 text-sm font-semibold text-gray-900">AI menu import</h3>
       <p className="mb-3 text-xs text-gray-500">
-        Upload a photo or PDF of your existing menu and let AI read it into categories and items —
+        Upload a photo or PDF of your existing menu and let it get read into categories and items —
         you&apos;ll review and edit the result before anything is added.
       </p>
-      <form action={formAction} className="flex flex-wrap items-end gap-2">
-        <input
-          name="menuPhoto"
-          type="file"
-          accept="image/*,application/pdf"
-          required
-          className="rounded-md border border-gray-300 px-3 py-1 text-sm file:mr-2 file:rounded file:border-0 file:bg-gray-100 file:px-2 file:py-1 file:text-xs"
-        />
-        <button
-          type="submit"
-          disabled={extracting}
-          className="rounded-md bg-gray-900 px-3 py-1.5 text-sm font-semibold text-white hover:bg-gray-700 disabled:opacity-50"
-        >
-          {extracting ? "Reading menu…" : "Extract with AI"}
-        </button>
+      <form action={formAction} className="flex flex-col gap-2">
+        {claudeConfigured ? (
+          <fieldset className="flex flex-wrap gap-4 text-xs text-gray-600">
+            <label className="flex items-center gap-1.5">
+              <input type="radio" name="method" value="free" defaultChecked />
+              Free (built-in OCR reader)
+            </label>
+            <label className="flex items-center gap-1.5">
+              <input type="radio" name="method" value="claude" />
+              Claude AI (more accurate, uses API credits)
+            </label>
+          </fieldset>
+        ) : (
+          <p className="text-xs text-gray-400">Using the free, built-in OCR reader — no API key needed.</p>
+        )}
+        <div className="flex flex-wrap items-end gap-2">
+          <input
+            name="menuPhoto"
+            type="file"
+            accept="image/*,application/pdf"
+            required
+            className="rounded-md border border-gray-300 px-3 py-1 text-sm file:mr-2 file:rounded file:border-0 file:bg-gray-100 file:px-2 file:py-1 file:text-xs"
+          />
+          <button
+            type="submit"
+            disabled={extracting}
+            className="rounded-md bg-gray-900 px-3 py-1.5 text-sm font-semibold text-white hover:bg-gray-700 disabled:opacity-50"
+          >
+            {extracting ? "Reading menu…" : "Extract menu"}
+          </button>
+        </div>
       </form>
       {state.error && <p className="mt-2 text-sm text-red-600">{state.error}</p>}
       {justAdded !== null && (

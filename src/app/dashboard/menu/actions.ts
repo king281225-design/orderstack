@@ -15,7 +15,11 @@ import {
 import { updateTenantMenuDocument } from "@/lib/data/tenants";
 import { rupeesToCents } from "@/lib/money";
 import { saveUpload } from "@/lib/storage";
-import { extractMenuFromDocument, type ExtractedCategory } from "@/lib/ai/menu-import";
+import {
+  extractMenuFromDocument,
+  type ExtractedCategory,
+  type ExtractionMethod,
+} from "@/lib/ai/menu-import";
 
 export type MenuActionState = { error: string | null };
 const ok: MenuActionState = { error: null };
@@ -174,9 +178,15 @@ export async function previewAiMenuImportAction(
     return { error: "Only images or PDFs are supported.", categories: null };
   }
 
+  const method: ExtractionMethod = formData.get("method") === "claude" ? "claude" : "free";
+
   try {
     const bytes = Buffer.from(await file.arrayBuffer());
-    const categories = await extractMenuFromDocument(bytes, isPdf ? "application/pdf" : file.type);
+    const categories = await extractMenuFromDocument(
+      bytes,
+      isPdf ? "application/pdf" : file.type,
+      method,
+    );
     return { error: null, categories };
   } catch (err) {
     return {

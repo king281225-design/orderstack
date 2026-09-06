@@ -43,6 +43,12 @@ dev.log
 # never meant to be committed
 /public/uploads
 
+
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# tesseract.js (free OCR menu import, src/lib/ai/menu-import.ts) downloads
+# its language data to the project root on first use — a re-downloadable
+# cache file, not source.
+*.traineddata
