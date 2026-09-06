@@ -126,32 +126,48 @@ async function extractWithFreeOcr(
  * deliberately simple and predictable rather than clever, since its output
  * always goes through the owner's own review before saving.
  */
+const NBSP_RE = new RegExp(String.fromCharCode(160), "g");
+
 export function parseMenuText(rawText: string): ExtractedCategory[] {
   const lines = rawText
     .split(/\r?\n/)
-    .map((l) => l.replace(/ /g, " ").trim())
+    .map((l) => l.replace(NBSP_RE, " ").trim())
     .filter((l) => l.length > 0);
 
   // Currency-prefixed price ("₹220", "Rs. 220", "INR 220") or a bare
   // trailing number ("Paneer Tikka .......... 220", "Cold Coffee 90") —
   // either way the price must anchor to the end of the line, since that's
-  // where printed/scanned menus put it.
+  // where printed/scanned menus put it. The negative lookbehind keeps a
+  // longer digit run (a 6-digit PIN code, a phone number fragment) from
+  // matching on just its last 1-5 digits — if 5 digits at the line's end
+  // are themselves preceded by another digit, the whole run is too long to
+  // be a price and the match is rejected outright.
   const priceRe =
-    /(?:₹|rs\.?|inr)\s*([0-9]{1,5}(?:[.,][0-9]{1,2})?)\s*(?:\/-)?\s*$|([0-9]{1,5}(?:[.,][0-9]{1,2})?)\s*(?:\/-)?\s*$/i;
+    /(?:₹|rs\.?|inr)\s*(?<![0-9])([0-9]{1,5}(?:[.,][0-9]{1,2})?)\s*(?:\/-)?\s*$|(?<![0-9])([0-9]{1,5}(?:[.,][0-9]{1,2})?)\s*(?:\/-)?\s*$/i;
 
-  const parsed = lines.map((line) => {
-    const m = line.match(priceRe);
-    if (!m || m.index === undefined) {
-      return { text: line, price: null as number | null, nameOnly: line };
-    }
-    const raw = (m[1] ?? m[2] ?? "").replace(",", ".");
-    const price = Number(raw);
-    if (!Number.isFinite(price) || price <= 0 || price > 99999) {
-      return { text: line, price: null as number | null, nameOnly: line };
-    }
-    const nameOnly = line.slice(0, m.index).replace(/[.\-_\s]+$/g, "").trim();
-    return { text: line, price, nameOnly };
-  });
+  // Lines that are never a dish, no matter how they scan: contact/tax/legal
+  // info, hours, addresses, footers — real menus carry all of this, and
+  // without filtering it a naive price/no-price split below will happily
+  // turn "GSTIN: 27AAAAA0000A1Z5" or "Open 11am-11pm" into a fake "item".
+  const noiseRe =
+    /\b(gst(in)?|fssai|tin|pan|cin|license\s*no|contact|tel\.?:|phone|mobile|whatsapp|e[-\s]?mail|address|www\.|https?:\/\/|open(?:ing)?\s*(?:hours|time)|mon(?:day)?\s*[-–]\s*(?:sun|sat)|table\s*no|order\s*no|invoice|bill\s*no|thank\s*you|welcome\s*to|all\s*rights\s*reserved|road|street|st\.|nagar|colony|floor|cross|sector|block|near|opp\.?|landmark)\b|©/i;
+  const isNoiseLine = (text: string) => noiseRe.test(text) || /^[+\d][\d\s\-()]{8,}$/.test(text);
+
+  const parsed = lines
+    .filter((line) => !isNoiseLine(line))
+    .map((line) => {
+      const m = line.match(priceRe);
+      if (!m || m.index === undefined) {
+        return { text: line, price: null as number | null, nameOnly: line };
+      }
+      const raw = (m[1] ?? m[2] ?? "").replace(",", ".");
+      const price = Number(raw);
+      if (!Number.isFinite(price) || price <= 0 || price > 99999) {
+        return { text: line, price: null as number | null, nameOnly: line };
+      }
+      const nameOnly = line.slice(0, m.index).replace(/[.\-_\s]+$/g, "").trim();
+      return { text: line, price, nameOnly };
+    });
 
   const categories: ExtractedCategory[] = [];
   let current: ExtractedCategory | null = null;
@@ -159,7 +175,10 @@ export function parseMenuText(rawText: string): ExtractedCategory[] {
   for (let i = 0; i < parsed.length; i++) {
     const p = parsed[i];
 
-    if (p.price !== null && p.nameOnly.length > 0) {
+    // A real dish name has at least one letter — a bare price, a stray
+    // code, or leftover punctuation doesn't count even if it's sitting
+    // right in front of a number that reads like a price.
+    if (p.price !== null && p.nameOnly.length > 0 && /[a-zA-Z]/.test(p.nameOnly)) {
       if (!current) {
         current = { name: "Menu", items: [] };
         categories.push(current);
@@ -168,23 +187,27 @@ export function parseMenuText(rawText: string): ExtractedCategory[] {
       continue;
     }
 
-    // No price on this line. Decide between three things it could be: a
-    // category heading, a description continuing the previous item, or
-    // noise (restaurant name, address, page footer). Headings are short
-    // and precede priced lines; descriptions immediately follow an item.
+    // No usable price on this line. Decide between two things it could
+    // be: a category heading, or a description continuing the previous
+    // item. Headings are short, letters-only, and precede priced lines;
+    // descriptions immediately follow an item. Anything else (stray
+    // fragments the noise filter above didn't catch) is dropped rather
+    // than guessed at.
     const looksLikeHeading =
       p.text.length <= 30 &&
+      /[a-zA-Z]/.test(p.text) &&
       !/[0-9]/.test(p.text) &&
       parsed.slice(i + 1, i + 6).some((next) => next.price !== null);
 
     if (looksLikeHeading) {
       current = { name: p.text, items: [] };
       categories.push(current);
-    } else if (current && current.items.length > 0) {
+    } else if (current && current.items.length > 0 && /[a-zA-Z]/.test(p.text)) {
       const lastItem = current.items[current.items.length - 1];
       lastItem.description = lastItem.description ? `${lastItem.description} ${p.text}` : p.text;
     }
-    // else: noise before any category/item exists yet — skip it.
+    // else: noise before any category/item exists yet, or an unclassifiable
+    // fragment — skip it rather than risk it becoming a fake item.
   }
 
   return categories.filter((c) => c.items.length > 0);
@@ -295,7 +318,7 @@ async function extractWithClaude(fileBytes: Buffer, mimeType: string): Promise<E
             documentBlock,
             {
               type: "text",
-              text: "This is a photo or scanned PDF of a restaurant's paper menu. Read every category and item you can find and call record_menu with the complete structured result — that tool call is the only thing that should happen here. Group items under the same section headings the menu itself uses, or a sensible default (e.g. 'Starters'/'Mains'/'Beverages') if the menu has none. Skip decorative text, addresses, or anything that isn't an actual menu item.",
+              text: "This is a photo or scanned PDF of a restaurant's paper menu. Read every category and item you can find and call record_menu with the complete structured result — that tool call is the only thing that should happen here. Only include actual dishes/drinks that are ordered and priced individually — every item must belong to a category. Group items under the same section headings the menu itself uses, or a sensible default (e.g. 'Starters'/'Mains'/'Beverages') if the menu has none. Do NOT include the restaurant's name, address, phone/contact info, GST/tax/license numbers, opening hours, table numbers, terms and conditions, or any other non-dish text as if it were an item.",
             },
           ],
         },
