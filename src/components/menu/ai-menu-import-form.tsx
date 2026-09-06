@@ -80,9 +80,25 @@ export function AiMenuImportForm({ claudeConfigured }: { claudeConfigured: boole
       <div className="rounded-lg border border-gray-200 bg-white p-4">
         <h3 className="mb-1 text-sm font-semibold text-gray-900">Review AI-extracted menu</h3>
         <p className="mb-3 text-xs text-gray-500">
-          Double-check names and prices before adding — AI reading of a photo can misjudge a price
-          or split/merge an item. Uncheck anything wrong or not actually a menu item.
+          Everything below is already grouped into categories and checked — if it looks right, add
+          it all with one click. Only expand the list if something needs fixing (AI reading of a
+          photo can misjudge a price or split/merge an item).
         </p>
+        <div className="mb-3 flex flex-wrap items-center gap-2 rounded-md bg-gray-50 p-2">
+          <button
+            type="button"
+            onClick={handleConfirm}
+            disabled={isConfirming || includedCount === 0}
+            className="rounded-md bg-gray-900 px-3 py-1.5 text-sm font-semibold text-white hover:bg-gray-700 disabled:opacity-50"
+          >
+            {isConfirming
+              ? "Adding…"
+              : `Add all ${includedCount} item${includedCount === 1 ? "" : "s"} now`}
+          </button>
+          <span className="text-xs text-gray-500">
+            Adds every category and item below exactly as extracted.
+          </span>
+        </div>
         <div className="flex max-h-96 flex-col gap-4 overflow-y-auto">
           {edited.map((cat, catIdx) => (
             <div key={catIdx} className="rounded-md border border-gray-100 p-3">
@@ -135,7 +151,7 @@ export function AiMenuImportForm({ claudeConfigured }: { claudeConfigured: boole
             disabled={isConfirming || includedCount === 0}
             className="rounded-md bg-gray-900 px-3 py-1.5 text-sm font-semibold text-white hover:bg-gray-700 disabled:opacity-50"
           >
-            {isConfirming ? "Adding…" : `Add ${includedCount} item${includedCount === 1 ? "" : "s"} to menu`}
+            {isConfirming ? "Adding…" : `Add ${includedCount} reviewed item${includedCount === 1 ? "" : "s"} to menu`}
           </button>
           <button
             type="button"
