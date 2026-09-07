@@ -12,11 +12,29 @@ const initialState: AiMenuImportState = { error: null, categories: null };
 type EditableItem = { name: string; description: string; priceRupees: number; include: boolean };
 type EditableCategory = { name: string; items: EditableItem[] };
 
+// Same guard as UploadMenuDocumentForm, for the same reason — a real photo
+// or PDF of a paper menu routinely runs this big, and without a client-side
+// check the browser uploads the whole thing before the framework's own
+// body-size limit rejects it with a raw, confusing error.
+const MAX_BYTES = 20 * 1024 * 1024;
+
 export function AiMenuImportForm({ claudeConfigured }: { claudeConfigured: boolean }) {
   const [state, formAction, extracting] = useActionState(previewAiMenuImportAction, initialState);
   const [edited, setEdited] = useState<EditableCategory[] | null>(null);
   const [isConfirming, startConfirm] = useTransition();
   const [justAdded, setJustAdded] = useState<number | null>(null);
+  const [fileError, setFileError] = useState<string | null>(null);
+
+  function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (file && file.size > MAX_BYTES) {
+      setFileError(
+        `That file is ${(file.size / 1024 / 1024).toFixed(1)}MB — please use one under 20MB (a lower-resolution photo, or a smaller PDF).`,
+      );
+    } else {
+      setFileError(null);
+    }
+  }
 
   // Seed the editable review state the moment a new extraction succeeds.
   // Comparing against the last-seen categories array (rather than syncing in
@@ -194,18 +212,21 @@ export function AiMenuImportForm({ claudeConfigured }: { claudeConfigured: boole
             type="file"
             accept="image/*,application/pdf"
             required
+            onChange={handleFileChange}
             className="rounded-md border border-gray-300 px-3 py-1 text-sm file:mr-2 file:rounded file:border-0 file:bg-gray-100 file:px-2 file:py-1 file:text-xs"
           />
           <button
             type="submit"
-            disabled={extracting}
+            disabled={extracting || Boolean(fileError)}
             className="rounded-md bg-gray-900 px-3 py-1.5 text-sm font-semibold text-white hover:bg-gray-700 disabled:opacity-50"
           >
             {extracting ? "Reading menu…" : "Extract menu"}
           </button>
         </div>
       </form>
-      {state.error && <p className="mt-2 text-sm text-red-600">{state.error}</p>}
+      {(fileError || state.error) && (
+        <p className="mt-2 text-sm text-red-600">{fileError || state.error}</p>
+      )}
       {justAdded !== null && (
         <p className="mt-2 text-sm text-green-600">
           Added {justAdded} item{justAdded === 1 ? "" : "s"} to your menu.

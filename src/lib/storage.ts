@@ -19,7 +19,7 @@ import { S3Client, PutObjectCommand } from "@aws-sdk/client-s3";
  * Without R2 credentials set, this falls back to writing into
  * /public/uploads — fine for local dev, but NOT durable once deployed.
  */
-const R2_PREFIX = "orderstack";
+export const R2_PREFIX = "orderstack";
 
 export function isR2Configured(): boolean {
   return Boolean(
