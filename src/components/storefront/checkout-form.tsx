@@ -144,11 +144,15 @@ export function CheckoutForm({
               undefined,
           },
           handler: (response) => {
+            // order_id checkout always returns razorpay_order_id — see the
+            // matching comment in razorpay-pay-now-button.tsx.
+            if (!response.razorpay_order_id) return;
+            const razorpayOrderIdFromResponse = response.razorpay_order_id;
             startTransition(async () => {
               await verifyRazorpayPaymentAction(
                 slug,
                 orderId,
-                response.razorpay_order_id,
+                razorpayOrderIdFromResponse,
                 response.razorpay_payment_id,
                 response.razorpay_signature,
               );

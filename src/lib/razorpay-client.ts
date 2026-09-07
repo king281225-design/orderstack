@@ -4,15 +4,20 @@
 
 export type RazorpayCheckoutOptions = {
   key: string;
-  amount: number;
-  currency: string;
-  order_id: string;
+  amount?: number;
+  currency?: string;
+  // One-time payment checkout uses order_id; recurring billing checkout
+  // (src/components/billing/subscribe-button.tsx) uses subscription_id
+  // instead — Razorpay's widget accepts either, never both.
+  order_id?: string;
+  subscription_id?: string;
   name: string;
   description?: string;
   prefill?: { name?: string; contact?: string };
   theme?: { color?: string };
   handler: (response: {
-    razorpay_order_id: string;
+    razorpay_order_id?: string;
+    razorpay_subscription_id?: string;
     razorpay_payment_id: string;
     razorpay_signature: string;
   }) => void;

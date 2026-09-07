@@ -107,6 +107,12 @@ model Tenant {
   googleReviewCount      Int?
   instagramUrl           String?            @db.Text
   facebookUrl            String?            @db.Text
+  // A restaurant's own domain pointed at this platform (see CLAUDE.md's
+  // custom-domains note) — src/proxy.ts resolves an incoming Host header
+  // against this to rewrite to /r/<slug>. Not meaningful until this app is
+  // deployed to a public host and the owner points real DNS at it, but the
+  // resolution logic itself is real and testable via the Host header alone.
+  customDomain           String?            @unique
   createdAt              DateTime           @default(now())
   updatedAt              DateTime           @updatedAt
 
@@ -117,6 +123,18 @@ model Tenant {
   coupons    Coupon[]
 
   @@map("tenants")
+}
+
+// Caches the Razorpay Plan object id created for each PlanTier (see
+// src/lib/plans.ts for the tier prices) so subscribing a tenant doesn't
+// create a duplicate Plan on Razorpay's side every time — created lazily on
+// first use via getOrCreateRazorpayPlanId (src/lib/data/tenants.ts).
+model RazorpayPlan {
+  tier      PlanTier @id
+  planId    String
+  createdAt DateTime @default(now())
+
+  @@map("razorpay_plans")
 }
 
 model Coupon {

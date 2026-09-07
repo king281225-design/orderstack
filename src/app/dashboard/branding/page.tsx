@@ -1,6 +1,7 @@
 import { requireOwnerSession } from "@/lib/auth";
 import { getTenantById } from "@/lib/data/tenants";
 import { BrandingForm } from "@/components/branding-form";
+import { CustomDomainForm } from "@/components/custom-domain-form";
 
 export default async function BrandingPage() {
   const session = await requireOwnerSession();
@@ -8,9 +9,12 @@ export default async function BrandingPage() {
   if (!tenant) return null;
 
   return (
-    <div>
-      <h2 className="mb-4 text-lg font-semibold text-gray-900">Branding</h2>
-      <BrandingForm tenant={tenant} />
+    <div className="flex flex-col gap-6">
+      <div>
+        <h2 className="mb-4 text-lg font-semibold text-gray-900">Branding</h2>
+        <BrandingForm tenant={tenant} />
+      </div>
+      <CustomDomainForm customDomain={tenant.customDomain} />
     </div>
   );
 }

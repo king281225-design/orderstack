@@ -39,6 +39,58 @@ export async function createRazorpayOrder(amountCents: number, receipt: string) 
 }
 
 /**
+ * Subscription billing (src/lib/data/tenants.ts) — a Razorpay Plan is a
+ * shared, reusable resource (one per OrderStack plan tier), not created per
+ * subscription. amountCents is paise, same as createRazorpayOrder.
+ */
+export async function createRazorpayPlan(input: {
+  name: string;
+  amountCents: number;
+  period: "daily" | "weekly" | "monthly" | "yearly";
+  interval: number;
+}) {
+  const client = getClient();
+  return client.plans.create({
+    item: { name: input.name, amount: input.amountCents, currency: "INR" },
+    period: input.period,
+    interval: input.interval,
+  });
+}
+
+export async function createRazorpaySubscription(planId: string, totalCount: number) {
+  const client = getClient();
+  return client.subscriptions.create({
+    plan_id: planId,
+    total_count: totalCount,
+    customer_notify: 1,
+  });
+}
+
+export async function cancelRazorpaySubscription(subscriptionId: string, cancelAtCycleEnd = false) {
+  const client = getClient();
+  return client.subscriptions.cancel(subscriptionId, cancelAtCycleEnd);
+}
+
+/**
+ * Same HMAC scheme as verifyCheckoutSignature, but Razorpay's subscription
+ * checkout signs "paymentId|subscriptionId" instead of "orderId|paymentId" —
+ * see Razorpay's subscription-verification docs.
+ */
+export function verifySubscriptionSignature(
+  razorpaySubscriptionId: string,
+  razorpayPaymentId: string,
+  signature: string,
+): boolean {
+  const secret = process.env.RAZORPAY_KEY_SECRET;
+  if (!secret) return false;
+  const expected = crypto
+    .createHmac("sha256", secret)
+    .update(`${razorpayPaymentId}|${razorpaySubscriptionId}`)
+    .digest("hex");
+  return safeHexEqual(expected, signature);
+}
+
+/**
  * Verifies the signature Razorpay's checkout widget hands back to the
  * client on successful payment (HMAC-SHA256 of "orderId|paymentId", keyed by
  * the account's key secret — see Razorpay's payment-verification docs).

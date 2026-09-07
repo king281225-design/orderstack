@@ -1,7 +1,14 @@
 import "server-only";
 import { prisma } from "@/lib/prisma";
 import { hashPassword } from "@/lib/auth";
-import type { PlanTier } from "@prisma/client";
+import type { PlanTier, SubscriptionStatus } from "@prisma/client";
+import { PLAN_DEFINITIONS } from "@/lib/plans";
+import {
+  createRazorpayPlan,
+  createRazorpaySubscription,
+  cancelRazorpaySubscription,
+  verifySubscriptionSignature,
+} from "@/lib/payments/razorpay";
 
 const SLUG_RE = /^[a-z0-9]+(-[a-z0-9]+)*$/;
 
@@ -16,6 +23,39 @@ export async function getTenantBySlug(slug: string) {
 
 export async function getTenantById(id: string) {
   return prisma.tenant.findUnique({ where: { id } });
+}
+
+/** Custom-domain storefront lookup — see src/proxy.ts, the only place a raw Host header becomes a tenantId. */
+export async function getTenantByCustomDomain(domain: string) {
+  return prisma.tenant.findUnique({ where: { customDomain: domain.toLowerCase() } });
+}
+
+const DOMAIN_RE = /^[a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?(\.[a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?)+$/i;
+
+export function isValidDomain(domain: string): boolean {
+  return DOMAIN_RE.test(domain) && domain.length <= 253;
+}
+
+export class DomainTakenError extends Error {}
+
+/**
+ * Owner-set custom domain (src/app/dashboard/branding). Only meaningful once
+ * this app is deployed to a public host and the owner points a CNAME at it —
+ * see the customDomain comment on the Tenant model — but the uniqueness rule
+ * and the lookup itself (getTenantByCustomDomain) are real right now.
+ */
+export async function setTenantCustomDomain(tenantId: string, domain: string | null) {
+  const normalized = domain ? domain.trim().toLowerCase() : null;
+  if (normalized) {
+    if (!isValidDomain(normalized)) {
+      throw new Error("That doesn't look like a valid domain (e.g. orders.yourrestaurant.com).");
+    }
+    const existing = await prisma.tenant.findUnique({ where: { customDomain: normalized } });
+    if (existing && existing.id !== tenantId) {
+      throw new DomainTakenError(`"${normalized}" is already connected to another restaurant.`);
+    }
+  }
+  return prisma.tenant.update({ where: { id: tenantId }, data: { customDomain: normalized } });
 }
 
 /** For the new-order owner-notification email — the tenant's OWNER login (not staff). */
@@ -141,11 +181,93 @@ export async function setTenantOpen(tenantId: string, isOpen: boolean) {
 }
 
 /**
- * Super-admin-only, manual for now — see the PlanTier comment in schema.prisma
- * for why this isn't wired to real recurring billing yet.
+ * Super-admin-only manual plan assignment — still the primary mechanism even
+ * now that real recurring billing exists below (dormant until Razorpay keys
+ * are set): assigning a tier here doesn't by itself start a subscription,
+ * the owner does that from /dashboard/billing.
  */
 export async function setTenantPlan(tenantId: string, planTier: PlanTier) {
   return prisma.tenant.update({ where: { id: tenantId }, data: { planTier } });
+}
+
+/**
+ * Looks up (or lazily creates) the Razorpay Plan object for a tier. Plans
+ * are a Razorpay-side resource shared across every tenant on that tier, not
+ * per-tenant — created once via the API and cached in RazorpayPlan so
+ * subscribing a tenant never creates a duplicate.
+ */
+export async function getOrCreateRazorpayPlanId(tier: PlanTier): Promise<string> {
+  const cached = await prisma.razorpayPlan.findUnique({ where: { tier } });
+  if (cached) return cached.planId;
+
+  const def = PLAN_DEFINITIONS[tier];
+  const plan = await createRazorpayPlan({
+    name: `OrderStack ${def.label}`,
+    amountCents: def.priceCents,
+    period: "monthly",
+    interval: 1,
+  });
+  await prisma.razorpayPlan.create({ data: { tier, planId: plan.id } });
+  return plan.id;
+}
+
+/**
+ * Starts a real recurring Razorpay subscription for a tenant's current plan
+ * tier. Storing razorpaySubscriptionId here does NOT mean it's active —
+ * subscriptionStatus only flips to ACTIVE once the owner completes the
+ * authorization payment (verifyAndActivateSubscription, the fast client-side
+ * path) or Razorpay's webhook confirms it (the authoritative path, same
+ * two-path pattern as one-time payments).
+ */
+export async function startTenantSubscription(tenantId: string) {
+  const tenant = await prisma.tenant.findUnique({ where: { id: tenantId } });
+  if (!tenant) throw new Error("Restaurant not found.");
+
+  const planId = await getOrCreateRazorpayPlanId(tenant.planTier);
+  // Razorpay subscriptions require a fixed number of billing cycles, not
+  // "until cancelled" — 120 monthly cycles (10 years) stands in for
+  // indefinite; renew/replace manually if OrderStack is still running past
+  // that, which is a real limit worth revisiting well before it's hit.
+  const subscription = await createRazorpaySubscription(planId, 120);
+
+  await prisma.tenant.update({
+    where: { id: tenantId },
+    data: { razorpaySubscriptionId: subscription.id, subscriptionStatus: "NONE" },
+  });
+
+  return subscription;
+}
+
+/** Client-side verification after the owner completes the checkout widget — the fast path for immediate UX. */
+export async function verifyAndActivateSubscription(
+  tenantId: string,
+  razorpaySubscriptionId: string,
+  razorpayPaymentId: string,
+  signature: string,
+): Promise<void> {
+  const tenant = await prisma.tenant.findUnique({ where: { id: tenantId } });
+  if (!tenant || tenant.razorpaySubscriptionId !== razorpaySubscriptionId) {
+    throw new Error("Subscription mismatch — refusing to activate.");
+  }
+  if (!verifySubscriptionSignature(razorpaySubscriptionId, razorpayPaymentId, signature)) {
+    throw new Error("Could not verify payment signature.");
+  }
+  await prisma.tenant.update({ where: { id: tenantId }, data: { subscriptionStatus: "ACTIVE" } });
+}
+
+/** Webhook path (src/app/api/webhooks/razorpay) — the authoritative source of truth, same role it plays for one-time payments. */
+export async function setSubscriptionStatusByRazorpaySubscriptionId(
+  razorpaySubscriptionId: string,
+  status: SubscriptionStatus,
+): Promise<void> {
+  await prisma.tenant.updateMany({ where: { razorpaySubscriptionId }, data: { subscriptionStatus: status } });
+}
+
+export async function cancelTenantSubscription(tenantId: string): Promise<void> {
+  const tenant = await prisma.tenant.findUnique({ where: { id: tenantId } });
+  if (!tenant?.razorpaySubscriptionId) return;
+  await cancelRazorpaySubscription(tenant.razorpaySubscriptionId);
+  await prisma.tenant.update({ where: { id: tenantId }, data: { subscriptionStatus: "CANCELLED" } });
 }
 
 export async function updateTenantMenuDocument(

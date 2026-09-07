@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { requireOwnerSession } from "@/lib/auth";
-import { updateTenantBranding } from "@/lib/data/tenants";
+import { updateTenantBranding, setTenantCustomDomain, DomainTakenError } from "@/lib/data/tenants";
 import { saveUpload } from "@/lib/storage";
 
 export type BrandingState = { error: string | null; success: boolean };
@@ -59,5 +59,33 @@ export async function updateBrandingAction(
 
   revalidatePath("/dashboard/branding");
   revalidatePath("/dashboard");
+  return { error: null, success: true };
+}
+
+export type CustomDomainState = { error: string | null; success: boolean };
+
+/**
+ * Separate from updateBrandingAction: a domain can fail with its own
+ * distinct error (already connected to another restaurant) and isn't a
+ * branding concern really, just filed on the same page for now.
+ */
+export async function setCustomDomainAction(
+  _prev: CustomDomainState,
+  formData: FormData,
+): Promise<CustomDomainState> {
+  const session = await requireOwnerSession();
+  const raw = String(formData.get("customDomain") ?? "").trim();
+
+  try {
+    await setTenantCustomDomain(session.tenantId, raw || null);
+  } catch (err) {
+    if (err instanceof DomainTakenError) return { error: err.message, success: false };
+    return {
+      error: err instanceof Error ? err.message : "Could not save that domain.",
+      success: false,
+    };
+  }
+
+  revalidatePath("/dashboard/branding");
   return { error: null, success: true };
 }

@@ -46,11 +46,17 @@ export function RazorpayPayNowButton({
         name: restaurantName,
         prefill: { name: customerName, contact: customerPhone },
         handler: (response) => {
+          // order_id checkout always returns razorpay_order_id — the field
+          // is optional on the shared response type only because
+          // subscription checkout (src/components/billing/subscribe-button.tsx)
+          // returns razorpay_subscription_id instead.
+          if (!response.razorpay_order_id) return;
+          const razorpayOrderIdFromResponse = response.razorpay_order_id;
           startTransition(async () => {
             await verifyRazorpayPaymentAction(
               slug,
               orderId,
-              response.razorpay_order_id,
+              razorpayOrderIdFromResponse,
               response.razorpay_payment_id,
               response.razorpay_signature,
             );
