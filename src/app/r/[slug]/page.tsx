@@ -4,7 +4,7 @@ import { getTenantBySlug } from "@/lib/data/tenants";
 import { listPublicMenu } from "@/lib/data/menu";
 import { MenuBrowser } from "@/components/storefront/menu-browser";
 import { CaptureTableParam } from "@/components/storefront/capture-table-param";
-import { InstagramIcon, FacebookIcon } from "@/components/storefront/social-icons";
+import { InstagramIcon, FacebookIcon, GoogleIcon } from "@/components/storefront/social-icons";
 
 export const dynamic = "force-dynamic";
 
@@ -53,9 +53,10 @@ export default async function StorefrontPage({
               href={tenant.googleReviewUrl}
               target="_blank"
               rel="noreferrer"
-              className="underline"
+              className="flex items-center gap-1.5 underline"
               style={{ color: "var(--brand-primary)" }}
             >
+              <GoogleIcon className="inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-full shadow-sm" />
               Rate us on Google
             </a>
           )}
