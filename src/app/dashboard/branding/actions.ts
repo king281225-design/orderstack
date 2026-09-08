@@ -2,7 +2,12 @@
 
 import { revalidatePath } from "next/cache";
 import { requireOwnerSession } from "@/lib/auth";
-import { updateTenantBranding, setTenantCustomDomain, DomainTakenError } from "@/lib/data/tenants";
+import {
+  updateTenantBranding,
+  setTenantCustomDomain,
+  updateDeliveryZone,
+  DomainTakenError,
+} from "@/lib/data/tenants";
 import { saveUpload } from "@/lib/storage";
 
 export type BrandingState = { error: string | null; success: boolean };
@@ -90,6 +95,47 @@ export async function setCustomDomainAction(
     };
   }
 
+  revalidatePath("/dashboard/branding");
+  return { error: null, success: true };
+}
+
+export type DeliveryZoneState = { error: string | null; success: boolean };
+
+/**
+ * Radius in km + the restaurant's own lat/lng. An empty radius field clears
+ * the whole feature (all three go back to null) rather than leaving stale
+ * coordinates behind with no radius to pair them with.
+ */
+export async function updateDeliveryZoneAction(
+  _prev: DeliveryZoneState,
+  formData: FormData,
+): Promise<DeliveryZoneState> {
+  const session = await requireOwnerSession();
+
+  const radiusRaw = String(formData.get("deliveryRadiusKm") ?? "").trim();
+  const latRaw = String(formData.get("latitude") ?? "").trim();
+  const lngRaw = String(formData.get("longitude") ?? "").trim();
+
+  if (!radiusRaw) {
+    await updateDeliveryZone(session.tenantId, { latitude: null, longitude: null, deliveryRadiusKm: null });
+    revalidatePath("/dashboard/branding");
+    return { error: null, success: true };
+  }
+
+  const radius = Number(radiusRaw);
+  const lat = Number(latRaw);
+  const lng = Number(lngRaw);
+  if (!Number.isFinite(radius) || radius <= 0) {
+    return { error: "Delivery radius must be a positive number of km.", success: false };
+  }
+  if (!latRaw || !lngRaw || !Number.isFinite(lat) || !Number.isFinite(lng)) {
+    return { error: "Set your restaurant's location before saving a delivery radius.", success: false };
+  }
+  if (lat < -90 || lat > 90 || lng < -180 || lng > 180) {
+    return { error: "That doesn't look like a valid latitude/longitude.", success: false };
+  }
+
+  await updateDeliveryZone(session.tenantId, { latitude: lat, longitude: lng, deliveryRadiusKm: radius });
   revalidatePath("/dashboard/branding");
   return { error: null, success: true };
 }

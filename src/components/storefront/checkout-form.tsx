@@ -1,23 +1,32 @@
 "use client";
 
-import { useRef, useState, useTransition } from "react";
+import { useEffect, useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { useCart } from "@/lib/cart";
 import { formatINR } from "@/lib/money";
 import { placeOrderAction, previewCouponAction, verifyRazorpayPaymentAction } from "@/app/r/[slug]/actions";
 import { loadRazorpayCheckout, openRazorpayCheckout, PREFER_UPI_COLLECT } from "@/lib/razorpay-client";
+import { haversineDistanceKm } from "@/lib/geo";
+
+type DeliveryZone = { latitude: number; longitude: number; radiusKm: number };
+type ZoneCheck =
+  | { status: "idle" | "unavailable"; distanceKm: null }
+  | { status: "in" | "out"; distanceKm: number };
 
 export function CheckoutForm({
   slug,
   restaurantName,
   hasUpi,
   hasRazorpay,
+  deliveryZone,
 }: {
   slug: string;
   restaurantName: string;
   hasUpi: boolean;
   hasRazorpay: boolean;
+  /** Null if the owner hasn't set a delivery radius — the whole zone check is then a no-op. */
+  deliveryZone: DeliveryZone | null;
 }) {
   const { lines, totalCents, clear, tableLabel } = useCart();
   const router = useRouter();
@@ -50,6 +59,40 @@ export function CheckoutForm({
     setPrevTableLabel(tableLabel);
     if (tableLabel) setFulfillmentType("DINE_IN");
   }
+
+  // Whether this browser can even try — a static capability check, safe to
+  // read during render (unlike Date.now()/Math.random(), it's not a value
+  // that changes from one render to the next). Kept out of the effect below
+  // so the "no geolocation support" case is a plain derived render value
+  // instead of a synchronous setState call with nothing async following it.
+  const geoSupported = typeof navigator !== "undefined" && "geolocation" in navigator;
+
+  // Checks the customer's browser-reported location against the owner's
+  // delivery radius the moment they pick Delivery. Soft warning only — see
+  // the render below and Order.deliveryDistanceKm's schema comment — a
+  // denied/unavailable location never blocks placing the order.
+  const [zoneCheck, setZoneCheck] = useState<ZoneCheck>({ status: "idle", distanceKm: null });
+  useEffect(() => {
+    if (fulfillmentType !== "DELIVERY" || !deliveryZone || !geoSupported) return;
+    // Both setState calls below happen inside getCurrentPosition's own
+    // success/error callbacks — genuinely async (the browser invokes them
+    // later, possibly after showing its own permission prompt, which is
+    // the user-visible "in progress" signal here), not a synchronous call
+    // in the effect body itself (react-hooks/set-state-in-effect).
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        const distanceKm = haversineDistanceKm(
+          deliveryZone.latitude,
+          deliveryZone.longitude,
+          pos.coords.latitude,
+          pos.coords.longitude,
+        );
+        setZoneCheck({ status: distanceKm <= deliveryZone.radiusKm ? "in" : "out", distanceKm });
+      },
+      () => setZoneCheck({ status: "unavailable", distanceKm: null }),
+      { enableHighAccuracy: true, timeout: 10000, maximumAge: 60000 },
+    );
+  }, [fulfillmentType, deliveryZone, geoSupported]);
 
   const [couponInput, setCouponInput] = useState("");
   const [appliedCoupon, setAppliedCoupon] = useState<{ code: string; discountCents: number } | null>(
@@ -101,6 +144,8 @@ export function CheckoutForm({
       customerEmail: String(formData.get("customerEmail") ?? ""),
       fulfillmentType,
       deliveryAddress: String(formData.get("deliveryAddress") ?? ""),
+      deliveryDistanceKm:
+        fulfillmentType === "DELIVERY" && zoneCheck.distanceKm != null ? zoneCheck.distanceKm : null,
       tableLabel: tableLabel ?? manualTable,
       paymentMethod,
       notes: String(formData.get("notes") ?? ""),
@@ -294,15 +339,35 @@ export function CheckoutForm({
       </fieldset>
 
       {fulfillmentType === "DELIVERY" && (
-        <label className="flex flex-col gap-1 text-sm font-medium text-gray-700">
-          Delivery address
-          <textarea
-            name="deliveryAddress"
-            required
-            rows={2}
-            className="rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-gray-900 focus:outline-none"
-          />
-        </label>
+        <div className="flex flex-col gap-1">
+          <label className="flex flex-col gap-1 text-sm font-medium text-gray-700">
+            Delivery address
+            <textarea
+              name="deliveryAddress"
+              required
+              rows={2}
+              className="rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-gray-900 focus:outline-none"
+            />
+          </label>
+          {zoneCheck.status === "in" && (
+            <p className="text-xs font-medium text-green-700">
+              ✅ You&apos;re within our {deliveryZone!.radiusKm}km delivery zone ({zoneCheck.distanceKm.toFixed(1)}km
+              away).
+            </p>
+          )}
+          {zoneCheck.status === "out" && (
+            <p className="rounded-md border border-amber-300 bg-amber-50 px-2 py-1.5 text-xs font-medium text-amber-800">
+              ⚠️ You&apos;re about {zoneCheck.distanceKm.toFixed(1)}km away — outside our {deliveryZone!.radiusKm}km
+              delivery zone. We may not be able to deliver here — consider Takeaway, or place your order and
+              we&apos;ll confirm by phone.
+            </p>
+          )}
+          {deliveryZone && (zoneCheck.status === "unavailable" || !geoSupported) && (
+            <p className="text-xs text-gray-400">
+              Couldn&apos;t check your delivery distance — we&apos;ll confirm by phone if needed.
+            </p>
+          )}
+        </div>
       )}
 
       {fulfillmentType === "DINE_IN" &&

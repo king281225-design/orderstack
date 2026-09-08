@@ -127,6 +127,15 @@ model Tenant {
   googleReviewCount      Int?
   instagramUrl           String?            @db.Text
   facebookUrl            String?            @db.Text
+  // Delivery radius (src/lib/geo.ts's Haversine check, run client-side via
+  // the customer's browser geolocation — no geocoding API key exists or is
+  // needed). latitude/longitude are the restaurant's own location, set from
+  // /dashboard/branding either by the owner's own "use my current location"
+  // or typed in manually. All three null = the feature is off entirely and
+  // checkout behaves exactly as before.
+  latitude               Float?
+  longitude              Float?
+  deliveryRadiusKm       Float?
   // A restaurant's own domain pointed at this platform (see CLAUDE.md's
   // custom-domains note) — src/proxy.ts resolves an incoming Host header
   // against this to rewrite to /r/<slug>. Not meaningful until this app is
@@ -246,6 +255,14 @@ model Order {
   customerEmail     String?
   fulfillmentType   FulfillmentType
   deliveryAddress   String?         @db.Text
+  // Distance from the restaurant's set location to wherever the customer's
+  // browser reported at checkout (src/lib/geo.ts) — null if delivery-zone
+  // checking isn't configured, or the customer's browser didn't share
+  // location. Never blocks the order (soft warning only, see checkout-
+  // form.tsx) — this is purely so the owner can see it on the order card
+  // and use their own judgment, the same "manual reconciliation" spirit as
+  // COD/UPI payment confirmation elsewhere in this schema.
+  deliveryDistanceKm Float?
   // Set for DINE_IN orders placed via a table's QR link (?table=<label>) —
   // no separate Table entity; labels are just whatever the QR grid on
   // /dashboard/tables generated ("1", "2", ...), not a persisted resource.

@@ -30,6 +30,8 @@ export async function createOrder(
     paymentMethod: PaymentMethod;
     notes?: string | null;
     couponCode?: string | null;
+    /** See the Order.deliveryDistanceKm schema comment — informational only, never validated or enforced here. */
+    deliveryDistanceKm?: number | null;
   },
 ) {
   const cart = input.cart.filter((l) => l.quantity > 0);
@@ -85,6 +87,7 @@ export async function createOrder(
       customerEmail: input.customerEmail?.trim() || null,
       fulfillmentType: input.fulfillmentType,
       deliveryAddress: input.deliveryAddress ?? null,
+      deliveryDistanceKm: input.deliveryDistanceKm ?? null,
       tableLabel: input.tableLabel ?? null,
       paymentMethod: input.paymentMethod,
       notes: input.notes ?? null,

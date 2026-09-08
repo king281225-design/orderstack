@@ -37,6 +37,11 @@ const checkoutSchema = z.object({
   customerEmail: z.string().email("Enter a valid email, or leave it blank.").optional().or(z.literal("")),
   fulfillmentType: z.enum(["DELIVERY", "TAKEAWAY", "DINE_IN"]),
   deliveryAddress: z.string().optional(),
+  // The customer's browser-reported distance from the restaurant, if the
+  // owner has a delivery radius configured and the browser shared location
+  // — see checkout-form.tsx. Purely informational (shown to the owner on
+  // the order card), never used to accept/reject here.
+  deliveryDistanceKm: z.number().nonnegative().nullable().optional(),
   tableLabel: z.string().optional(),
   paymentMethod: z.enum(["UPI", "COD", "RAZORPAY"]),
   notes: z.string().optional(),
@@ -131,6 +136,7 @@ export async function placeOrderAction(
       customerEmail: data.customerEmail || null,
       fulfillmentType: data.fulfillmentType,
       deliveryAddress: data.deliveryAddress?.trim() || null,
+      deliveryDistanceKm: data.deliveryDistanceKm ?? null,
       tableLabel: data.tableLabel?.trim() || null,
       paymentMethod: data.paymentMethod,
       notes: data.notes?.trim() || null,

@@ -80,7 +80,7 @@ export default async function DashboardOrdersPage() {
         ) : (
           <div className="flex flex-col gap-3">
             {active.map((order) => (
-              <OrderCard key={order.id} order={order} />
+              <OrderCard key={order.id} order={order} deliveryRadiusKm={tenant?.deliveryRadiusKm ?? null} />
             ))}
           </div>
         )}
@@ -112,7 +112,14 @@ export default async function DashboardOrdersPage() {
   );
 }
 
-function OrderCard({ order }: { order: Order & { items: OrderItem[] } }) {
+function OrderCard({
+  order,
+  deliveryRadiusKm,
+}: {
+  order: Order & { items: OrderItem[] };
+  /** The tenant's *current* radius setting — compared against the distance recorded at order time (see Order.deliveryDistanceKm). */
+  deliveryRadiusKm: number | null;
+}) {
   const next = NEXT_STEP[order.status];
 
   return (
@@ -146,6 +153,21 @@ function OrderCard({ order }: { order: Order & { items: OrderItem[] } }) {
               : "Takeaway"}
         </span>
         {order.deliveryAddress && <span>{order.deliveryAddress}</span>}
+        {order.deliveryDistanceKm != null && (
+          <span
+            className={
+              deliveryRadiusKm != null && order.deliveryDistanceKm > deliveryRadiusKm
+                ? "font-medium text-amber-700"
+                : undefined
+            }
+          >
+            {deliveryRadiusKm != null && order.deliveryDistanceKm > deliveryRadiusKm ? "⚠️ " : ""}
+            {order.deliveryDistanceKm.toFixed(1)}km away
+            {deliveryRadiusKm != null && order.deliveryDistanceKm > deliveryRadiusKm
+              ? ` (outside ${deliveryRadiusKm}km zone)`
+              : ""}
+          </span>
+        )}
         <span>{PAYMENT_METHOD_LABEL[order.paymentMethod]}</span>
         {order.discountCents > 0 && (
           <span className="text-green-700">

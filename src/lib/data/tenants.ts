@@ -183,6 +183,20 @@ export async function setTenantOpen(tenantId: string, isOpen: boolean) {
 }
 
 /**
+ * Delivery-zone settings (src/components/delivery-zone-form.tsx) — all
+ * three null together means the feature is off and checkout behaves
+ * exactly as it did before this existed. A radius without a location (or
+ * vice versa) is meaningless, so the caller is expected to send either all
+ * three or none; this function itself just stores whatever it's given.
+ */
+export async function updateDeliveryZone(
+  tenantId: string,
+  data: { latitude: number | null; longitude: number | null; deliveryRadiusKm: number | null },
+) {
+  return prisma.tenant.update({ where: { id: tenantId }, data });
+}
+
+/**
  * Super-admin-only manual plan assignment — still the primary mechanism even
  * now that real recurring billing exists below (dormant until Razorpay keys
  * are set): assigning a tier here doesn't by itself start a subscription,
