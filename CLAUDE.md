@@ -179,6 +179,15 @@ The user tried the billing page themselves against the live keys above and repor
 - Migrated for real against the live MySQL database (plain nullable `ADD COLUMN`, no confirmation prompt needed this time).
 - **Still outstanding, same as before:** nobody has actually completed a real Razorpay checkout end-to-end yet — that step is still the user's alone to do, whenever they're ready to spend/refund a real test transaction.
 
+### UPI checkout: skip the QR scan, default to entering a UPI ID (built 2026-09-08)
+
+The user actually clicked through the real Subscribe flow above and reported the QR-scan sub-flow inside Razorpay's own checkout widget not working, asking for a direct "enter UPI ID" option instead. Razorpay's UPI method always offers three sub-flows — scan a QR, pick a UPI app (intent, mobile-only), or type a UPI ID directly (collect) — this doesn't touch Razorpay's own QR renderer (nothing here to fix on our side) but sidesteps it: `src/lib/razorpay-client.ts` gained `PREFER_UPI_COLLECT`, spread into every real Razorpay checkout call in the app (storefront checkout, the order-status page's "Pay now" retry, and the new Subscribe button) —
+
+- `prefill.method: "upi"` opens the widget already on the UPI method, skipping the generic method-picker screen (the customer can still navigate to Card/other methods from the widget's own back button — this only changes the default).
+- `config.display.hide: [{ method: "upi", flows: ["qr"] }]` removes just the QR sub-flow, leaving "enter UPI ID" (collect) and the UPI-app intent flow.
+
+**Verification is necessarily partial here, and that's flagged rather than glossed over:** confirmed the config object's shape is exactly right (pure, no-network check: `prefill.method === "upi"`, `hide` targets `upi`/`qr` specifically and nothing else) and that it's correctly spread into all three call sites; build and lint clean. Could not visually confirm inside Razorpay's actual rendered widget that the QR tab is now absent and Collect is the default view — every real path to opening that widget requires first creating a live order or subscription via the Razorpay API, and the harness's own safety classifier already blocks this agent from automating that (see the plan-picker entry above) exactly because it's a real, live financial action. The user needs to click through Subscribe or a real storefront payment once more to confirm the widget itself now behaves as intended.
+
 ### AI-assisted menu import + Google reviews/social handles (built 2026-09-07)
 
 The user's earlier instruction ("not ai menu import just hardcopy menu upload section") was explicitly reversed in a later message: "instead of manually adding menu items, the restaurant owner should send images/PDFs of items and menu categories/items should get added automatically ... also show Google reviews and social media handles on the menu page." Two separate features, both built:

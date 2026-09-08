@@ -3,7 +3,7 @@
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { verifyRazorpayPaymentAction } from "@/app/r/[slug]/actions";
-import { loadRazorpayCheckout, openRazorpayCheckout } from "@/lib/razorpay-client";
+import { loadRazorpayCheckout, openRazorpayCheckout, PREFER_UPI_COLLECT } from "@/lib/razorpay-client";
 
 /**
  * Shown on the order-status page when a Razorpay order exists but hasn't
@@ -44,7 +44,8 @@ export function RazorpayPayNowButton({
         currency: "INR",
         order_id: razorpayOrderId,
         name: restaurantName,
-        prefill: { name: customerName, contact: customerPhone },
+        ...PREFER_UPI_COLLECT,
+        prefill: { ...PREFER_UPI_COLLECT.prefill, name: customerName, contact: customerPhone },
         handler: (response) => {
           // order_id checkout always returns razorpay_order_id — the field
           // is optional on the shared response type only because
