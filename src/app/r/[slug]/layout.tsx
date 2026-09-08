@@ -23,14 +23,16 @@ export default async function StorefrontLayout({
     "--brand-primary": tenant.colorPrimary,
     "--brand-secondary": tenant.colorSecondary,
     "--brand-accent": tenant.colorAccent,
+    "--brand-header-text": tenant.colorHeaderText,
+    "--brand-card-bg": tenant.colorCardBackground,
   } as React.CSSProperties;
 
   return (
     <CartProvider slug={slug}>
       <div style={themeVars} className="flex min-h-screen flex-col bg-[var(--brand-accent)]">
         <header
-          className="flex items-center gap-3 px-4 py-4 text-white"
-          style={{ backgroundColor: "var(--brand-primary)" }}
+          className="flex items-center gap-3 px-4 py-4"
+          style={{ backgroundColor: "var(--brand-primary)", color: "var(--brand-header-text)" }}
         >
           <Link href={`/r/${slug}`} className="flex items-center gap-3">
             {tenant.logoUrl ? (
@@ -41,7 +43,11 @@ export default async function StorefrontLayout({
             )}
             <div>
               <p className="font-semibold leading-tight">{tenant.name}</p>
-              {tenant.tagline && <p className="text-xs text-white/80">{tenant.tagline}</p>}
+              {tenant.tagline && (
+                <p className="text-xs" style={{ color: "color-mix(in srgb, var(--brand-header-text) 80%, transparent)" }}>
+                  {tenant.tagline}
+                </p>
+              )}
             </div>
           </Link>
           <span

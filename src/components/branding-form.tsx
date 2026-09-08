@@ -43,34 +43,66 @@ export function BrandingForm({ tenant }: { tenant: Tenant }) {
         <input name="logo" type="file" accept="image/*" className="text-sm" />
       </label>
 
-      <div className="grid grid-cols-3 gap-3">
-        <label className="flex flex-col gap-1 text-sm font-medium text-gray-700">
-          Primary color
-          <input
-            name="colorPrimary"
-            type="color"
-            defaultValue={tenant.colorPrimary}
-            className="h-9 w-full rounded-md border border-gray-300"
-          />
-        </label>
-        <label className="flex flex-col gap-1 text-sm font-medium text-gray-700">
-          Secondary color
-          <input
-            name="colorSecondary"
-            type="color"
-            defaultValue={tenant.colorSecondary}
-            className="h-9 w-full rounded-md border border-gray-300"
-          />
-        </label>
-        <label className="flex flex-col gap-1 text-sm font-medium text-gray-700">
-          Accent color
-          <input
-            name="colorAccent"
-            type="color"
-            defaultValue={tenant.colorAccent}
-            className="h-9 w-full rounded-md border border-gray-300"
-          />
-        </label>
+      <div className="flex flex-col gap-1">
+        <p className="text-sm font-medium text-gray-700">Menu colors</p>
+        <p className="-mt-1 text-xs text-gray-500">
+          Used across your storefront &amp; menu page — see the caption under each for exactly
+          where.
+        </p>
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+          <label className="flex flex-col gap-1 text-sm font-medium text-gray-700">
+            Primary
+            <input
+              name="colorPrimary"
+              type="color"
+              defaultValue={tenant.colorPrimary}
+              className="h-9 w-full rounded-md border border-gray-300"
+            />
+            <span className="text-xs font-normal text-gray-400">Header banner, buttons</span>
+          </label>
+          <label className="flex flex-col gap-1 text-sm font-medium text-gray-700">
+            Secondary
+            <input
+              name="colorSecondary"
+              type="color"
+              defaultValue={tenant.colorSecondary}
+              className="h-9 w-full rounded-md border border-gray-300"
+            />
+            <span className="text-xs font-normal text-gray-400">Category accents, price tags</span>
+          </label>
+          <label className="flex flex-col gap-1 text-sm font-medium text-gray-700">
+            Page background
+            <input
+              name="colorAccent"
+              type="color"
+              defaultValue={tenant.colorAccent}
+              className="h-9 w-full rounded-md border border-gray-300"
+            />
+            <span className="text-xs font-normal text-gray-400">Behind everything</span>
+          </label>
+          <label className="flex flex-col gap-1 text-sm font-medium text-gray-700">
+            Header text
+            <input
+              name="colorHeaderText"
+              type="color"
+              defaultValue={tenant.colorHeaderText}
+              className="h-9 w-full rounded-md border border-gray-300"
+            />
+            <span className="text-xs font-normal text-gray-400">
+              Your name/tagline on the banner — pick dark text if Primary above is light
+            </span>
+          </label>
+          <label className="flex flex-col gap-1 text-sm font-medium text-gray-700">
+            Menu card background
+            <input
+              name="colorCardBackground"
+              type="color"
+              defaultValue={tenant.colorCardBackground}
+              className="h-9 w-full rounded-md border border-gray-300"
+            />
+            <span className="text-xs font-normal text-gray-400">Behind each menu item</span>
+          </label>
+        </div>
       </div>
 
       <label className="flex flex-col gap-1 text-sm font-medium text-gray-700">

@@ -165,6 +165,8 @@ export async function updateTenantBranding(
     colorPrimary?: string;
     colorSecondary?: string;
     colorAccent?: string;
+    colorHeaderText?: string;
+    colorCardBackground?: string;
     upiId?: string | null;
     googleReviewUrl?: string | null;
     googleRating?: number | null;

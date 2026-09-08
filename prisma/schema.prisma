@@ -84,9 +84,19 @@ model Tenant {
   // R2/S3 URLs (presigned or otherwise) regularly exceed MySQL's default
   // VARCHAR(191) for a String field, so these are explicitly TEXT.
   logoUrl                String?            @db.Text
+  // Five brand colors, each with a real, visible job on the storefront (see
+  // src/app/r/[slug]/layout.tsx and src/components/storefront/menu-browser.tsx):
+  // Primary = buttons/CTAs, Secondary = category accents/price badges/quantity
+  // controls, Accent = page background tint, HeaderText = text/tagline color
+  // on the primary-colored header banner, CardBackground = menu item card
+  // surface. Defaults reproduce the original hardcoded look exactly (dark
+  // primary, orange secondary, white everything else) so no existing
+  // storefront changes appearance until its owner touches branding.
   colorPrimary           String             @default("#111827")
   colorSecondary         String             @default("#f97316")
   colorAccent            String             @default("#ffffff")
+  colorHeaderText        String             @default("#ffffff")
+  colorCardBackground    String             @default("#ffffff")
   isOpen                 Boolean            @default(true)
   status                 TenantStatus       @default(ACTIVE)
   // Nominal tier — either set by the super-admin's manual override, or the

@@ -18,6 +18,8 @@ export async function updateBrandingAction(
   const colorPrimary = String(formData.get("colorPrimary") ?? "#111827");
   const colorSecondary = String(formData.get("colorSecondary") ?? "#f97316");
   const colorAccent = String(formData.get("colorAccent") ?? "#ffffff");
+  const colorHeaderText = String(formData.get("colorHeaderText") ?? "#ffffff");
+  const colorCardBackground = String(formData.get("colorCardBackground") ?? "#ffffff");
   const upiId = String(formData.get("upiId") ?? "").trim();
   const logo = formData.get("logo");
   const googleReviewUrl = String(formData.get("googleReviewUrl") ?? "").trim();
@@ -48,6 +50,8 @@ export async function updateBrandingAction(
     colorPrimary,
     colorSecondary,
     colorAccent,
+    colorHeaderText,
+    colorCardBackground,
     upiId: upiId || null,
     googleReviewUrl: googleReviewUrl || null,
     googleRating,
