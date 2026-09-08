@@ -4,6 +4,7 @@ import { getTenantBySlug } from "@/lib/data/tenants";
 import { listPublicMenu } from "@/lib/data/menu";
 import { MenuBrowser } from "@/components/storefront/menu-browser";
 import { CaptureTableParam } from "@/components/storefront/capture-table-param";
+import { InstagramIcon, FacebookIcon } from "@/components/storefront/social-icons";
 
 export const dynamic = "force-dynamic";
 
@@ -59,13 +60,25 @@ export default async function StorefrontPage({
             </a>
           )}
           {tenant.instagramUrl && (
-            <a href={tenant.instagramUrl} target="_blank" rel="noreferrer" className="underline text-gray-600">
-              Instagram
+            <a
+              href={tenant.instagramUrl}
+              target="_blank"
+              rel="noreferrer"
+              aria-label="Instagram"
+              title="Instagram"
+            >
+              <InstagramIcon className="inline-flex h-9 w-9 items-center justify-center rounded-full transition-transform hover:scale-110 hover:shadow-md" />
             </a>
           )}
           {tenant.facebookUrl && (
-            <a href={tenant.facebookUrl} target="_blank" rel="noreferrer" className="underline text-gray-600">
-              Facebook
+            <a
+              href={tenant.facebookUrl}
+              target="_blank"
+              rel="noreferrer"
+              aria-label="Facebook"
+              title="Facebook"
+            >
+              <FacebookIcon className="inline-flex h-9 w-9 items-center justify-center rounded-full transition-transform hover:scale-110 hover:shadow-md" />
             </a>
           )}
         </div>

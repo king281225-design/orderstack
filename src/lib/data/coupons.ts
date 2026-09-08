@@ -32,6 +32,26 @@ export async function listCouponsForTenant(tenantId: string) {
   }));
 }
 
+/**
+ * Public storefront promo bar (src/components/storefront/promo-bar.tsx) —
+ * coupons are meant to be publicized, so no auth needed, but this only ever
+ * returns ones a customer could actually redeem right now: active, not
+ * expired, not at its redemption limit. Same eligibility rules as
+ * validateCoupon, minus the per-order checks (subtotal isn't known yet).
+ */
+export async function getActivePromotableCoupons(tenantId: string) {
+  const now = Date.now();
+  const coupons = await prisma.coupon.findMany({
+    where: { tenantId, isActive: true },
+    orderBy: { createdAt: "desc" },
+  });
+  return coupons.filter(
+    (c) =>
+      (!c.expiresAt || c.expiresAt.getTime() >= now) &&
+      (c.maxRedemptions === null || c.redemptionCount < c.maxRedemptions),
+  );
+}
+
 export async function createCoupon(
   tenantId: string,
   input: {

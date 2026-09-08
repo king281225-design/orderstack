@@ -1,5 +1,6 @@
 "use client";
 
+import { useMemo, useState } from "react";
 import { useCart } from "@/lib/cart";
 import { formatINR } from "@/lib/money";
 
@@ -12,13 +13,82 @@ type PublicItem = {
 };
 type PublicCategory = { id: string; name: string; items: PublicItem[] };
 
+// Staggered entrance delay per item, capped so a long menu doesn't make the
+// last rows wait an absurd amount of time before appearing.
+const STAGGER_MS = 35;
+const MAX_STAGGER_INDEX = 12;
+
 export function MenuBrowser({ categories }: { categories: PublicCategory[] }) {
   const { lines, addItem, setQuantity } = useCart();
   const quantityFor = (itemId: string) => lines.find((l) => l.itemId === itemId)?.quantity ?? 0;
 
+  const [query, setQuery] = useState("");
+  const [activeCategoryId, setActiveCategoryId] = useState<string | null>(null);
+
+  const visibleCategories = useMemo(() => {
+    const q = query.trim().toLowerCase();
+    return categories
+      .filter((c) => activeCategoryId === null || c.id === activeCategoryId)
+      .map((c) => ({
+        ...c,
+        items: q
+          ? c.items.filter(
+              (item) =>
+                item.name.toLowerCase().includes(q) ||
+                (item.description ?? "").toLowerCase().includes(q),
+            )
+          : c.items,
+      }))
+      .filter((c) => c.items.length > 0);
+  }, [categories, query, activeCategoryId]);
+
+  let renderedIndex = -1; // running count across all visible items, for the stagger delay
+
   return (
-    <div className="mx-auto flex max-w-xl flex-col gap-6 px-4 py-4">
-      {categories.map((category) => (
+    <div className="mx-auto flex max-w-xl flex-col gap-4 px-4 py-4">
+      {categories.length > 0 && (
+        <div className="flex flex-col gap-2">
+          <input
+            type="search"
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            placeholder="Search the menu…"
+            className="rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm shadow-sm focus:outline-none"
+            style={{ borderColor: query ? "var(--brand-secondary)" : undefined }}
+          />
+          {categories.length > 1 && (
+            <div className="flex flex-wrap gap-2">
+              <button
+                onClick={() => setActiveCategoryId(null)}
+                className="rounded-full border px-3 py-1 text-xs font-medium transition-colors"
+                style={
+                  activeCategoryId === null
+                    ? { backgroundColor: "var(--brand-secondary)", borderColor: "var(--brand-secondary)", color: "white" }
+                    : { borderColor: "var(--brand-secondary)", color: "var(--brand-secondary)" }
+                }
+              >
+                All
+              </button>
+              {categories.map((c) => (
+                <button
+                  key={c.id}
+                  onClick={() => setActiveCategoryId((prev) => (prev === c.id ? null : c.id))}
+                  className="rounded-full border px-3 py-1 text-xs font-medium transition-colors"
+                  style={
+                    activeCategoryId === c.id
+                      ? { backgroundColor: "var(--brand-secondary)", borderColor: "var(--brand-secondary)", color: "white" }
+                      : { borderColor: "var(--brand-secondary)", color: "var(--brand-secondary)" }
+                  }
+                >
+                  {c.name}
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+
+      {visibleCategories.map((category) => (
         <section key={category.id}>
           <h2
             className="mb-2 border-l-4 pl-2 text-base font-semibold text-gray-900"
@@ -35,11 +105,16 @@ export function MenuBrowser({ categories }: { categories: PublicCategory[] }) {
           >
             {category.items.map((item) => {
               const qty = quantityFor(item.id);
+              renderedIndex++;
+              const staggerIndex = Math.min(renderedIndex, MAX_STAGGER_INDEX);
               return (
                 <div
                   key={item.id}
-                  className="flex items-center gap-3 p-3 transition-colors hover:bg-black/[0.03]"
-                  style={{ borderColor: "color-mix(in srgb, var(--brand-card-bg) 85%, black)" }}
+                  className="animate-fade-in-up flex items-center gap-3 p-3 transition-colors hover:bg-black/[0.03]"
+                  style={{
+                    borderColor: "color-mix(in srgb, var(--brand-card-bg) 85%, black)",
+                    animationDelay: `${staggerIndex * STAGGER_MS}ms`,
+                  }}
                 >
                   {item.imageUrl ? (
                     // eslint-disable-next-line @next/next/no-img-element
@@ -112,10 +187,26 @@ export function MenuBrowser({ categories }: { categories: PublicCategory[] }) {
           </div>
         </section>
       ))}
+
       {categories.length === 0 && (
         <p className="py-12 text-center text-sm text-gray-500">
           This restaurant hasn&apos;t added any menu items yet.
         </p>
+      )}
+      {categories.length > 0 && visibleCategories.length === 0 && (
+        <div className="py-12 text-center text-sm text-gray-500">
+          <p>No items match{query ? ` "${query}"` : " that filter"}.</p>
+          <button
+            onClick={() => {
+              setQuery("");
+              setActiveCategoryId(null);
+            }}
+            className="mt-2 font-medium underline"
+            style={{ color: "var(--brand-secondary)" }}
+          >
+            Clear search
+          </button>
+        </div>
       )}
     </div>
   );

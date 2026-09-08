@@ -1,8 +1,10 @@
 import { notFound } from "next/navigation";
 import Link from "next/link";
 import { getTenantBySlug } from "@/lib/data/tenants";
+import { getActivePromotableCoupons } from "@/lib/data/coupons";
 import { CartProvider } from "@/lib/cart";
 import { CartBar } from "@/components/storefront/cart-bar";
+import { PromoBar } from "@/components/storefront/promo-bar";
 
 // Always render at request time — this reads live tenant/menu/order data
 // from Postgres, which build-time static generation has no access to.
@@ -18,6 +20,8 @@ export default async function StorefrontLayout({
   const { slug } = await params;
   const tenant = await getTenantBySlug(slug);
   if (!tenant || tenant.status === "SUSPENDED") notFound();
+
+  const activeCoupons = await getActivePromotableCoupons(tenant.id);
 
   const themeVars = {
     "--brand-primary": tenant.colorPrimary,
@@ -58,6 +62,8 @@ export default async function StorefrontLayout({
             {tenant.isOpen ? "Open now" : "Closed"}
           </span>
         </header>
+
+        <PromoBar coupons={activeCoupons} />
 
         <div className="flex-1 pb-20">{children}</div>
 
