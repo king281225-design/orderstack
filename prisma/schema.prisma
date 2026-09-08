@@ -89,10 +89,20 @@ model Tenant {
   colorAccent            String             @default("#ffffff")
   isOpen                 Boolean            @default(true)
   status                 TenantStatus       @default(ACTIVE)
+  // Nominal tier — either set by the super-admin's manual override, or the
+  // last tier the owner actually paid for via /dashboard/billing. Does NOT
+  // by itself mean the tenant is entitled to anything paid: check
+  // subscriptionStatus for that. Defaults to STARTER for every new tenant
+  // purely as a display fallback, not as a free grant.
   planTier               PlanTier           @default(STARTER)
-  // Subscription fields are dormant scaffolding — see the PlanTier comment.
   subscriptionStatus     SubscriptionStatus @default(NONE)
   razorpaySubscriptionId String?
+  // Set the moment the owner clicks Subscribe on a specific tier's card
+  // (src/lib/data/tenants.ts startTenantSubscription), before any payment
+  // has happened — planTier itself is only updated to match once payment is
+  // actually confirmed (verifyAndActivateSubscription, or the webhook),
+  // whichever fires first. Cleared back to null at that point.
+  pendingPlanTier        PlanTier?
   upiId                  String?
   // A photographed/scanned physical menu, offered as an alternative to
   // building the digital menu item-by-item (see "hardcopy menu upload" on

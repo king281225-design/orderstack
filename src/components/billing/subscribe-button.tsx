@@ -4,19 +4,26 @@ import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { startSubscriptionAction, verifySubscriptionAction } from "@/app/dashboard/billing/actions";
 import { loadRazorpayCheckout, openRazorpayCheckout } from "@/lib/razorpay-client";
+import type { PlanTier } from "@prisma/client";
 
 /**
- * Starts a real recurring Razorpay subscription for the tenant's current
- * plan tier and opens Razorpay's checkout widget for the owner to authorize
- * it. Mirrors src/components/storefront/razorpay-pay-now-button.tsx, but for
- * a subscription_id instead of an order_id.
+ * Starts a real recurring Razorpay subscription for one specific plan tier
+ * (the card this button lives on) and opens Razorpay's checkout widget for
+ * the owner to authorize it. Mirrors
+ * src/components/storefront/razorpay-pay-now-button.tsx, but for a
+ * subscription_id instead of an order_id.
  */
 export function SubscribeButton({
   keyId,
   restaurantName,
+  tier,
+  label,
 }: {
   keyId: string;
   restaurantName: string;
+  tier: PlanTier;
+  /** Button text, e.g. "Subscribe to Starter — ₹499/mo". Defaults to a generic label if omitted. */
+  label?: string;
 }) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
@@ -25,7 +32,7 @@ export function SubscribeButton({
   function handleSubscribe() {
     setError(null);
     startTransition(async () => {
-      const result = await startSubscriptionAction();
+      const result = await startSubscriptionAction(tier);
       if (result.error || !result.subscriptionId) {
         setError(result.error ?? "Could not start a subscription.");
         return;
@@ -63,7 +70,7 @@ export function SubscribeButton({
         disabled={isPending}
         className="rounded-md bg-gray-900 px-4 py-2 text-sm font-semibold text-white hover:bg-gray-700 disabled:opacity-50"
       >
-        {isPending ? "Starting…" : "Subscribe"}
+        {isPending ? "Starting…" : (label ?? "Subscribe")}
       </button>
       {error && <p className="text-sm text-red-600">{error}</p>}
     </div>

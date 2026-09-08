@@ -212,18 +212,19 @@ export async function getOrCreateRazorpayPlanId(tier: PlanTier): Promise<string>
 }
 
 /**
- * Starts a real recurring Razorpay subscription for a tenant's current plan
- * tier. Storing razorpaySubscriptionId here does NOT mean it's active —
- * subscriptionStatus only flips to ACTIVE once the owner completes the
- * authorization payment (verifyAndActivateSubscription, the fast client-side
- * path) or Razorpay's webhook confirms it (the authoritative path, same
- * two-path pattern as one-time payments).
+ * Starts a real recurring Razorpay subscription for a tier the owner chose
+ * on /dashboard/billing — NOT the tenant's existing planTier, which might
+ * just be the unpaid STARTER default or a super-admin manual override. The
+ * chosen tier is stashed in pendingPlanTier; planTier itself only changes
+ * once payment is actually confirmed (see verifyAndActivateSubscription and
+ * setSubscriptionStatusByRazorpaySubscriptionId below) — so a tenant is
+ * never shown as "on" a paid plan it hasn't paid for.
  */
-export async function startTenantSubscription(tenantId: string) {
+export async function startTenantSubscription(tenantId: string, tier: PlanTier) {
   const tenant = await prisma.tenant.findUnique({ where: { id: tenantId } });
   if (!tenant) throw new Error("Restaurant not found.");
 
-  const planId = await getOrCreateRazorpayPlanId(tenant.planTier);
+  const planId = await getOrCreateRazorpayPlanId(tier);
   // Razorpay subscriptions require a fixed number of billing cycles, not
   // "until cancelled" — 120 monthly cycles (10 years) stands in for
   // indefinite; renew/replace manually if OrderStack is still running past
@@ -232,7 +233,11 @@ export async function startTenantSubscription(tenantId: string) {
 
   await prisma.tenant.update({
     where: { id: tenantId },
-    data: { razorpaySubscriptionId: subscription.id, subscriptionStatus: "NONE" },
+    data: {
+      razorpaySubscriptionId: subscription.id,
+      subscriptionStatus: "NONE",
+      pendingPlanTier: tier,
+    },
   });
 
   return subscription;
@@ -252,7 +257,14 @@ export async function verifyAndActivateSubscription(
   if (!verifySubscriptionSignature(razorpaySubscriptionId, razorpayPaymentId, signature)) {
     throw new Error("Could not verify payment signature.");
   }
-  await prisma.tenant.update({ where: { id: tenantId }, data: { subscriptionStatus: "ACTIVE" } });
+  await prisma.tenant.update({
+    where: { id: tenantId },
+    data: {
+      subscriptionStatus: "ACTIVE",
+      planTier: tenant.pendingPlanTier ?? tenant.planTier,
+      pendingPlanTier: null,
+    },
+  });
 }
 
 /** Webhook path (src/app/api/webhooks/razorpay) — the authoritative source of truth, same role it plays for one-time payments. */
@@ -260,14 +272,26 @@ export async function setSubscriptionStatusByRazorpaySubscriptionId(
   razorpaySubscriptionId: string,
   status: SubscriptionStatus,
 ): Promise<void> {
-  await prisma.tenant.updateMany({ where: { razorpaySubscriptionId }, data: { subscriptionStatus: status } });
+  const tenant = await prisma.tenant.findFirst({ where: { razorpaySubscriptionId } });
+  if (!tenant) return;
+
+  await prisma.tenant.update({
+    where: { id: tenant.id },
+    data:
+      status === "ACTIVE"
+        ? { subscriptionStatus: status, planTier: tenant.pendingPlanTier ?? tenant.planTier, pendingPlanTier: null }
+        : { subscriptionStatus: status },
+  });
 }
 
 export async function cancelTenantSubscription(tenantId: string): Promise<void> {
   const tenant = await prisma.tenant.findUnique({ where: { id: tenantId } });
   if (!tenant?.razorpaySubscriptionId) return;
   await cancelRazorpaySubscription(tenant.razorpaySubscriptionId);
-  await prisma.tenant.update({ where: { id: tenantId }, data: { subscriptionStatus: "CANCELLED" } });
+  await prisma.tenant.update({
+    where: { id: tenantId },
+    data: { subscriptionStatus: "CANCELLED", pendingPlanTier: null },
+  });
 }
 
 export async function updateTenantMenuDocument(

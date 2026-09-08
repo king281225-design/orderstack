@@ -8,16 +8,22 @@ import {
   cancelTenantSubscription,
 } from "@/lib/data/tenants";
 import { isRazorpayConfigured } from "@/lib/payments/razorpay";
+import { PLAN_TIERS } from "@/lib/plans";
+import type { PlanTier } from "@prisma/client";
 
 export type StartSubscriptionResult = { error: string | null; subscriptionId: string | null };
 
-export async function startSubscriptionAction(): Promise<StartSubscriptionResult> {
+/** tier is whichever plan card's Subscribe button the owner clicked — never trust it further than "is this a real tier". */
+export async function startSubscriptionAction(tier: PlanTier): Promise<StartSubscriptionResult> {
   const session = await requireOwnerSession();
   if (!isRazorpayConfigured()) {
     return { error: "Online billing isn't set up yet.", subscriptionId: null };
   }
+  if (!PLAN_TIERS.includes(tier)) {
+    return { error: "Not a valid plan.", subscriptionId: null };
+  }
   try {
-    const subscription = await startTenantSubscription(session.tenantId);
+    const subscription = await startTenantSubscription(session.tenantId, tier);
     return { error: null, subscriptionId: subscription.id };
   } catch (err) {
     return {

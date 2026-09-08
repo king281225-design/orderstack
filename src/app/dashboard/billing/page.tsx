@@ -1,7 +1,7 @@
 import { requireOwnerSession } from "@/lib/auth";
 import { getTenantById } from "@/lib/data/tenants";
 import { isRazorpayConfigured, getRazorpayKeyId } from "@/lib/payments/razorpay";
-import { PLAN_DEFINITIONS } from "@/lib/plans";
+import { PLAN_DEFINITIONS, PLAN_TIERS } from "@/lib/plans";
 import { formatINR } from "@/lib/money";
 import { SubscribeButton } from "@/components/billing/subscribe-button";
 import { cancelSubscriptionAction } from "@/app/dashboard/billing/actions";
@@ -28,6 +28,7 @@ export default async function BillingPage() {
   const plan = PLAN_DEFINITIONS[tenant.planTier];
   const razorpayReady = isRazorpayConfigured();
   const keyId = getRazorpayKeyId();
+  const isActive = tenant.subscriptionStatus === "ACTIVE";
 
   return (
     <div className="flex flex-col gap-6">
@@ -37,8 +38,13 @@ export default async function BillingPage() {
         <p className="text-sm text-gray-500">Current plan</p>
         <p className="mt-1 text-xl font-semibold text-gray-900">{plan.label}</p>
         <p className="text-sm text-gray-600">{formatINR(plan.priceCents)} / month</p>
+        {/* isActive means this tenant actually paid for this tier via the flow below (or the webhook
+            confirmed it) — anything else is just the unpaid STARTER default or a platform override,
+            never implied to be a paid entitlement. */}
         <p className="mt-2 text-xs text-gray-400">
-          Assigned by the platform — contact support to change your plan tier.
+          {isActive
+            ? "Billed automatically via Razorpay."
+            : "Not an active paid subscription — either the default for a new restaurant, or set manually by the platform. Subscribe below to pay for it yourself."}
         </p>
       </section>
 
@@ -59,17 +65,7 @@ export default async function BillingPage() {
           </p>
         )}
 
-        {razorpayReady && tenant.subscriptionStatus !== "ACTIVE" && keyId && (
-          <div className="mt-3">
-            <p className="mb-2 text-sm text-gray-600">
-              Start a recurring monthly subscription for the {plan.label} plan (
-              {formatINR(plan.priceCents)}/month), billed automatically via Razorpay.
-            </p>
-            <SubscribeButton keyId={keyId} restaurantName={tenant.name} />
-          </div>
-        )}
-
-        {razorpayReady && tenant.subscriptionStatus === "ACTIVE" && (
+        {razorpayReady && isActive && (
           <form action={cancelSubscriptionAction} className="mt-3">
             <button
               type="submit"
@@ -80,6 +76,42 @@ export default async function BillingPage() {
           </form>
         )}
       </section>
+
+      {razorpayReady && !isActive && keyId && (
+        <section>
+          <h3 className="mb-1 text-sm font-semibold text-gray-900">Choose a plan</h3>
+          <p className="mb-3 text-xs text-gray-500">
+            Pick a plan and pay for it yourself, billed automatically every month via Razorpay.
+            Your plan only changes once payment actually goes through — picking one here doesn&apos;t
+            charge anything until you complete the checkout.
+          </p>
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+            {PLAN_TIERS.map((tier) => {
+              const def = PLAN_DEFINITIONS[tier];
+              return (
+                <div key={tier} className="flex flex-col gap-2 rounded-lg border border-gray-200 bg-white p-4">
+                  <p className="text-sm font-semibold text-gray-900">{def.label}</p>
+                  <p className="text-lg font-semibold text-gray-900">
+                    {formatINR(def.priceCents)}
+                    <span className="text-xs font-normal text-gray-500"> /month</span>
+                  </p>
+                  <ul className="mb-1 flex-1 text-xs text-gray-500">
+                    {def.features.map((f) => (
+                      <li key={f}>• {f}</li>
+                    ))}
+                  </ul>
+                  <SubscribeButton
+                    keyId={keyId}
+                    restaurantName={tenant.name}
+                    tier={tier}
+                    label={`Subscribe to ${def.label}`}
+                  />
+                </div>
+              );
+            })}
+          </div>
+        </section>
+      )}
     </div>
   );
 }
