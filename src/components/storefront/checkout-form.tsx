@@ -6,7 +6,7 @@ import Link from "next/link";
 import { useCart } from "@/lib/cart";
 import { formatINR } from "@/lib/money";
 import { placeOrderAction, previewCouponAction, verifyRazorpayPaymentAction } from "@/app/r/[slug]/actions";
-import { loadRazorpayCheckout, openRazorpayCheckout, PREFER_UPI_COLLECT } from "@/lib/razorpay-client";
+import { loadRazorpayCheckout, openRazorpayCheckout, PREFER_UPI_METHOD } from "@/lib/razorpay-client";
 import { haversineDistanceKm } from "@/lib/geo";
 
 type DeliveryZone = { latitude: number; longitude: number; radiusKm: number };
@@ -182,8 +182,8 @@ export function CheckoutForm({
           currency: "INR",
           order_id: razorpayOrderId,
           name: restaurantName,
-          ...PREFER_UPI_COLLECT,
-          prefill: { ...PREFER_UPI_COLLECT.prefill, name: fields.customerName, contact: fields.customerPhone },
+          ...PREFER_UPI_METHOD,
+          prefill: { ...PREFER_UPI_METHOD.prefill, name: fields.customerName, contact: fields.customerPhone },
           theme: {
             color:
               (formRef.current && getComputedStyle(formRef.current).getPropertyValue("--brand-primary").trim()) ||

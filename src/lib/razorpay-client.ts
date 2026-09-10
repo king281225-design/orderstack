@@ -28,20 +28,20 @@ export type RazorpayCheckoutOptions = {
 /**
  * Razorpay's UPI method offers three sub-flows: scan a QR code, pick a UPI
  * app (intent — mobile browsers only), or type a UPI ID directly (collect).
- * A real user reported the QR sub-flow not rendering/scanning for them —
- * rather than debug Razorpay's own QR renderer, this skips past it entirely:
  * `prefill.method: "upi"` opens checkout already on the UPI method (instead
- * of the generic method-picker screen), and `config.display.hide` removes
- * just the "qr" sub-flow, leaving "enter UPI ID" (collect) and the UPI-app
- * intent flow as the ways to pay. The customer can still back out to Card/
- * other methods from the widget's own navigation — this only changes what
- * it opens on by default. Spread into every real checkout call in this app
- * (storefront pay-now, checkout, and subscription Subscribe) so the same
- * fix applies everywhere UPI is offered, not just one flow.
+ * of the generic method-picker screen) — the customer can still back out to
+ * Card/other methods from the widget's own navigation, this only changes
+ * what it opens on by default. Spread into every real checkout call in this
+ * app (storefront pay-now, checkout, and subscription Subscribe).
+ *
+ * Note: from 2026-09-08 to 2026-09-10 this also hid the QR sub-flow
+ * (`config.display.hide: [{ method: "upi", flows: ["qr"] }]`) after a report
+ * that QR wasn't rendering/scanning. Reverted on 2026-09-10 at the user's
+ * request once UPI was confirmed enabled for Subscriptions on the Razorpay
+ * dashboard — QR, collect, and intent are all offered again.
  */
-export const PREFER_UPI_COLLECT: Pick<RazorpayCheckoutOptions, "prefill" | "config"> = {
+export const PREFER_UPI_METHOD: Pick<RazorpayCheckoutOptions, "prefill"> = {
   prefill: { method: "upi" },
-  config: { display: { hide: [{ method: "upi", flows: ["qr"] }] } },
 };
 
 type RazorpayInstance = { open: () => void };

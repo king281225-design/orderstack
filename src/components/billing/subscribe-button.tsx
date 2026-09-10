@@ -3,7 +3,7 @@
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { startSubscriptionAction, verifySubscriptionAction } from "@/app/dashboard/billing/actions";
-import { loadRazorpayCheckout, openRazorpayCheckout, PREFER_UPI_COLLECT } from "@/lib/razorpay-client";
+import { loadRazorpayCheckout, openRazorpayCheckout, PREFER_UPI_METHOD } from "@/lib/razorpay-client";
 import type { PlanTier } from "@prisma/client";
 
 /**
@@ -46,7 +46,7 @@ export function SubscribeButton({
           subscription_id: subscriptionId,
           name: restaurantName,
           description: "OrderStack subscription",
-          ...PREFER_UPI_COLLECT,
+          ...PREFER_UPI_METHOD,
           handler: (response) => {
             startTransition(async () => {
               await verifySubscriptionAction(
