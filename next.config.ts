@@ -36,9 +36,25 @@ const nextConfig: NextConfig = {
   // Force-including the whole package tree (worker scripts + the separate
   // tesseract.js-core package holding its wasm binaries) for every route
   // fixes that, since it isn't worth narrowing to the exact route(s) that
-  // use OCR.
+  // use OCR. This gap isn't limited to tesseract.js's own files — its worker
+  // script also plain `require()`s its own dependencies (bmp-js for BMP
+  // decoding, etc.), and those got missed by the tracer the same way (hit
+  // for real: fixing the worker script alone just moved the "Cannot find
+  // module" error to `bmp-js` next). Listing every package from tesseract.js's
+  // own package.json "dependencies" here to fix the whole family at once
+  // instead of one MODULE_NOT_FOUND at a time.
   outputFileTracingIncludes: {
-    "/*": ["node_modules/tesseract.js/**/*", "node_modules/tesseract.js-core/**/*"],
+    "/*": [
+      "node_modules/tesseract.js/**/*",
+      "node_modules/tesseract.js-core/**/*",
+      "node_modules/bmp-js/**/*",
+      "node_modules/idb-keyval/**/*",
+      "node_modules/is-url/**/*",
+      "node_modules/node-fetch/**/*",
+      "node_modules/regenerator-runtime/**/*",
+      "node_modules/wasm-feature-detect/**/*",
+      "node_modules/zlibjs/**/*",
+    ],
   },
   experimental: {
     serverActions: {
