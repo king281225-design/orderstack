@@ -92,6 +92,52 @@ export async function toggleItemAvailableAction(itemId: string, isAvailable: boo
   revalidatePath("/dashboard/menu");
 }
 
+/**
+ * Edits an existing item — same fields as createItemAction, works the same
+ * whether the item was originally added manually or came from the AI/OCR
+ * import review step (both save through createItem, so there's no
+ * difference in the data once it exists). Photo is optional here: leaving
+ * it blank keeps the item's current photo rather than clearing it.
+ */
+export async function updateItemAction(
+  itemId: string,
+  _prev: MenuActionState,
+  formData: FormData,
+): Promise<MenuActionState> {
+  const session = await requireTenantSession();
+  const categoryId = String(formData.get("categoryId") ?? "");
+  const name = String(formData.get("name") ?? "").trim();
+  const description = String(formData.get("description") ?? "").trim();
+  const price = String(formData.get("price") ?? "");
+  const photo = formData.get("photo");
+
+  if (!categoryId || !name || !price) {
+    return { error: "Name, price, and category are required." };
+  }
+  const priceCents = rupeesToCents(price);
+  if (priceCents <= 0) return { error: "Enter a valid price." };
+
+  let imageUrl: string | undefined;
+  if (photo instanceof File && photo.size > 0) {
+    imageUrl = await saveUpload(photo, "items");
+  }
+
+  try {
+    await updateItem(session.tenantId, itemId, {
+      categoryId,
+      name,
+      description: description || null,
+      priceCents,
+      ...(imageUrl ? { imageUrl } : {}),
+    });
+  } catch (err) {
+    return { error: err instanceof Error ? err.message : "Could not update item." };
+  }
+
+  revalidatePath("/dashboard/menu");
+  return ok;
+}
+
 export async function deleteItemAction(itemId: string) {
   const session = await requireTenantSession();
   await deleteItem(session.tenantId, itemId);

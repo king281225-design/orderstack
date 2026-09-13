@@ -93,8 +93,17 @@ export async function updateItem(
     priceCents: number;
     imageUrl: string | null;
     isAvailable: boolean;
+    categoryId: string;
   }>,
 ) {
+  if (data.categoryId) {
+    // Same ownership check as createItem — never let an update attach an
+    // item to a category belonging to a different tenant.
+    const category = await prisma.category.findFirst({
+      where: { id: data.categoryId, tenantId },
+    });
+    if (!category) throw new Error("Category not found for this restaurant.");
+  }
   return prisma.item.updateMany({ where: { id: itemId, tenantId }, data });
 }
 
