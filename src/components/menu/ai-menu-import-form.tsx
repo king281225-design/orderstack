@@ -82,14 +82,24 @@ export function AiMenuImportForm({ claudeConfigured }: { claudeConfigured: boole
     startConfirm(async () => {
       await confirmAiMenuImportAction(formData);
       setEdited(null);
-      setSeededFrom(null);
+      // Mark this extraction as already handled by pointing seededFrom at
+      // it, rather than resetting to null — state.categories itself still
+      // holds the same extraction result (confirming doesn't clear it), so
+      // resetting seededFrom to null would make the very next render's
+      // seed-guard (state.categories !== seededFrom) true again and
+      // silently repopulate `edited`, undoing this close. Hit for real:
+      // this is the same bug that made Cancel appear broken below.
+      setSeededFrom(state.categories);
       setJustAdded(includedCount);
     });
   }
 
   function handleCancel() {
     setEdited(null);
-    setSeededFrom(null);
+    // See the comment in handleConfirm above — must point at the current
+    // extraction, not null, or the next render immediately reopens the
+    // review screen this was just meant to close.
+    setSeededFrom(state.categories);
   }
 
   if (edited) {
