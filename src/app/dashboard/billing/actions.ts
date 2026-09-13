@@ -7,8 +7,8 @@ import {
   verifyAndActivateSubscription,
   cancelTenantSubscription,
   validateWelcomeCoupon,
-  startDiscountedStarterPurchase,
-  verifyAndActivateDiscountedStarterPurchase,
+  startDiscountedPlanPurchase,
+  verifyAndActivateDiscountedPlanPurchase,
 } from "@/lib/data/tenants";
 import { isRazorpayConfigured } from "@/lib/payments/razorpay";
 import { PLAN_TIERS } from "@/lib/plans";
@@ -62,11 +62,14 @@ export type WelcomeCouponPreviewResult =
   | { error: string; originalPriceCents?: undefined; discountCents?: undefined; finalPriceCents?: undefined }
   | { error: null; originalPriceCents: number; discountCents: number; finalPriceCents: number };
 
-/** Live preview as the owner types the code — never trusted for the actual charge, see startDiscountedStarterPurchaseAction. */
-export async function previewWelcomeCouponAction(code: string): Promise<WelcomeCouponPreviewResult> {
+/** Live preview as the owner types the code — never trusted for the actual charge, see startDiscountedPlanPurchaseAction. tier is whichever plan card the "have a code?" box lives on. */
+export async function previewWelcomeCouponAction(
+  code: string,
+  tier: PlanTier,
+): Promise<WelcomeCouponPreviewResult> {
   const session = await requireOwnerSession();
   try {
-    const preview = await validateWelcomeCoupon(session.tenantId, code, "STARTER");
+    const preview = await validateWelcomeCoupon(session.tenantId, code, tier);
     return { error: null, ...preview };
   } catch (err) {
     return { error: err instanceof Error ? err.message : "Invalid coupon." };
@@ -75,13 +78,16 @@ export async function previewWelcomeCouponAction(code: string): Promise<WelcomeC
 
 export type StartDiscountedPurchaseResult = { error: string | null; orderId: string | null; amountCents: number | null };
 
-export async function startDiscountedStarterPurchaseAction(code: string): Promise<StartDiscountedPurchaseResult> {
+export async function startDiscountedPlanPurchaseAction(
+  code: string,
+  tier: PlanTier,
+): Promise<StartDiscountedPurchaseResult> {
   const session = await requireOwnerSession();
   if (!isRazorpayConfigured()) {
     return { error: "Online billing isn't set up yet.", orderId: null, amountCents: null };
   }
   try {
-    const { order, finalPriceCents } = await startDiscountedStarterPurchase(session.tenantId, code);
+    const { order, finalPriceCents } = await startDiscountedPlanPurchase(session.tenantId, code, tier);
     return { error: null, orderId: order.id, amountCents: finalPriceCents };
   } catch (err) {
     return {
@@ -92,14 +98,14 @@ export async function startDiscountedStarterPurchaseAction(code: string): Promis
   }
 }
 
-export async function verifyDiscountedStarterPurchaseAction(
+export async function verifyDiscountedPlanPurchaseAction(
   razorpayOrderId: string,
   razorpayPaymentId: string,
   signature: string,
 ): Promise<void> {
   const session = await requireOwnerSession();
   try {
-    await verifyAndActivateDiscountedStarterPurchase(session.tenantId, razorpayOrderId, razorpayPaymentId, signature);
+    await verifyAndActivateDiscountedPlanPurchase(session.tenantId, razorpayOrderId, razorpayPaymentId, signature);
   } catch {
     // Same fallback stance as verifySubscriptionAction — the webhook (once
     // wired up post-deployment) is the authoritative path regardless.

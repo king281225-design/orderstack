@@ -4,20 +4,32 @@ import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import {
   previewWelcomeCouponAction,
-  startDiscountedStarterPurchaseAction,
-  verifyDiscountedStarterPurchaseAction,
+  startDiscountedPlanPurchaseAction,
+  verifyDiscountedPlanPurchaseAction,
 } from "@/app/dashboard/billing/actions";
 import { loadRazorpayCheckout, openRazorpayCheckout, PREFER_UPI_METHOD } from "@/lib/razorpay-client";
 import { formatINR } from "@/lib/money";
+import { PLAN_DEFINITIONS } from "@/lib/plans";
+import type { PlanTier } from "@prisma/client";
 
 /**
- * WELCOME100 — ₹100 off a tenant's first ever ₹499 Starter plan purchase
- * (see src/lib/data/tenants.ts). Shown only next to the Starter card, and
- * only while the tenant hasn't already used it / doesn't already have an
- * active paid subscription — the backend re-checks both regardless of what
- * this form shows, so a stale render can never let it through twice.
+ * WELCOME100 — ₹100 off a tenant's first ever paid plan purchase (see
+ * src/lib/data/tenants.ts). Originally Starter-only; shown on every plan
+ * card as of 2026-09-13 at the user's request — `tier` is whichever card
+ * this instance lives on. Only shown while the tenant hasn't already used
+ * it / doesn't already have an active paid subscription — the backend
+ * re-checks both regardless of what this form shows, so a stale render can
+ * never let it through twice.
  */
-export function WelcomeCouponForm({ keyId, restaurantName }: { keyId: string; restaurantName: string }) {
+export function WelcomeCouponForm({
+  keyId,
+  restaurantName,
+  tier,
+}: {
+  keyId: string;
+  restaurantName: string;
+  tier: PlanTier;
+}) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
   const [code, setCode] = useState("");
@@ -32,7 +44,7 @@ export function WelcomeCouponForm({ keyId, restaurantName }: { keyId: string; re
     setError(null);
     setPreview(null);
     startTransition(async () => {
-      const result = await previewWelcomeCouponAction(code);
+      const result = await previewWelcomeCouponAction(code, tier);
       if (result.error !== null) {
         setError(result.error);
         return;
@@ -44,7 +56,7 @@ export function WelcomeCouponForm({ keyId, restaurantName }: { keyId: string; re
   function handlePay() {
     setError(null);
     startTransition(async () => {
-      const started = await startDiscountedStarterPurchaseAction(code);
+      const started = await startDiscountedPlanPurchaseAction(code, tier);
       if (started.error || !started.orderId || started.amountCents == null) {
         setError(started.error ?? "Could not start this purchase.");
         return;
@@ -58,11 +70,11 @@ export function WelcomeCouponForm({ keyId, restaurantName }: { keyId: string; re
           order_id: orderId,
           amount: amountCents,
           name: restaurantName,
-          description: "OrderStack Starter plan — WELCOME100 applied",
+          description: `OrderStack ${PLAN_DEFINITIONS[tier].label} plan — WELCOME100 applied`,
           ...PREFER_UPI_METHOD,
           handler: (response) => {
             startTransition(async () => {
-              await verifyDiscountedStarterPurchaseAction(
+              await verifyDiscountedPlanPurchaseAction(
                 orderId,
                 response.razorpay_payment_id,
                 response.razorpay_signature,

@@ -316,19 +316,24 @@ export async function cancelTenantSubscription(tenantId: string): Promise<void> 
 }
 
 // ---------------------------------------------------------------------------
-// WELCOME100 — ₹100 off a tenant's first ever ₹499 Starter plan purchase.
+// WELCOME100 — ₹100 off a tenant's first ever paid plan purchase, any tier.
 //
 // Deliberately separate from the tenant-scoped Coupon model (src/lib/data/
 // coupons.ts): that model discounts a restaurant's own customer orders, this
 // discounts a restaurant paying *us* for the plan itself — a platform-level
-// concern with its own eligibility rule (once per tenant, Starter only,
-// never applied automatically). Applied via a one-time Razorpay order (not
-// the recurring Subscription flow startTenantSubscription uses above) —
-// Razorpay Subscriptions bill a Plan's fixed recurring price with no
+// concern with its own eligibility rule (once per tenant, first purchase
+// only, never applied automatically). Applied via a one-time Razorpay order
+// (not the recurring Subscription flow startTenantSubscription uses above)
+// — Razorpay Subscriptions bill a Plan's fixed recurring price with no
 // built-in way to discount just the first cycle via the API, so the
 // discounted "first purchase" is its own one-time payment; the owner starts
 // the normal recurring Subscribe flow afterward (at full price) whenever
 // they're ready for month two. See CLAUDE.md for the fuller rationale.
+//
+// Originally Starter-only (2026-09-13 build); widened the same day to all
+// three tiers at the user's explicit request — the discount amount and
+// once-per-tenant rule are unchanged, only the "STARTER only" restriction
+// was removed.
 export const WELCOME_COUPON_CODE = "WELCOME100";
 export const WELCOME_COUPON_DISCOUNT_CENTS = 10_000; // ₹100
 
@@ -343,9 +348,6 @@ export function previewWelcomeCouponDiscount(tier: PlanTier) {
 
 /** Re-checked from scratch on every call — a client-side preview is never trusted for what's actually charged. */
 export async function validateWelcomeCoupon(tenantId: string, rawCode: string, tier: PlanTier) {
-  if (tier !== "STARTER") {
-    throw new WelcomeCouponInvalidError("WELCOME100 only applies to the ₹499 Starter plan.");
-  }
   if (rawCode.trim().toUpperCase() !== WELCOME_COUPON_CODE) {
     throw new WelcomeCouponInvalidError("That coupon code isn't valid.");
   }
@@ -362,16 +364,16 @@ export async function validateWelcomeCoupon(tenantId: string, rawCode: string, t
   return previewWelcomeCouponDiscount(tier);
 }
 
-/** Starts the discounted one-time payment. pendingPlanTier is stashed the same way startTenantSubscription does. */
-export async function startDiscountedStarterPurchase(tenantId: string, couponCode: string) {
+/** Starts the discounted one-time payment for whichever tier the owner picked. pendingPlanTier is stashed the same way startTenantSubscription does. */
+export async function startDiscountedPlanPurchase(tenantId: string, couponCode: string, tier: PlanTier) {
   const { originalPriceCents, discountCents, finalPriceCents } = await validateWelcomeCoupon(
     tenantId,
     couponCode,
-    "STARTER",
+    tier,
   );
   const receipt = `welcome100-${tenantId}-${Date.now()}`;
   const order = await createRazorpayOrder(finalPriceCents, receipt);
-  await prisma.tenant.update({ where: { id: tenantId }, data: { pendingPlanTier: "STARTER" } });
+  await prisma.tenant.update({ where: { id: tenantId }, data: { pendingPlanTier: tier } });
   return { order, originalPriceCents, discountCents, finalPriceCents };
 }
 
@@ -384,7 +386,7 @@ export async function startDiscountedStarterPurchase(tenantId: string, couponCod
  * no-op once welcomeCouponRedeemedAt is already set, so the discount can
  * never be double-applied.
  */
-export async function verifyAndActivateDiscountedStarterPurchase(
+export async function verifyAndActivateDiscountedPlanPurchase(
   tenantId: string,
   razorpayOrderId: string,
   razorpayPaymentId: string,
@@ -396,14 +398,19 @@ export async function verifyAndActivateDiscountedStarterPurchase(
   const tenant = await prisma.tenant.findUnique({ where: { id: tenantId } });
   if (!tenant) throw new Error("Restaurant not found.");
   if (tenant.welcomeCouponRedeemedAt) return;
+  // The tier being purchased is whatever startDiscountedPlanPurchase stashed
+  // here — never re-derived from anything client-supplied, same spirit as
+  // verifying the payment signature itself rather than trusting the client.
+  const tier = tenant.pendingPlanTier;
+  if (!tier) throw new Error("No pending discounted plan purchase found for this restaurant.");
 
-  const { originalPriceCents, discountCents, finalPriceCents } = previewWelcomeCouponDiscount("STARTER");
+  const { originalPriceCents, discountCents, finalPriceCents } = previewWelcomeCouponDiscount(tier);
 
   await prisma.$transaction([
     prisma.tenant.update({
       where: { id: tenantId },
       data: {
-        planTier: "STARTER",
+        planTier: tier,
         subscriptionStatus: "ACTIVE",
         pendingPlanTier: null,
         welcomeCouponRedeemedAt: new Date(),
@@ -412,7 +419,7 @@ export async function verifyAndActivateDiscountedStarterPurchase(
     prisma.subscriptionPurchase.create({
       data: {
         tenantId,
-        tier: "STARTER",
+        tier,
         originalPriceCents,
         discountCents,
         couponCode: WELCOME_COUPON_CODE,

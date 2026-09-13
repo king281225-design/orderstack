@@ -108,8 +108,8 @@ export default async function BillingPage() {
                     tier={tier}
                     label={`Subscribe to ${def.label}`}
                   />
-                  {tier === "STARTER" && welcomeCouponEligible && (
-                    <WelcomeCouponForm keyId={keyId} restaurantName={tenant.name} />
+                  {welcomeCouponEligible && (
+                    <WelcomeCouponForm keyId={keyId} restaurantName={tenant.name} tier={tier} />
                   )}
                 </div>
               );
