@@ -1,8 +1,8 @@
 import { requireTenantSession } from "@/lib/auth";
 import { listOrdersForTenant } from "@/lib/data/orders";
 import { getTenantById } from "@/lib/data/tenants";
-import { advanceOrderStatusAction } from "@/app/dashboard/actions";
 import { AutoRefresh } from "@/components/auto-refresh";
+import { KitchenAdvanceButton } from "@/components/orders/kitchen-advance-button";
 import { nowMs } from "@/lib/time";
 import { tierHasFeature, PLAN_DEFINITIONS } from "@/lib/plans";
 import { UpgradeRequired } from "@/components/upgrade-required";
@@ -98,16 +98,7 @@ function KitchenCard({
           </li>
         ))}
       </ul>
-      {next && (
-        <form action={advanceOrderStatusAction.bind(null, order.id, next.to)}>
-          <button
-            type="submit"
-            className="w-full rounded-md bg-white px-3 py-2 text-base font-semibold text-gray-900 hover:bg-gray-200"
-          >
-            {next.label}
-          </button>
-        </form>
-      )}
+      {next && <KitchenAdvanceButton orderId={order.id} to={next.to} label={next.label} />}
     </div>
   );
 }

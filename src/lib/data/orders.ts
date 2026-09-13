@@ -222,6 +222,14 @@ export class InvalidTransitionError extends Error {}
 export async function advanceOrderStatus(tenantId: string, orderId: string, to: OrderStatus) {
   const order = await prisma.order.findFirst({ where: { id: orderId, tenantId } });
   if (!order) throw new Error("Order not found for this restaurant.");
+  // A double-click (the status buttons have no pending/disabled state, and
+  // a slow request invites a second click before the first one's re-render
+  // lands) resubmits the exact same transition — the order is already
+  // where the owner wanted it, so treat that as a harmless no-op rather
+  // than an InvalidTransitionError. A genuinely invalid transition (e.g.
+  // clicking a stale "Accept" after the order was cancelled elsewhere)
+  // still throws below.
+  if (order.status === to) return order;
   if (!NEXT_STATUS[order.status].includes(to)) {
     throw new InvalidTransitionError(`Cannot move an order from ${order.status} to ${to}.`);
   }

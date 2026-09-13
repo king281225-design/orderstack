@@ -3,8 +3,9 @@ import { requireTenantSession } from "@/lib/auth";
 import { listOrdersForTenant } from "@/lib/data/orders";
 import { getTenantById } from "@/lib/data/tenants";
 import { formatINR } from "@/lib/money";
-import { advanceOrderStatusAction, markOrderPaidAction, toggleOpenAction } from "@/app/dashboard/actions";
+import { toggleOpenAction } from "@/app/dashboard/actions";
 import { AutoRefresh } from "@/components/auto-refresh";
+import { OrderActionButtons } from "@/components/orders/order-action-buttons";
 import type { Order, OrderItem, OrderStatus } from "@prisma/client";
 
 const NEXT_STEP: Partial<Record<OrderStatus, { to: OrderStatus; label: string }>> = {
@@ -212,37 +213,12 @@ function OrderCard({
         >
           🖨️ Print bill
         </Link>
-        {next && (
-          <form action={advanceOrderStatusAction.bind(null, order.id, next.to)}>
-            <button
-              type="submit"
-              className="rounded-md bg-gray-900 px-3 py-1.5 text-sm font-semibold text-white hover:bg-gray-700"
-            >
-              {next.label}
-            </button>
-          </form>
-        )}
-        {CANCELLABLE.includes(order.status) && (
-          <form action={advanceOrderStatusAction.bind(null, order.id, "CANCELLED")}>
-            <button
-              type="submit"
-              className="rounded-md border border-red-300 px-3 py-1.5 text-sm font-semibold text-red-600 hover:bg-red-50"
-            >
-              Cancel
-            </button>
-          </form>
-        )}
-        {order.paymentStatus === "PENDING" && (
-          <form action={markOrderPaidAction.bind(null, order.id)}>
-            <button
-              type="submit"
-              className="rounded-md border border-gray-300 px-3 py-1.5 text-sm font-semibold text-gray-700 hover:bg-gray-50"
-              title="Manual reconciliation — mark this order as paid"
-            >
-              Mark as paid
-            </button>
-          </form>
-        )}
+        <OrderActionButtons
+          orderId={order.id}
+          next={next}
+          cancellable={CANCELLABLE.includes(order.status)}
+          paymentPending={order.paymentStatus === "PENDING"}
+        />
       </div>
     </div>
   );
