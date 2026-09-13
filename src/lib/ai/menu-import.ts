@@ -1,7 +1,18 @@
 import "server-only";
 import Anthropic from "@anthropic-ai/sdk";
 import { createWorker } from "tesseract.js";
-import { PDFParse } from "pdf-parse";
+// pdf-parse is loaded lazily inside extractWithFreeOcr below, not imported
+// here at module top-level. It depends on @napi-rs/canvas (a native Node
+// addon providing DOMMatrix-equivalent APIs for PDF rendering), and native
+// binaries like that are a known trouble spot for Vercel's serverless
+// function bundler — it can fail to trace/include the right platform
+// binary, leaving DOMMatrix undefined at runtime even though the build
+// succeeded (hit for real: every visit to /dashboard/menu 500'd, because
+// this module — pulled in just to register the page's server actions —
+// eagerly loaded pdf-parse whether or not anyone was actually importing a
+// PDF). A lazy import means the menu page itself never touches pdf-parse;
+// only an actual PDF-import attempt does, so a browsable menu page doesn't
+// depend on this native dependency working at all.
 
 /**
  * AI-assisted menu import: an owner uploads a photo or PDF of their existing
@@ -82,6 +93,7 @@ async function extractWithFreeOcr(
   let rawText: string;
 
   if (mimeType === "application/pdf") {
+    const { PDFParse } = await import("pdf-parse");
     const parser = new PDFParse({ data: fileBytes });
     try {
       const textResult = await parser.getText();
