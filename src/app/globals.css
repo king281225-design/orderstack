@@ -19,6 +19,28 @@
   }
 }
 
+/*
+ * Printable invoice (src/app/dashboard/orders/[id]/print) — A4 by default;
+ * the "thermal receipt view" toggle on that page swaps in .invoice-thermal
+ * to narrow the printable area to a typical 80mm roll width instead.
+ * Everything outside .invoice-print (dashboard nav/header) is hidden via
+ * Tailwind's print:hidden utility on the layout itself, not here.
+ */
+@media print {
+  @page {
+    size: A4;
+    margin: 12mm;
+  }
+  body {
+    background: #fff !important;
+  }
+}
+
+.invoice-thermal {
+  max-width: 302px; /* ~80mm at 96dpi */
+  font-size: 12px;
+}
+
 body {
   background: var(--background);
   color: var(--foreground);

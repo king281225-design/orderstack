@@ -4,6 +4,7 @@ import { isRazorpayConfigured, getRazorpayKeyId } from "@/lib/payments/razorpay"
 import { PLAN_DEFINITIONS, PLAN_TIERS } from "@/lib/plans";
 import { formatINR } from "@/lib/money";
 import { SubscribeButton } from "@/components/billing/subscribe-button";
+import { WelcomeCouponForm } from "@/components/billing/welcome-coupon-form";
 import { cancelSubscriptionAction } from "@/app/dashboard/billing/actions";
 
 const STATUS_LABEL: Record<string, string> = {
@@ -29,6 +30,7 @@ export default async function BillingPage() {
   const razorpayReady = isRazorpayConfigured();
   const keyId = getRazorpayKeyId();
   const isActive = tenant.subscriptionStatus === "ACTIVE";
+  const welcomeCouponEligible = !tenant.welcomeCouponRedeemedAt && !isActive;
 
   return (
     <div className="flex flex-col gap-6">
@@ -106,6 +108,9 @@ export default async function BillingPage() {
                     tier={tier}
                     label={`Subscribe to ${def.label}`}
                   />
+                  {tier === "STARTER" && welcomeCouponEligible && (
+                    <WelcomeCouponForm keyId={keyId} restaurantName={tenant.name} />
+                  )}
                 </div>
               );
             })}

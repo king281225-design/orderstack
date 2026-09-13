@@ -3,6 +3,8 @@
 import { revalidatePath } from "next/cache";
 import { requireOwnerSession } from "@/lib/auth";
 import { createStaffAccount, deleteStaffAccount, EmailTakenError } from "@/lib/data/staff";
+import { getTenantById } from "@/lib/data/tenants";
+import { tierHasFeature } from "@/lib/plans";
 
 export type StaffActionState = { error: string | null };
 const ok: StaffActionState = { error: null };
@@ -12,6 +14,12 @@ export async function createStaffAction(
   formData: FormData,
 ): Promise<StaffActionState> {
   const session = await requireOwnerSession();
+
+  // Defense in depth alongside the page-level gate (/dashboard/staff).
+  const tenant = await getTenantById(session.tenantId);
+  if (!tenant || !tierHasFeature(tenant.planTier, "staff")) {
+    return { error: "Staff logins aren't included on your current plan." };
+  }
 
   const email = String(formData.get("email") ?? "")
     .trim()

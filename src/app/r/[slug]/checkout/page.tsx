@@ -1,6 +1,6 @@
 import { notFound } from "next/navigation";
 import { getTenantBySlug } from "@/lib/data/tenants";
-import { isRazorpayConfigured } from "@/lib/payments/razorpay";
+import { isRazorpayConfigured, isCustomerCheckoutRazorpayEnabled } from "@/lib/payments/razorpay";
 import { CheckoutForm } from "@/components/storefront/checkout-form";
 
 export const dynamic = "force-dynamic";
@@ -21,7 +21,7 @@ export default async function CheckoutPage({
         slug={slug}
         restaurantName={tenant.name}
         hasUpi={Boolean(tenant.upiId)}
-        hasRazorpay={isRazorpayConfigured()}
+        hasRazorpay={isCustomerCheckoutRazorpayEnabled() && isRazorpayConfigured()}
         deliveryZone={
           tenant.latitude != null && tenant.longitude != null && tenant.deliveryRadiusKm != null
             ? { latitude: tenant.latitude, longitude: tenant.longitude, radiusKm: tenant.deliveryRadiusKm }

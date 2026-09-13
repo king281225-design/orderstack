@@ -102,6 +102,96 @@ export async function createOrder(
   });
 }
 
+export type ManualOrderLine = { name: string; priceCents: number; quantity: number };
+
+export class EmptyManualOrderError extends Error {}
+export class InvalidManualLineError extends Error {}
+
+/**
+ * Owner/staff-created bill for a walk-in or phone-in customer
+ * (/dashboard/orders/new) — the "billing system" entry point, as opposed to
+ * createOrder above (a customer's own storefront checkout). Line items are
+ * free-form (name + price + quantity typed in by staff, not necessarily tied
+ * to a menu Item row) since this is meant to cover "products/services"
+ * generally, not just menu dishes. Every number is validated and recomputed
+ * here — subtotal, discount (clamped to the subtotal, never negative), tax,
+ * and grand total are never trusted from the client. gstRatePercent falls
+ * back to the tenant's own configured rate (Tenant.gstRate) when omitted;
+ * both are optional — omit/zero means no tax line.
+ */
+export async function createManualOrder(
+  tenantId: string,
+  input: {
+    lines: ManualOrderLine[];
+    customerName: string;
+    customerPhone: string;
+    customerEmail?: string | null;
+    fulfillmentType: FulfillmentType;
+    discountCents?: number;
+    gstRatePercent?: number | null;
+    paymentMethod: PaymentMethod;
+    notes?: string | null;
+  },
+) {
+  const lines = input.lines.filter((l) => l.quantity > 0 && l.name.trim());
+  if (lines.length === 0) throw new EmptyManualOrderError("Add at least one item to the bill.");
+  for (const l of lines) {
+    if (!Number.isFinite(l.priceCents) || l.priceCents < 0 || !Number.isInteger(l.quantity) || l.quantity < 1) {
+      throw new InvalidManualLineError(`Invalid line: "${l.name}".`);
+    }
+  }
+
+  const subtotalCents = lines.reduce((sum, l) => sum + l.priceCents * l.quantity, 0);
+
+  const rawDiscount = input.discountCents ?? 0;
+  const discountCents = Math.min(Math.max(0, Math.round(rawDiscount)), subtotalCents);
+
+  const tenant = await prisma.tenant.findUnique({ where: { id: tenantId }, select: { gstRate: true } });
+  const gstRate = input.gstRatePercent ?? tenant?.gstRate ?? null;
+  const taxableCents = subtotalCents - discountCents;
+  const taxCents = gstRate && gstRate > 0 ? Math.round((taxableCents * gstRate) / 100) : 0;
+
+  const totalCents = taxableCents + taxCents;
+
+  return prisma.order.create({
+    data: {
+      tenantId,
+      customerName: input.customerName.trim(),
+      customerPhone: input.customerPhone.trim(),
+      customerEmail: input.customerEmail?.trim() || null,
+      fulfillmentType: input.fulfillmentType,
+      paymentMethod: input.paymentMethod,
+      notes: input.notes ?? null,
+      source: "MANUAL",
+      subtotalCents,
+      discountCents,
+      taxCents,
+      totalCents,
+      // Manual bills are typically settled on the spot — a manually-created
+      // order still starts PENDING/UNPAID like any other, the owner marks it
+      // paid via the same "Mark as paid" reconciliation flow (or accepts
+      // through the normal status flow) rather than this silently assuming
+      // payment happened.
+      items: {
+        create: lines.map((l) => ({
+          nameSnapshot: l.name.trim(),
+          priceCentsSnapshot: l.priceCents,
+          quantity: l.quantity,
+        })),
+      },
+    },
+    include: { items: true },
+  });
+}
+
+/** Tenant-scoped single-order lookup for the printable invoice page — never trust an order id alone. */
+export async function getOrderForPrint(tenantId: string, orderId: string) {
+  return prisma.order.findFirst({
+    where: { id: orderId, tenantId },
+    include: { items: true },
+  });
+}
+
 /** Public order-status lookup, always re-checked against tenantId so one restaurant's orders never leak into another's URL space. */
 export async function getOrderForTenant(tenantId: string, orderId: string) {
   return prisma.order.findFirst({

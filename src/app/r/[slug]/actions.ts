@@ -23,6 +23,7 @@ import {
   createRazorpayOrder,
   getRazorpayKeyId,
   isRazorpayConfigured,
+  isCustomerCheckoutRazorpayEnabled,
   verifyCheckoutSignature,
 } from "@/lib/payments/razorpay";
 
@@ -122,10 +123,13 @@ export async function placeOrderAction(
   if (data.fulfillmentType === "DINE_IN" && !data.tableLabel?.trim()) {
     return { error: "Table is required for dine-in orders." };
   }
-  if (data.paymentMethod === "RAZORPAY" && !isRazorpayConfigured()) {
-    // Shouldn't normally happen — the UI hides this option when unconfigured —
-    // but a stale client-side cache or a direct call shouldn't silently break.
-    return { error: "Online payment isn't set up yet. Please choose UPI or Cash on Delivery." };
+  if (data.paymentMethod === "RAZORPAY" && (!isCustomerCheckoutRazorpayEnabled() || !isRazorpayConfigured())) {
+    // Shouldn't normally happen — the UI hides this option — but a stale
+    // client-side cache or a direct call shouldn't silently create a
+    // Razorpay order anyway. isCustomerCheckoutRazorpayEnabled() is the
+    // deliberate 2026-09-13 off-switch for storefront online payment; see
+    // its own comment in src/lib/payments/razorpay.ts.
+    return { error: "Online payment isn't available right now. Please choose UPI or Cash on Delivery." };
   }
 
   try {

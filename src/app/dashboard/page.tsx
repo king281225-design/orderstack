@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { requireTenantSession } from "@/lib/auth";
 import { listOrdersForTenant } from "@/lib/data/orders";
 import { getTenantById } from "@/lib/data/tenants";
@@ -43,6 +44,15 @@ export default async function DashboardOrdersPage() {
   return (
     <div className="flex flex-col gap-8">
       <AutoRefresh intervalMs={8000} />
+
+      <div className="flex justify-end">
+        <Link
+          href="/dashboard/orders/new"
+          className="rounded-md bg-gray-900 px-3 py-1.5 text-sm font-semibold text-white hover:bg-gray-700"
+        >
+          + Create order
+        </Link>
+      </div>
 
       <div className="flex items-center justify-between rounded-lg border border-gray-200 bg-white px-4 py-3">
         <div>
@@ -136,6 +146,12 @@ function OrderCard({
         </span>
       </div>
 
+      {order.source === "MANUAL" && (
+        <span className="mb-2 inline-block rounded-full bg-indigo-50 px-2 py-0.5 text-xs font-medium text-indigo-700">
+          Manual bill
+        </span>
+      )}
+
       <ul className="mb-2 text-sm text-gray-700">
         {order.items.map((line) => (
           <li key={line.id}>
@@ -189,6 +205,13 @@ function OrderCard({
       </div>
 
       <div className="flex flex-wrap gap-2">
+        <Link
+          href={`/dashboard/orders/${order.id}/print`}
+          target="_blank"
+          className="rounded-md border border-gray-300 px-3 py-1.5 text-sm font-semibold text-gray-700 hover:bg-gray-50"
+        >
+          🖨️ Print bill
+        </Link>
         {next && (
           <form action={advanceOrderStatusAction.bind(null, order.id, next.to)}>
             <button

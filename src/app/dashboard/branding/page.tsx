@@ -3,6 +3,7 @@ import { getTenantById } from "@/lib/data/tenants";
 import { BrandingForm } from "@/components/branding-form";
 import { CustomDomainForm } from "@/components/custom-domain-form";
 import { DeliveryZoneForm } from "@/components/delivery-zone-form";
+import { BillingSettingsForm } from "@/components/billing-settings-form";
 
 export default async function BrandingPage() {
   const session = await requireOwnerSession();
@@ -20,6 +21,11 @@ export default async function BrandingPage() {
         latitude={tenant.latitude}
         longitude={tenant.longitude}
         deliveryRadiusKm={tenant.deliveryRadiusKm}
+      />
+      <BillingSettingsForm
+        gstRate={tenant.gstRate}
+        businessAddress={tenant.businessAddress}
+        gstin={tenant.gstin}
       />
     </div>
   );

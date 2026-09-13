@@ -8,6 +8,8 @@ import {
   createRazorpaySubscription,
   cancelRazorpaySubscription,
   verifySubscriptionSignature,
+  createRazorpayOrder,
+  verifyCheckoutSignature,
 } from "@/lib/payments/razorpay";
 
 const SLUG_RE = /^[a-z0-9]+(-[a-z0-9]+)*$/;
@@ -173,6 +175,9 @@ export async function updateTenantBranding(
     googleReviewCount?: number | null;
     instagramUrl?: string | null;
     facebookUrl?: string | null;
+    gstRate?: number | null;
+    businessAddress?: string | null;
+    gstin?: string | null;
   },
 ) {
   return prisma.tenant.update({ where: { id: tenantId }, data });
@@ -308,6 +313,115 @@ export async function cancelTenantSubscription(tenantId: string): Promise<void> 
     where: { id: tenantId },
     data: { subscriptionStatus: "CANCELLED", pendingPlanTier: null },
   });
+}
+
+// ---------------------------------------------------------------------------
+// WELCOME100 — ₹100 off a tenant's first ever ₹499 Starter plan purchase.
+//
+// Deliberately separate from the tenant-scoped Coupon model (src/lib/data/
+// coupons.ts): that model discounts a restaurant's own customer orders, this
+// discounts a restaurant paying *us* for the plan itself — a platform-level
+// concern with its own eligibility rule (once per tenant, Starter only,
+// never applied automatically). Applied via a one-time Razorpay order (not
+// the recurring Subscription flow startTenantSubscription uses above) —
+// Razorpay Subscriptions bill a Plan's fixed recurring price with no
+// built-in way to discount just the first cycle via the API, so the
+// discounted "first purchase" is its own one-time payment; the owner starts
+// the normal recurring Subscribe flow afterward (at full price) whenever
+// they're ready for month two. See CLAUDE.md for the fuller rationale.
+export const WELCOME_COUPON_CODE = "WELCOME100";
+export const WELCOME_COUPON_DISCOUNT_CENTS = 10_000; // ₹100
+
+export class WelcomeCouponInvalidError extends Error {}
+export class WelcomeCouponAlreadyUsedError extends Error {}
+
+export function previewWelcomeCouponDiscount(tier: PlanTier) {
+  const originalPriceCents = PLAN_DEFINITIONS[tier].priceCents;
+  const discountCents = Math.min(WELCOME_COUPON_DISCOUNT_CENTS, originalPriceCents);
+  return { originalPriceCents, discountCents, finalPriceCents: originalPriceCents - discountCents };
+}
+
+/** Re-checked from scratch on every call — a client-side preview is never trusted for what's actually charged. */
+export async function validateWelcomeCoupon(tenantId: string, rawCode: string, tier: PlanTier) {
+  if (tier !== "STARTER") {
+    throw new WelcomeCouponInvalidError("WELCOME100 only applies to the ₹499 Starter plan.");
+  }
+  if (rawCode.trim().toUpperCase() !== WELCOME_COUPON_CODE) {
+    throw new WelcomeCouponInvalidError("That coupon code isn't valid.");
+  }
+  const tenant = await prisma.tenant.findUnique({ where: { id: tenantId } });
+  if (!tenant) throw new Error("Restaurant not found.");
+  if (tenant.welcomeCouponRedeemedAt) {
+    throw new WelcomeCouponAlreadyUsedError("WELCOME100 has already been used on this account.");
+  }
+  if (tenant.subscriptionStatus === "ACTIVE") {
+    throw new WelcomeCouponInvalidError(
+      "WELCOME100 is only for a first plan purchase — this account already has an active paid subscription.",
+    );
+  }
+  return previewWelcomeCouponDiscount(tier);
+}
+
+/** Starts the discounted one-time payment. pendingPlanTier is stashed the same way startTenantSubscription does. */
+export async function startDiscountedStarterPurchase(tenantId: string, couponCode: string) {
+  const { originalPriceCents, discountCents, finalPriceCents } = await validateWelcomeCoupon(
+    tenantId,
+    couponCode,
+    "STARTER",
+  );
+  const receipt = `welcome100-${tenantId}-${Date.now()}`;
+  const order = await createRazorpayOrder(finalPriceCents, receipt);
+  await prisma.tenant.update({ where: { id: tenantId }, data: { pendingPlanTier: "STARTER" } });
+  return { order, originalPriceCents, discountCents, finalPriceCents };
+}
+
+/**
+ * Verifies the Razorpay checkout signature (never trust the client's own
+ * "it succeeded" callback without this) then activates the plan and records
+ * the permanent purchase-ledger entry — original price, discount, coupon
+ * code, and final amount paid, per the coupon's own requirement. Idempotent:
+ * a retried verification call (e.g. the browser re-firing the handler) is a
+ * no-op once welcomeCouponRedeemedAt is already set, so the discount can
+ * never be double-applied.
+ */
+export async function verifyAndActivateDiscountedStarterPurchase(
+  tenantId: string,
+  razorpayOrderId: string,
+  razorpayPaymentId: string,
+  signature: string,
+): Promise<void> {
+  if (!verifyCheckoutSignature(razorpayOrderId, razorpayPaymentId, signature)) {
+    throw new Error("Could not verify payment signature.");
+  }
+  const tenant = await prisma.tenant.findUnique({ where: { id: tenantId } });
+  if (!tenant) throw new Error("Restaurant not found.");
+  if (tenant.welcomeCouponRedeemedAt) return;
+
+  const { originalPriceCents, discountCents, finalPriceCents } = previewWelcomeCouponDiscount("STARTER");
+
+  await prisma.$transaction([
+    prisma.tenant.update({
+      where: { id: tenantId },
+      data: {
+        planTier: "STARTER",
+        subscriptionStatus: "ACTIVE",
+        pendingPlanTier: null,
+        welcomeCouponRedeemedAt: new Date(),
+      },
+    }),
+    prisma.subscriptionPurchase.create({
+      data: {
+        tenantId,
+        tier: "STARTER",
+        originalPriceCents,
+        discountCents,
+        couponCode: WELCOME_COUPON_CODE,
+        finalPriceCents,
+        razorpayOrderId,
+        razorpayPaymentId,
+      },
+    }),
+  ]);
 }
 
 export async function updateTenantMenuDocument(

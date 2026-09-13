@@ -139,3 +139,39 @@ export async function updateDeliveryZoneAction(
   revalidatePath("/dashboard/branding");
   return { error: null, success: true };
 }
+
+export type BillingSettingsState = { error: string | null; success: boolean };
+
+/**
+ * GST rate + registered business details used on manually-created bills'
+ * printed invoices (src/app/dashboard/orders/[id]/print) — filed alongside
+ * branding/delivery-zone as one more piece of "restaurant settings," same
+ * pattern as the two forms above.
+ */
+export async function updateBillingSettingsAction(
+  _prev: BillingSettingsState,
+  formData: FormData,
+): Promise<BillingSettingsState> {
+  const session = await requireOwnerSession();
+
+  const gstRateRaw = String(formData.get("gstRate") ?? "").trim();
+  const businessAddress = String(formData.get("businessAddress") ?? "").trim();
+  const gstin = String(formData.get("gstin") ?? "").trim();
+
+  let gstRate: number | null = null;
+  if (gstRateRaw) {
+    gstRate = Number(gstRateRaw);
+    if (!Number.isFinite(gstRate) || gstRate < 0 || gstRate > 100) {
+      return { error: "GST rate must be a number between 0 and 100.", success: false };
+    }
+  }
+
+  await updateTenantBranding(session.tenantId, {
+    gstRate,
+    businessAddress: businessAddress || null,
+    gstin: gstin || null,
+  });
+
+  revalidatePath("/dashboard/branding");
+  return { error: null, success: true };
+}

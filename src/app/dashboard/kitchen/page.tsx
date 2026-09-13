@@ -1,8 +1,11 @@
 import { requireTenantSession } from "@/lib/auth";
 import { listOrdersForTenant } from "@/lib/data/orders";
+import { getTenantById } from "@/lib/data/tenants";
 import { advanceOrderStatusAction } from "@/app/dashboard/actions";
 import { AutoRefresh } from "@/components/auto-refresh";
 import { nowMs } from "@/lib/time";
+import { tierHasFeature, PLAN_DEFINITIONS } from "@/lib/plans";
+import { UpgradeRequired } from "@/components/upgrade-required";
 import type { Order, OrderItem, OrderStatus } from "@prisma/client";
 
 export const dynamic = "force-dynamic";
@@ -23,6 +26,12 @@ const COLUMNS: { status: OrderStatus; title: string; next?: { to: OrderStatus; l
 
 export default async function KitchenDisplayPage() {
   const session = await requireTenantSession();
+  const tenant = await getTenantById(session.tenantId);
+  if (!tenant) return null;
+  if (!tierHasFeature(tenant.planTier, "kitchen")) {
+    return <UpgradeRequired feature="Kitchen display" requiredPlanLabel={PLAN_DEFINITIONS.BUSINESS.label} />;
+  }
+
   const orders = await listOrdersForTenant(session.tenantId, [
     "PENDING",
     "ACCEPTED",

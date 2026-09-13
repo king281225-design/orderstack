@@ -14,6 +14,21 @@ export function isRazorpayConfigured(): boolean {
   return Boolean(process.env.RAZORPAY_KEY_ID && process.env.RAZORPAY_KEY_SECRET);
 }
 
+/**
+ * Deliberate off-switch for "Pay online" on the customer-facing storefront
+ * checkout ONLY (src/app/r/[slug]/checkout, src/app/r/[slug]/actions.ts) —
+ * turned off 2026-09-13 at the user's request after testing checkout with
+ * real live Razorpay keys, to keep the storefront to UPI QR / Cash on
+ * Delivery for launch. Deliberately separate from isRazorpayConfigured()
+ * above, which still gates the platform's own subscription billing
+ * (/dashboard/billing, WELCOME100) — those are unaffected by this flag.
+ * Flip back to `isRazorpayConfigured()` to re-enable customer online
+ * payment; nothing else needs to change, the integration itself is untouched.
+ */
+export function isCustomerCheckoutRazorpayEnabled(): boolean {
+  return false;
+}
+
 /** Safe to expose to the client — Razorpay's checkout widget requires the key id client-side. */
 export function getRazorpayKeyId(): string | null {
   return process.env.RAZORPAY_KEY_ID ?? null;
