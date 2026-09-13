@@ -4,11 +4,17 @@ const nextConfig: NextConfig = {
   // Produces a self-contained .next/standalone/server.js — needed to run
   // this app on a plain Node.js host that just executes a startup file
   // (e.g. Hostinger shared hosting's Node.js app manager in hPanel), rather
-  // than a platform that already knows how to run `next start` itself
-  // (Vercel). Doesn't change anything about `next dev`/`next build` output
-  // for other deploy targets — Vercel and similar ignore this and use their
-  // own build output regardless.
-  output: "standalone",
+  // than a platform that already knows how to run `next start` itself.
+  //
+  // Correction (2026-09-13): a real Vercel deploy proved the original
+  // comment here wrong — Vercel does NOT just ignore this. It failed with
+  // `ENOENT .../next-server.js.nft.json` because Vercel's own serverless
+  // function packaging expects the standard (non-standalone) build output's
+  // trace files, which standalone mode doesn't produce in that shape. Vercel
+  // sets `VERCEL=1` in its build environment, so only opt into standalone
+  // output when NOT building on Vercel — Hostinger (or any other plain
+  // Node host) still gets it, Vercel gets Next's normal output.
+  output: process.env.VERCEL ? undefined : "standalone",
   // tesseract.js (free OCR menu import, src/lib/ai/menu-import.ts) resolves
   // its Node worker script relative to its own package directory at
   // runtime — bundling it broke that path resolution (surfaced as
