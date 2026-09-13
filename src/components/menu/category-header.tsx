@@ -1,7 +1,13 @@
 "use client";
 
-import { useState } from "react";
-import { deleteCategoryAction, renameCategoryAction } from "@/app/dashboard/menu/actions";
+import { useActionState, useState } from "react";
+import {
+  deleteCategoryAction,
+  renameCategoryAction,
+  type MenuActionState,
+} from "@/app/dashboard/menu/actions";
+
+const initialState: MenuActionState = { error: null };
 
 export function CategoryHeader({
   categoryId,
@@ -11,16 +17,21 @@ export function CategoryHeader({
   name: string;
 }) {
   const [editing, setEditing] = useState(false);
+  const boundAction = renameCategoryAction.bind(null, categoryId);
+  const [state, formAction, pending] = useActionState(boundAction, initialState);
+
+  // Same render-time-comparison pattern as ItemRow (see its comment) —
+  // closes the form once a save actually succeeds, without a
+  // react-hooks/set-state-in-effect violation.
+  const [lastSeenState, setLastSeenState] = useState(state);
+  if (state !== lastSeenState) {
+    setLastSeenState(state);
+    if (!state.error) setEditing(false);
+  }
 
   if (editing) {
     return (
-      <form
-        action={async (formData) => {
-          await renameCategoryAction(categoryId, String(formData.get("name") ?? ""));
-          setEditing(false);
-        }}
-        className="mb-3 flex items-center gap-2"
-      >
+      <form action={formAction} className="mb-3 flex items-center gap-2">
         <input
           name="name"
           defaultValue={name}
@@ -30,9 +41,10 @@ export function CategoryHeader({
         />
         <button
           type="submit"
-          className="rounded-md bg-gray-900 px-3 py-1 text-xs font-semibold text-white hover:bg-gray-700"
+          disabled={pending}
+          className="rounded-md bg-gray-900 px-3 py-1 text-xs font-semibold text-white hover:bg-gray-700 disabled:opacity-50"
         >
-          Save
+          {pending ? "Saving…" : "Save"}
         </button>
         <button
           type="button"
@@ -41,6 +53,7 @@ export function CategoryHeader({
         >
           Cancel
         </button>
+        {state.error && <p className="text-sm text-red-600">{state.error}</p>}
       </form>
     );
   }

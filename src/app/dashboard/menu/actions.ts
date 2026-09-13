@@ -36,11 +36,26 @@ export async function createCategoryAction(
   return ok;
 }
 
-export async function renameCategoryAction(categoryId: string, name: string) {
+/**
+ * Takes the same (id, prevState, formData) shape as updateItemAction, for
+ * the same reason: passed directly as a form's `action` (not wrapped in a
+ * plain client closure), this is what lets Next.js recognize it as a real
+ * server action and automatically refresh the page's Server Component data
+ * afterward — a plain client wrapper calling this function doesn't reliably
+ * get that automatic refresh (hit for real: the category name kept showing
+ * its old value after a successful rename until this was fixed).
+ */
+export async function renameCategoryAction(
+  categoryId: string,
+  _prev: MenuActionState,
+  formData: FormData,
+): Promise<MenuActionState> {
   const session = await requireTenantSession();
-  if (!name.trim()) return;
-  await renameCategory(session.tenantId, categoryId, name.trim());
+  const name = String(formData.get("name") ?? "").trim();
+  if (!name) return { error: "Category name is required." };
+  await renameCategory(session.tenantId, categoryId, name);
   revalidatePath("/dashboard/menu");
+  return ok;
 }
 
 export async function deleteCategoryAction(categoryId: string) {
