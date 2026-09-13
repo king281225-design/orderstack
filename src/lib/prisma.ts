@@ -17,7 +17,28 @@ function createPrismaClient() {
         "MySQL instance — see CLAUDE.md.",
     );
   }
-  const adapter = new PrismaMariaDb(connectionString);
+  // The `mariadb` driver's own defaults are too tight for a remote/cross-region
+  // host (e.g. TiDB Serverless): connectTimeout defaults to just 1000ms, and
+  // the pool's acquireTimeout to 10000ms — any brief network hiccup on a
+  // cross-region TLS handshake blows past both, surfacing as `pool timeout:
+  // failed to retrieve a connection from pool (active=0 idle=0)` even though
+  // the database itself is fine (hit for real against TiDB Serverless from
+  // Vercel, see CLAUDE.md). Also lower idleTimeout below TiDB's own
+  // documented 30-minute server-side connection cutoff so idle connections
+  // get recycled by the client first, rather than found already-dead later.
+  // Only applied when not already specified in DATABASE_URL, so a local
+  // MySQL setup (fast, same-network) isn't affected unless it wants to be.
+  const url = new URL(connectionString);
+  if (!url.searchParams.has("connectTimeout")) {
+    url.searchParams.set("connectTimeout", "30000");
+  }
+  if (!url.searchParams.has("acquireTimeout")) {
+    url.searchParams.set("acquireTimeout", "45000");
+  }
+  if (!url.searchParams.has("idleTimeout")) {
+    url.searchParams.set("idleTimeout", "600");
+  }
+  const adapter = new PrismaMariaDb(url.toString());
   return new PrismaClient({
     adapter,
     log: process.env.NODE_ENV === "development" ? ["warn", "error"] : ["error"],
