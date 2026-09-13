@@ -75,11 +75,22 @@ export async function extractMenuFromDocument(
 /* ------------------------------------------------------------------ */
 
 async function ocrImageBuffer(buffer: Buffer): Promise<string> {
+  // Tesseract.js's underlying image decoder (Leptonica, compiled to wasm)
+  // has real gaps with some JPEG/PNG variants a real phone camera produces
+  // (progressive JPEGs, unusual color profiles/bit depths) even though it
+  // decodes a plain, simply-encoded PNG (like the ones pdfjs-dist renders
+  // for the scanned-PDF path below) just fine — hit for real: a real photo
+  // upload failed with "Error attempting to read image" while the PDF path
+  // worked. Re-encoding through sharp first normalizes any input into a
+  // plain baseline PNG Leptonica reliably handles, regardless of source
+  // format/encoding quirks.
+  const sharp = (await import("sharp")).default;
+  const normalized = await sharp(buffer).png().toBuffer();
   const worker = await createWorker("eng");
   try {
     const {
       data: { text },
-    } = await worker.recognize(buffer);
+    } = await worker.recognize(normalized);
     return text;
   } finally {
     await worker.terminate();
