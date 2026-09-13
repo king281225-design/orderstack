@@ -23,6 +23,23 @@ const nextConfig: NextConfig = {
   // which has similar Node-native/dynamic-require needs. Both are opted out
   // of Server Component bundling so they load via plain Node `require`.
   serverExternalPackages: ["tesseract.js", "pdf-parse"],
+  // serverExternalPackages above stops Turbopack from bundling tesseract.js,
+  // but that's a separate step from Vercel's own serverless-function file
+  // tracing (@vercel/nft), which decides which files under node_modules
+  // actually ship in the deployed function. Tracing works by statically
+  // following require()/import calls — but tesseract.js's Node worker
+  // script builds its own path to sibling files at runtime (not a plain
+  // static require), so the tracer misses them and they're missing in
+  // production even though `npm install` succeeded (hit for real: "Cannot
+  // find module '..'" from inside
+  // node_modules/tesseract.js/src/worker-script/node/index.js on Vercel).
+  // Force-including the whole package tree (worker scripts + the separate
+  // tesseract.js-core package holding its wasm binaries) for every route
+  // fixes that, since it isn't worth narrowing to the exact route(s) that
+  // use OCR.
+  outputFileTracingIncludes: {
+    "/*": ["node_modules/tesseract.js/**/*", "node_modules/tesseract.js-core/**/*"],
+  },
   experimental: {
     serverActions: {
       // Menu-photo/logo/hardcopy-menu-document uploads all go through Server
