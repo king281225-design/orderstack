@@ -6,7 +6,16 @@ const COOKIE_NAME = "os_session";
 
 // Paths a custom domain should never be rewritten for — real top-level app
 // routes, not something to prefix with /r/<slug>.
-const RESERVED_PREFIXES = ["/r/", "/dashboard", "/super-admin", "/api", "/login", "/signup"];
+const RESERVED_PREFIXES = [
+  "/r/",
+  "/dashboard",
+  "/super-admin",
+  "/api",
+  "/login",
+  "/signup",
+  "/forgot-password",
+  "/reset-password",
+];
 
 // Edge-level gate on the two authenticated areas. This is defense in depth —
 // every dashboard/super-admin page and server action also re-checks the

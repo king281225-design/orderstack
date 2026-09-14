@@ -65,6 +65,32 @@ export async function sendOwnerNewOrderEmail(
   }
 }
 
+/**
+ * Fire-and-forget, same as the two order emails below — but note the caller
+ * (src/lib/data/password-reset.ts) treats "email not configured" and "email
+ * sent" identically on purpose (never reveals whether an account exists),
+ * so a silent no-op here has a real consequence: without RESEND_API_KEY set,
+ * this is the one email in this codebase whose absence makes a whole
+ * feature (forgot password) non-functional rather than just less convenient.
+ */
+export async function sendPasswordResetEmail(to: string, resetUrl: string): Promise<void> {
+  if (!isEmailConfigured()) return;
+  try {
+    await getClient().emails.send({
+      from: getFromAddress(),
+      to,
+      subject: "Reset your BhojSetu password",
+      html: `
+        <p>We received a request to reset your BhojSetu password.</p>
+        <p><a href="${resetUrl}">Click here to choose a new password</a>. This link expires in 30 minutes.</p>
+        <p>If you didn't request this, you can safely ignore this email.</p>
+      `,
+    });
+  } catch (err) {
+    console.error("sendPasswordResetEmail failed:", err);
+  }
+}
+
 /** Same fire-and-forget contract — only called when the customer actually gave an email at checkout. */
 export async function sendCustomerOrderConfirmationEmail(
   customerEmail: string,

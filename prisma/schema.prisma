@@ -246,17 +246,36 @@ model Coupon {
 }
 
 model User {
-  id           String   @id @default(cuid())
-  tenantId     String?
-  tenant       Tenant?  @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  email        String   @unique
-  passwordHash String
-  role         Role
-  name         String?
-  createdAt    DateTime @default(now())
+  id                  String               @id @default(cuid())
+  tenantId            String?
+  tenant              Tenant?              @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  email               String               @unique
+  passwordHash        String
+  role                Role
+  name                String?
+  createdAt           DateTime             @default(now())
+  passwordResetTokens PasswordResetToken[]
 
   @@index([tenantId])
   @@map("users")
+}
+
+// Forgot-password flow (src/lib/data/password-reset.ts). tokenHash stores a
+// plain SHA-256 of the raw token emailed to the user — not bcrypt, since
+// this is a single-use, short-lived, high-entropy random value rather than a
+// user-chosen password; a fast hash is the normal, correct choice here and
+// still means a leaked database doesn't hand out usable tokens directly.
+model PasswordResetToken {
+  id        String    @id @default(cuid())
+  userId    String
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tokenHash String    @unique
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime  @default(now())
+
+  @@index([userId])
+  @@map("password_reset_tokens")
 }
 
 model Category {
