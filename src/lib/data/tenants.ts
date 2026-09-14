@@ -10,6 +10,7 @@ import {
   verifySubscriptionSignature,
   createRazorpayOrder,
   verifyCheckoutSignature,
+  fetchRazorpayPlan,
 } from "@/lib/payments/razorpay";
 
 const SLUG_RE = /^[a-z0-9]+(-[a-z0-9]+)*$/;
@@ -216,10 +217,27 @@ export async function setTenantPlan(tenantId: string, planTier: PlanTier) {
  * are a Razorpay-side resource shared across every tenant on that tier, not
  * per-tenant — created once via the API and cached in RazorpayPlan so
  * subscribing a tenant never creates a duplicate.
+ *
+ * Self-heals a stale cache entry: a cached plan id only exists on whichever
+ * Razorpay *account* created it. If RAZORPAY_KEY_ID/KEY_SECRET are ever
+ * swapped to a different account (as happened 2026-09-14, moving off an
+ * account Razorpay rejected for this business) the old plan id genuinely
+ * doesn't exist under the new account, and creating a subscription against
+ * it fails. Verified with a real fetch rather than guessing from an error
+ * string, since Razorpay's SDK throws a plain object either way (see
+ * extractRazorpayErrorMessage) and matching on message text would be
+ * fragile.
  */
 export async function getOrCreateRazorpayPlanId(tier: PlanTier): Promise<string> {
   const cached = await prisma.razorpayPlan.findUnique({ where: { tier } });
-  if (cached) return cached.planId;
+  if (cached) {
+    try {
+      await fetchRazorpayPlan(cached.planId);
+      return cached.planId;
+    } catch {
+      await prisma.razorpayPlan.delete({ where: { tier } });
+    }
+  }
 
   const def = PLAN_DEFINITIONS[tier];
   const plan = await createRazorpayPlan({

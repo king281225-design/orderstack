@@ -111,6 +111,12 @@ export async function createRazorpayPlan(input: {
   });
 }
 
+/** Throws if planId doesn't exist under the currently configured account — used to detect a stale cached plan id (see getOrCreateRazorpayPlanId). */
+export async function fetchRazorpayPlan(planId: string) {
+  const client = getClient();
+  return client.plans.fetch(planId);
+}
+
 export async function createRazorpaySubscription(planId: string, totalCount: number) {
   const client = getClient();
   return client.subscriptions.create({
