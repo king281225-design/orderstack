@@ -34,7 +34,7 @@ export function AddItemForm({ categories }: { categories: { id: string; name: st
         <select
           name="categoryId"
           required
-          className="rounded-md border border-gray-300 px-3 py-1.5 text-sm focus:border-gray-900 focus:outline-none"
+          className="rounded-md border border-gray-300 px-3 py-1.5 text-sm focus:border-indigo-600 focus:outline-none"
         >
           {categories.map((c) => (
             <option key={c.id} value={c.id}>
@@ -49,7 +49,7 @@ export function AddItemForm({ categories }: { categories: { id: string; name: st
         <input
           name="name"
           required
-          className="rounded-md border border-gray-300 px-3 py-1.5 text-sm focus:border-gray-900 focus:outline-none"
+          className="rounded-md border border-gray-300 px-3 py-1.5 text-sm focus:border-indigo-600 focus:outline-none"
         />
       </label>
 
@@ -61,7 +61,7 @@ export function AddItemForm({ categories }: { categories: { id: string; name: st
           step="0.01"
           min="0"
           required
-          className="rounded-md border border-gray-300 px-3 py-1.5 text-sm focus:border-gray-900 focus:outline-none"
+          className="rounded-md border border-gray-300 px-3 py-1.5 text-sm focus:border-indigo-600 focus:outline-none"
         />
       </label>
 
@@ -80,7 +80,7 @@ export function AddItemForm({ categories }: { categories: { id: string; name: st
         <textarea
           name="description"
           rows={2}
-          className="rounded-md border border-gray-300 px-3 py-1.5 text-sm focus:border-gray-900 focus:outline-none"
+          className="rounded-md border border-gray-300 px-3 py-1.5 text-sm focus:border-indigo-600 focus:outline-none"
         />
       </label>
 
@@ -89,7 +89,7 @@ export function AddItemForm({ categories }: { categories: { id: string; name: st
       <button
         type="submit"
         disabled={pending}
-        className="col-span-full w-fit rounded-md bg-gray-900 px-4 py-1.5 text-sm font-semibold text-white hover:bg-gray-700 disabled:opacity-50"
+        className="col-span-full w-fit rounded-md bg-indigo-600 px-4 py-1.5 text-sm font-semibold text-white hover:bg-indigo-700 disabled:opacity-50"
       >
         {pending ? "Adding…" : "Add item"}
       </button>

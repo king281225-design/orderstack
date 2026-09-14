@@ -28,7 +28,7 @@ export function AddCouponForm() {
           name="code"
           required
           placeholder="e.g. WELCOME10"
-          className="rounded-md border border-gray-300 px-3 py-1.5 text-sm uppercase focus:border-gray-900 focus:outline-none"
+          className="rounded-md border border-gray-300 px-3 py-1.5 text-sm uppercase focus:border-indigo-600 focus:outline-none"
         />
       </label>
 
@@ -38,7 +38,7 @@ export function AddCouponForm() {
           name="discountType"
           value={discountType}
           onChange={(e) => setDiscountType(e.target.value as "PERCENT" | "FIXED")}
-          className="rounded-md border border-gray-300 px-3 py-1.5 text-sm focus:border-gray-900 focus:outline-none"
+          className="rounded-md border border-gray-300 px-3 py-1.5 text-sm focus:border-indigo-600 focus:outline-none"
         >
           <option value="PERCENT">Percent off</option>
           <option value="FIXED">Fixed amount off (₹)</option>
@@ -54,7 +54,7 @@ export function AddCouponForm() {
           min="0"
           max={discountType === "PERCENT" ? "100" : undefined}
           required
-          className="rounded-md border border-gray-300 px-3 py-1.5 text-sm focus:border-gray-900 focus:outline-none"
+          className="rounded-md border border-gray-300 px-3 py-1.5 text-sm focus:border-indigo-600 focus:outline-none"
         />
       </label>
 
@@ -65,7 +65,7 @@ export function AddCouponForm() {
           type="number"
           step="0.01"
           min="0"
-          className="rounded-md border border-gray-300 px-3 py-1.5 text-sm focus:border-gray-900 focus:outline-none"
+          className="rounded-md border border-gray-300 px-3 py-1.5 text-sm focus:border-indigo-600 focus:outline-none"
         />
       </label>
 
@@ -76,7 +76,7 @@ export function AddCouponForm() {
           type="number"
           min="1"
           placeholder="Unlimited"
-          className="rounded-md border border-gray-300 px-3 py-1.5 text-sm focus:border-gray-900 focus:outline-none"
+          className="rounded-md border border-gray-300 px-3 py-1.5 text-sm focus:border-indigo-600 focus:outline-none"
         />
       </label>
 
@@ -85,7 +85,7 @@ export function AddCouponForm() {
         <input
           name="expiresAt"
           type="date"
-          className="rounded-md border border-gray-300 px-3 py-1.5 text-sm focus:border-gray-900 focus:outline-none"
+          className="rounded-md border border-gray-300 px-3 py-1.5 text-sm focus:border-indigo-600 focus:outline-none"
         />
       </label>
 
@@ -94,7 +94,7 @@ export function AddCouponForm() {
       <button
         type="submit"
         disabled={pending}
-        className="col-span-full w-fit rounded-md bg-gray-900 px-4 py-1.5 text-sm font-semibold text-white hover:bg-gray-700 disabled:opacity-50"
+        className="col-span-full w-fit rounded-md bg-indigo-600 px-4 py-1.5 text-sm font-semibold text-white hover:bg-indigo-700 disabled:opacity-50"
       >
         {pending ? "Adding…" : "Add coupon"}
       </button>

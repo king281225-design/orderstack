@@ -76,7 +76,7 @@ export function ManualOrderForm({
           <input
             name="customerName"
             required
-            className="rounded-md border border-gray-300 px-3 py-1.5 text-sm focus:border-gray-900 focus:outline-none"
+            className="rounded-md border border-gray-300 px-3 py-1.5 text-sm focus:border-indigo-600 focus:outline-none"
           />
         </label>
         <label className="flex flex-col gap-1 text-xs font-medium text-gray-600">
@@ -84,7 +84,7 @@ export function ManualOrderForm({
           <input
             name="customerPhone"
             required
-            className="rounded-md border border-gray-300 px-3 py-1.5 text-sm focus:border-gray-900 focus:outline-none"
+            className="rounded-md border border-gray-300 px-3 py-1.5 text-sm focus:border-indigo-600 focus:outline-none"
           />
         </label>
         <label className="flex flex-col gap-1 text-xs font-medium text-gray-600">
@@ -92,7 +92,7 @@ export function ManualOrderForm({
           <input
             name="customerEmail"
             type="email"
-            className="rounded-md border border-gray-300 px-3 py-1.5 text-sm focus:border-gray-900 focus:outline-none"
+            className="rounded-md border border-gray-300 px-3 py-1.5 text-sm focus:border-indigo-600 focus:outline-none"
           />
         </label>
         <label className="flex flex-col gap-1 text-xs font-medium text-gray-600">
@@ -100,7 +100,7 @@ export function ManualOrderForm({
           <select
             name="fulfillmentType"
             defaultValue="TAKEAWAY"
-            className="rounded-md border border-gray-300 px-3 py-1.5 text-sm focus:border-gray-900 focus:outline-none"
+            className="rounded-md border border-gray-300 px-3 py-1.5 text-sm focus:border-indigo-600 focus:outline-none"
           >
             <option value="TAKEAWAY">Takeaway / counter</option>
             <option value="DELIVERY">Delivery</option>
@@ -112,7 +112,7 @@ export function ManualOrderForm({
           <select
             name="paymentMethod"
             defaultValue="COD"
-            className="rounded-md border border-gray-300 px-3 py-1.5 text-sm focus:border-gray-900 focus:outline-none"
+            className="rounded-md border border-gray-300 px-3 py-1.5 text-sm focus:border-indigo-600 focus:outline-none"
           >
             <option value="COD">Cash</option>
             <option value="UPI">UPI</option>
@@ -122,7 +122,7 @@ export function ManualOrderForm({
           Notes (optional)
           <input
             name="notes"
-            className="rounded-md border border-gray-300 px-3 py-1.5 text-sm focus:border-gray-900 focus:outline-none"
+            className="rounded-md border border-gray-300 px-3 py-1.5 text-sm focus:border-indigo-600 focus:outline-none"
           />
         </label>
       </section>
@@ -138,7 +138,7 @@ export function ManualOrderForm({
                 e.target.value = "";
               }}
               defaultValue=""
-              className="rounded-md border border-gray-300 px-2 py-1 text-xs focus:border-gray-900 focus:outline-none"
+              className="rounded-md border border-gray-300 px-2 py-1 text-xs focus:border-indigo-600 focus:outline-none"
             >
               <option value="" disabled>
                 + Add from menu
@@ -159,7 +159,7 @@ export function ManualOrderForm({
                 placeholder="Item / service name"
                 value={line.name}
                 onChange={(e) => updateLine(i, { name: e.target.value })}
-                className="rounded-md border border-gray-300 px-2 py-1.5 text-sm focus:border-gray-900 focus:outline-none"
+                className="rounded-md border border-gray-300 px-2 py-1.5 text-sm focus:border-indigo-600 focus:outline-none"
               />
               <input
                 type="number"
@@ -168,7 +168,7 @@ export function ManualOrderForm({
                 placeholder="Price ₹"
                 value={line.priceRupees}
                 onChange={(e) => updateLine(i, { priceRupees: e.target.value })}
-                className="rounded-md border border-gray-300 px-2 py-1.5 text-sm focus:border-gray-900 focus:outline-none"
+                className="rounded-md border border-gray-300 px-2 py-1.5 text-sm focus:border-indigo-600 focus:outline-none"
               />
               <input
                 type="number"
@@ -176,7 +176,7 @@ export function ManualOrderForm({
                 step="1"
                 value={line.quantity}
                 onChange={(e) => updateLine(i, { quantity: e.target.value })}
-                className="rounded-md border border-gray-300 px-2 py-1.5 text-sm focus:border-gray-900 focus:outline-none"
+                className="rounded-md border border-gray-300 px-2 py-1.5 text-sm focus:border-indigo-600 focus:outline-none"
               />
               <button
                 type="button"
@@ -208,7 +208,7 @@ export function ManualOrderForm({
             step="0.01"
             value={discount}
             onChange={(e) => setDiscount(e.target.value)}
-            className="rounded-md border border-gray-300 px-3 py-1.5 text-sm focus:border-gray-900 focus:outline-none"
+            className="rounded-md border border-gray-300 px-3 py-1.5 text-sm focus:border-indigo-600 focus:outline-none"
           />
         </label>
         <label className="flex flex-col gap-1 text-xs font-medium text-gray-600">
@@ -220,7 +220,7 @@ export function ManualOrderForm({
             step="0.01"
             value={gstRate}
             onChange={(e) => setGstRate(e.target.value)}
-            className="rounded-md border border-gray-300 px-3 py-1.5 text-sm focus:border-gray-900 focus:outline-none"
+            className="rounded-md border border-gray-300 px-3 py-1.5 text-sm focus:border-indigo-600 focus:outline-none"
           />
         </label>
 
@@ -237,7 +237,7 @@ export function ManualOrderForm({
       <button
         type="submit"
         disabled={pending}
-        className="w-fit rounded-md bg-gray-900 px-4 py-2 text-sm font-semibold text-white hover:bg-gray-700 disabled:opacity-50"
+        className="w-fit rounded-md bg-indigo-600 px-4 py-2 text-sm font-semibold text-white hover:bg-indigo-700 disabled:opacity-50"
       >
         {pending ? "Saving…" : "Save order & print bill"}
       </button>

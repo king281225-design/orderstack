@@ -11,7 +11,7 @@ export function PrintControls({ onThermalChange }: { onThermalChange: (thermal: 
       <button
         type="button"
         onClick={() => window.print()}
-        className="rounded-md bg-gray-900 px-4 py-2 text-sm font-semibold text-white hover:bg-gray-700"
+        className="rounded-md bg-indigo-600 px-4 py-2 text-sm font-semibold text-white hover:bg-indigo-700"
       >
         Print / Save as PDF
       </button>

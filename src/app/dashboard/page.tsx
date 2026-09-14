@@ -49,7 +49,7 @@ export default async function DashboardOrdersPage() {
       <div className="flex justify-end">
         <Link
           href="/dashboard/orders/new"
-          className="rounded-md bg-gray-900 px-3 py-1.5 text-sm font-semibold text-white hover:bg-gray-700"
+          className="rounded-md bg-indigo-600 px-3 py-1.5 text-sm font-semibold text-white hover:bg-indigo-700"
         >
           + Create order
         </Link>
@@ -73,7 +73,7 @@ export default async function DashboardOrdersPage() {
             type="submit"
             className={`rounded-md px-3 py-1.5 text-sm font-semibold ${
               tenant?.isOpen
-                ? "bg-gray-900 text-white hover:bg-gray-700"
+                ? "bg-indigo-600 text-white hover:bg-indigo-700"
                 : "bg-green-600 text-white hover:bg-green-500"
             }`}
           >

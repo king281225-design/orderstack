@@ -102,7 +102,7 @@ export function WelcomeCouponForm({
               setError(null);
             }}
             placeholder="WELCOME100"
-            className="min-w-0 flex-1 rounded-md border border-gray-300 px-2 py-1 text-sm uppercase focus:border-gray-900 focus:outline-none"
+            className="min-w-0 flex-1 rounded-md border border-gray-300 px-2 py-1 text-sm uppercase focus:border-indigo-600 focus:outline-none"
           />
           <button
             type="button"

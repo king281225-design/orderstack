@@ -52,12 +52,12 @@ export default async function TablesPage({
               min={1}
               max={100}
               defaultValue={count}
-              className="w-32 rounded-md border border-gray-300 px-3 py-1.5 text-sm focus:border-gray-900 focus:outline-none"
+              className="w-32 rounded-md border border-gray-300 px-3 py-1.5 text-sm focus:border-indigo-600 focus:outline-none"
             />
           </label>
           <button
             type="submit"
-            className="rounded-md bg-gray-900 px-4 py-1.5 text-sm font-semibold text-white hover:bg-gray-700"
+            className="rounded-md bg-indigo-600 px-4 py-1.5 text-sm font-semibold text-white hover:bg-indigo-700"
           >
             Generate
           </button>

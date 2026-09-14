@@ -26,7 +26,7 @@ export function AddRestaurantForm() {
         <input
           name="name"
           required
-          className="rounded-md border border-gray-300 px-3 py-1.5 text-sm focus:border-gray-900 focus:outline-none"
+          className="rounded-md border border-gray-300 px-3 py-1.5 text-sm focus:border-indigo-600 focus:outline-none"
         />
       </label>
 
@@ -37,7 +37,7 @@ export function AddRestaurantForm() {
           required
           pattern="[a-z0-9\-]+"
           placeholder="e.g. spice-corner"
-          className="rounded-md border border-gray-300 px-3 py-1.5 text-sm focus:border-gray-900 focus:outline-none"
+          className="rounded-md border border-gray-300 px-3 py-1.5 text-sm focus:border-indigo-600 focus:outline-none"
         />
       </label>
 
@@ -47,7 +47,7 @@ export function AddRestaurantForm() {
           name="ownerEmail"
           type="email"
           required
-          className="rounded-md border border-gray-300 px-3 py-1.5 text-sm focus:border-gray-900 focus:outline-none"
+          className="rounded-md border border-gray-300 px-3 py-1.5 text-sm focus:border-indigo-600 focus:outline-none"
         />
       </label>
 
@@ -59,7 +59,7 @@ export function AddRestaurantForm() {
           required
           minLength={8}
           placeholder="Share this with the owner directly"
-          className="rounded-md border border-gray-300 px-3 py-1.5 text-sm focus:border-gray-900 focus:outline-none"
+          className="rounded-md border border-gray-300 px-3 py-1.5 text-sm focus:border-indigo-600 focus:outline-none"
         />
       </label>
 
@@ -69,7 +69,7 @@ export function AddRestaurantForm() {
       <button
         type="submit"
         disabled={pending}
-        className="col-span-full w-fit rounded-md bg-gray-900 px-4 py-1.5 text-sm font-semibold text-white hover:bg-gray-700 disabled:opacity-50"
+        className="col-span-full w-fit rounded-md bg-indigo-600 px-4 py-1.5 text-sm font-semibold text-white hover:bg-indigo-700 disabled:opacity-50"
       >
         {pending ? "Creating…" : "Create restaurant"}
       </button>

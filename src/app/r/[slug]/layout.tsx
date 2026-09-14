@@ -34,9 +34,16 @@ export default async function StorefrontLayout({
   return (
     <CartProvider slug={slug}>
       <div style={themeVars} className="flex min-h-screen flex-col bg-[var(--brand-accent)]">
+        {/* Depth via a gradient + shadow derived from the tenant's own colorPrimary
+            (color-mix, not a hardcoded color) rather than a flat fill — richer
+            without overriding what the owner actually picked in branding. */}
         <header
-          className="flex items-center gap-3 px-4 py-4"
-          style={{ backgroundColor: "var(--brand-primary)", color: "var(--brand-header-text)" }}
+          className="flex items-center gap-3 px-4 py-5 shadow-md"
+          style={{
+            background:
+              "linear-gradient(135deg, color-mix(in srgb, var(--brand-primary) 85%, white), var(--brand-primary) 55%, color-mix(in srgb, var(--brand-primary) 75%, black))",
+            color: "var(--brand-header-text)",
+          }}
         >
           <Link href={`/r/${slug}`} className="flex items-center gap-3">
             {tenant.logoUrl ? (

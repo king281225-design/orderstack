@@ -61,7 +61,7 @@ export function DeliveryZoneForm({
               step="0.1"
               defaultValue={deliveryRadiusKm ?? ""}
               placeholder="e.g. 3"
-              className="rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-gray-900 focus:outline-none"
+              className="rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-indigo-600 focus:outline-none"
             />
           </label>
           <label className="flex flex-col gap-1 text-sm font-medium text-gray-700">
@@ -73,7 +73,7 @@ export function DeliveryZoneForm({
               value={lat}
               onChange={(e) => setLat(e.target.value)}
               placeholder="e.g. 28.6139"
-              className="rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-gray-900 focus:outline-none"
+              className="rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-indigo-600 focus:outline-none"
             />
           </label>
           <label className="flex flex-col gap-1 text-sm font-medium text-gray-700">
@@ -85,7 +85,7 @@ export function DeliveryZoneForm({
               value={lng}
               onChange={(e) => setLng(e.target.value)}
               placeholder="e.g. 77.2090"
-              className="rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-gray-900 focus:outline-none"
+              className="rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-indigo-600 focus:outline-none"
             />
           </label>
         </div>
@@ -104,7 +104,7 @@ export function DeliveryZoneForm({
         <button
           type="submit"
           disabled={pending}
-          className="w-fit rounded-md bg-gray-900 px-4 py-2 text-sm font-semibold text-white hover:bg-gray-700 disabled:opacity-50"
+          className="w-fit rounded-md bg-indigo-600 px-4 py-2 text-sm font-semibold text-white hover:bg-indigo-700 disabled:opacity-50"
         >
           {pending ? "Saving…" : "Save"}
         </button>

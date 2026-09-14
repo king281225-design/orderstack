@@ -54,7 +54,7 @@ export function ItemRow({
               name="categoryId"
               defaultValue={item.categoryId}
               required
-              className="rounded-md border border-gray-300 px-3 py-1.5 text-sm focus:border-gray-900 focus:outline-none"
+              className="rounded-md border border-gray-300 px-3 py-1.5 text-sm focus:border-indigo-600 focus:outline-none"
             >
               {categories.map((c) => (
                 <option key={c.id} value={c.id}>
@@ -70,7 +70,7 @@ export function ItemRow({
               name="name"
               defaultValue={item.name}
               required
-              className="rounded-md border border-gray-300 px-3 py-1.5 text-sm focus:border-gray-900 focus:outline-none"
+              className="rounded-md border border-gray-300 px-3 py-1.5 text-sm focus:border-indigo-600 focus:outline-none"
             />
           </label>
 
@@ -83,7 +83,7 @@ export function ItemRow({
               min="0"
               defaultValue={(item.priceCents / 100).toString()}
               required
-              className="rounded-md border border-gray-300 px-3 py-1.5 text-sm focus:border-gray-900 focus:outline-none"
+              className="rounded-md border border-gray-300 px-3 py-1.5 text-sm focus:border-indigo-600 focus:outline-none"
             />
           </label>
 
@@ -103,7 +103,7 @@ export function ItemRow({
               name="description"
               rows={2}
               defaultValue={item.description ?? ""}
-              className="rounded-md border border-gray-300 px-3 py-1.5 text-sm focus:border-gray-900 focus:outline-none"
+              className="rounded-md border border-gray-300 px-3 py-1.5 text-sm focus:border-indigo-600 focus:outline-none"
             />
           </label>
 
@@ -113,7 +113,7 @@ export function ItemRow({
             <button
               type="submit"
               disabled={pending}
-              className="rounded-md bg-gray-900 px-4 py-1.5 text-sm font-semibold text-white hover:bg-gray-700 disabled:opacity-50"
+              className="rounded-md bg-indigo-600 px-4 py-1.5 text-sm font-semibold text-white hover:bg-indigo-700 disabled:opacity-50"
             >
               {pending ? "Saving…" : "Save changes"}
             </button>

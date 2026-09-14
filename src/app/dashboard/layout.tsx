@@ -23,11 +23,15 @@ export default async function DashboardLayout({ children }: { children: React.Re
   const tier = tenant.planTier;
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-indigo-50/40 to-violet-50">
       {/* print:hidden — a printed invoice (/dashboard/orders/[id]/print) must never carry the dashboard chrome. */}
       <header className="border-b border-gray-200 bg-white print:hidden">
+        <div className="h-1 bg-gradient-to-r from-indigo-500 via-violet-500 to-fuchsia-500" />
         <div className="mx-auto flex max-w-5xl items-center justify-between px-4 py-3">
           <div className="flex items-center gap-3">
+            <span className="grid size-7 place-items-center rounded-lg bg-gradient-to-br from-indigo-500 to-violet-600 text-xs font-bold text-white">
+              {tenant.name.charAt(0).toUpperCase()}
+            </span>
             <span className="font-semibold text-gray-900">{tenant.name}</span>
             <span
               className={`rounded-full px-2 py-0.5 text-xs font-medium ${
@@ -38,56 +42,56 @@ export default async function DashboardLayout({ children }: { children: React.Re
             </span>
           </div>
           <form action={logoutAction}>
-            <button type="submit" className="text-sm text-gray-500 hover:text-gray-900">
+            <button type="submit" className="text-sm text-gray-500 hover:text-indigo-600">
               Sign out
             </button>
           </form>
         </div>
-        <nav className="mx-auto flex max-w-5xl flex-wrap gap-4 px-4 pb-2 text-sm">
-          <Link href="/dashboard" className="text-gray-600 hover:text-gray-900">
+        <nav className="mx-auto flex max-w-5xl flex-wrap gap-1 px-4 pb-2 text-sm">
+          <Link href="/dashboard" className="rounded-full px-2.5 py-1 text-gray-600 transition-colors hover:bg-indigo-50 hover:text-indigo-600">
             Orders
           </Link>
-          <Link href="/dashboard/orders/new" className="text-gray-600 hover:text-gray-900">
+          <Link href="/dashboard/orders/new" className="rounded-full px-2.5 py-1 text-gray-600 transition-colors hover:bg-indigo-50 hover:text-indigo-600">
             New bill
           </Link>
-          <Link href="/dashboard/customers" className="text-gray-600 hover:text-gray-900">
+          <Link href="/dashboard/customers" className="rounded-full px-2.5 py-1 text-gray-600 transition-colors hover:bg-indigo-50 hover:text-indigo-600">
             Customers
           </Link>
-          <Link href="/dashboard/menu" className="text-gray-600 hover:text-gray-900">
+          <Link href="/dashboard/menu" className="rounded-full px-2.5 py-1 text-gray-600 transition-colors hover:bg-indigo-50 hover:text-indigo-600">
             Menu
           </Link>
           {tierHasFeature(tier, "kitchen") && (
-            <Link href="/dashboard/kitchen" className="text-gray-600 hover:text-gray-900">
+            <Link href="/dashboard/kitchen" className="rounded-full px-2.5 py-1 text-gray-600 transition-colors hover:bg-indigo-50 hover:text-indigo-600">
               Kitchen
             </Link>
           )}
           {isOwner && (
             <>
-              <Link href="/dashboard/invoices" className="text-gray-600 hover:text-gray-900">
+              <Link href="/dashboard/invoices" className="rounded-full px-2.5 py-1 text-gray-600 transition-colors hover:bg-indigo-50 hover:text-indigo-600">
                 Invoices
               </Link>
               {tierHasFeature(tier, "analytics") && (
-                <Link href="/dashboard/analytics" className="text-gray-600 hover:text-gray-900">
+                <Link href="/dashboard/analytics" className="rounded-full px-2.5 py-1 text-gray-600 transition-colors hover:bg-indigo-50 hover:text-indigo-600">
                   Analytics
                 </Link>
               )}
-              <Link href="/dashboard/branding" className="text-gray-600 hover:text-gray-900">
+              <Link href="/dashboard/branding" className="rounded-full px-2.5 py-1 text-gray-600 transition-colors hover:bg-indigo-50 hover:text-indigo-600">
                 Settings
               </Link>
               {tierHasFeature(tier, "coupons") && (
-                <Link href="/dashboard/coupons" className="text-gray-600 hover:text-gray-900">
+                <Link href="/dashboard/coupons" className="rounded-full px-2.5 py-1 text-gray-600 transition-colors hover:bg-indigo-50 hover:text-indigo-600">
                   Coupons
                 </Link>
               )}
-              <Link href="/dashboard/tables" className="text-gray-600 hover:text-gray-900">
+              <Link href="/dashboard/tables" className="rounded-full px-2.5 py-1 text-gray-600 transition-colors hover:bg-indigo-50 hover:text-indigo-600">
                 Tables
               </Link>
               {tierHasFeature(tier, "staff") && (
-                <Link href="/dashboard/staff" className="text-gray-600 hover:text-gray-900">
+                <Link href="/dashboard/staff" className="rounded-full px-2.5 py-1 text-gray-600 transition-colors hover:bg-indigo-50 hover:text-indigo-600">
                   Staff
                 </Link>
               )}
-              <Link href="/dashboard/billing" className="text-gray-600 hover:text-gray-900">
+              <Link href="/dashboard/billing" className="rounded-full px-2.5 py-1 text-gray-600 transition-colors hover:bg-indigo-50 hover:text-indigo-600">
                 Billing
               </Link>
             </>
@@ -96,7 +100,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
             href={`/r/${tenant.slug}`}
             target="_blank"
             rel="noreferrer"
-            className="ml-auto text-gray-600 hover:text-gray-900"
+            className="ml-auto rounded-full px-2.5 py-1 text-gray-600 transition-colors hover:bg-indigo-50 hover:text-indigo-600"
           >
             View storefront ↗
           </a>

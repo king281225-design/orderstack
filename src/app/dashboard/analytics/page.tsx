@@ -80,7 +80,7 @@ export default async function AnalyticsPage({
             href={`/dashboard/analytics?preset=${p.key}`}
             className={`rounded-md border px-3 py-1 font-medium ${
               preset === p.key
-                ? "border-gray-900 bg-gray-900 text-white"
+                ? "border-indigo-600 bg-indigo-600 text-white"
                 : "border-gray-300 text-gray-700 hover:bg-gray-50"
             }`}
           >
@@ -105,7 +105,7 @@ export default async function AnalyticsPage({
             type="submit"
             className={`rounded-md border px-3 py-1 font-medium ${
               preset === "custom"
-                ? "border-gray-900 bg-gray-900 text-white"
+                ? "border-indigo-600 bg-indigo-600 text-white"
                 : "border-gray-300 text-gray-700 hover:bg-gray-50"
             }`}
           >
@@ -146,7 +146,7 @@ export default async function AnalyticsPage({
               // screenshot, not by any static check.
               <div key={d.day} className="group relative h-full min-w-[6px] flex-1">
                 <div
-                  className="absolute bottom-0 w-full rounded-t bg-gray-900"
+                  className="absolute bottom-0 w-full rounded-t bg-indigo-600"
                   style={{ height: `${Math.max(2, (d.revenueCents / maxDayRevenue) * 100)}%` }}
                   title={`${d.day}: ${formatINR(d.revenueCents)} · ${d.orderCount} order${d.orderCount === 1 ? "" : "s"}`}
                 />

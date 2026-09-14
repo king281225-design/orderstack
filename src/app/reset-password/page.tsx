@@ -28,7 +28,7 @@ export default async function ResetPasswordPage({
   const check: ResetTokenCheck | null = token ? await checkPasswordResetToken(token) : null;
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-gray-50 px-4">
+    <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-indigo-50 via-white to-violet-50 px-4">
       <div className="w-full max-w-sm rounded-xl border border-gray-200 bg-white p-8 shadow-sm">
         <BhojSetuLogo
           markSize={32}
@@ -47,7 +47,7 @@ export default async function ResetPasswordPage({
             </p>
             <Link
               href="/forgot-password"
-              className="rounded-md bg-gray-900 px-4 py-2 text-center text-sm font-semibold text-white hover:bg-gray-700"
+              className="rounded-md bg-indigo-600 px-4 py-2 text-center text-sm font-semibold text-white hover:bg-indigo-700"
             >
               Request a new link
             </Link>

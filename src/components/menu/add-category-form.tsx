@@ -24,13 +24,13 @@ export function AddCategoryForm() {
           name="name"
           placeholder="e.g. Starters"
           required
-          className="rounded-md border border-gray-300 px-3 py-1.5 text-sm focus:border-gray-900 focus:outline-none"
+          className="rounded-md border border-gray-300 px-3 py-1.5 text-sm focus:border-indigo-600 focus:outline-none"
         />
       </div>
       <button
         type="submit"
         disabled={pending}
-        className="rounded-md bg-gray-900 px-3 py-1.5 text-sm font-semibold text-white hover:bg-gray-700 disabled:opacity-50"
+        className="rounded-md bg-indigo-600 px-3 py-1.5 text-sm font-semibold text-white hover:bg-indigo-700 disabled:opacity-50"
       >
         Add
       </button>

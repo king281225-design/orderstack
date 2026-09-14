@@ -79,7 +79,7 @@ function KitchenCard({
   const elapsedMin = Math.max(0, Math.round((now - order.createdAt.getTime()) / 60000));
 
   return (
-    <div className="rounded-lg border border-gray-800 bg-gray-900 p-4">
+    <div className="rounded-lg border border-gray-800 bg-indigo-600 p-4">
       <div className="mb-2 flex items-center justify-between">
         <span className="text-2xl font-bold">#{order.orderNumber}</span>
         <span className="text-sm font-medium text-gray-400">{elapsedMin}m ago</span>

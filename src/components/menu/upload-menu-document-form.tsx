@@ -73,7 +73,7 @@ export function UploadMenuDocumentForm({
         <button
           type="submit"
           disabled={pending || Boolean(fileError)}
-          className="rounded-md bg-gray-900 px-3 py-1.5 text-sm font-semibold text-white hover:bg-gray-700 disabled:opacity-50"
+          className="rounded-md bg-indigo-600 px-3 py-1.5 text-sm font-semibold text-white hover:bg-indigo-700 disabled:opacity-50"
         >
           {pending ? "Uploading…" : menuDocumentUrl ? "Replace" : "Upload"}
         </button>

@@ -37,12 +37,12 @@ export function CategoryHeader({
           defaultValue={name}
           autoFocus
           required
-          className="rounded-md border border-gray-300 px-2 py-1 text-sm focus:border-gray-900 focus:outline-none"
+          className="rounded-md border border-gray-300 px-2 py-1 text-sm focus:border-indigo-600 focus:outline-none"
         />
         <button
           type="submit"
           disabled={pending}
-          className="rounded-md bg-gray-900 px-3 py-1 text-xs font-semibold text-white hover:bg-gray-700 disabled:opacity-50"
+          className="rounded-md bg-indigo-600 px-3 py-1 text-xs font-semibold text-white hover:bg-indigo-700 disabled:opacity-50"
         >
           {pending ? "Saving…" : "Save"}
         </button>

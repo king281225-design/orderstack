@@ -18,7 +18,7 @@ export function PlanSelect({ tenantId, planTier }: { tenantId: string; planTier:
           await setTenantPlanAction(tenantId, next);
         });
       }}
-      className="rounded-md border border-gray-300 px-2 py-1 text-xs focus:border-gray-900 focus:outline-none"
+      className="rounded-md border border-gray-300 px-2 py-1 text-xs focus:border-indigo-600 focus:outline-none"
     >
       {PLAN_TIERS.map((tier) => (
         <option key={tier} value={tier}>

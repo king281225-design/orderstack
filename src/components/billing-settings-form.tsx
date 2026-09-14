@@ -33,7 +33,7 @@ export function BillingSettingsForm({
             max="100"
             step="0.01"
             defaultValue={gstRate ?? ""}
-            className="rounded-md border border-gray-300 px-3 py-1.5 text-sm focus:border-gray-900 focus:outline-none"
+            className="rounded-md border border-gray-300 px-3 py-1.5 text-sm focus:border-indigo-600 focus:outline-none"
           />
         </label>
         <label className="flex flex-col gap-1 text-xs font-medium text-gray-600">
@@ -41,7 +41,7 @@ export function BillingSettingsForm({
           <input
             name="gstin"
             defaultValue={gstin ?? ""}
-            className="rounded-md border border-gray-300 px-3 py-1.5 text-sm focus:border-gray-900 focus:outline-none"
+            className="rounded-md border border-gray-300 px-3 py-1.5 text-sm focus:border-indigo-600 focus:outline-none"
           />
         </label>
         <label className="col-span-full flex flex-col gap-1 text-xs font-medium text-gray-600">
@@ -50,7 +50,7 @@ export function BillingSettingsForm({
             name="businessAddress"
             rows={2}
             defaultValue={businessAddress ?? ""}
-            className="rounded-md border border-gray-300 px-3 py-1.5 text-sm focus:border-gray-900 focus:outline-none"
+            className="rounded-md border border-gray-300 px-3 py-1.5 text-sm focus:border-indigo-600 focus:outline-none"
           />
         </label>
       </div>
@@ -61,7 +61,7 @@ export function BillingSettingsForm({
       <button
         type="submit"
         disabled={pending}
-        className="mt-3 rounded-md bg-gray-900 px-4 py-1.5 text-sm font-semibold text-white hover:bg-gray-700 disabled:opacity-50"
+        className="mt-3 rounded-md bg-indigo-600 px-4 py-1.5 text-sm font-semibold text-white hover:bg-indigo-700 disabled:opacity-50"
       >
         {pending ? "Saving…" : "Save"}
       </button>

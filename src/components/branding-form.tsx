@@ -20,7 +20,7 @@ export function BrandingForm({ tenant }: { tenant: Tenant }) {
           name="name"
           defaultValue={tenant.name}
           required
-          className="rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-gray-900 focus:outline-none"
+          className="rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-indigo-600 focus:outline-none"
         />
       </label>
 
@@ -30,7 +30,7 @@ export function BrandingForm({ tenant }: { tenant: Tenant }) {
           name="tagline"
           defaultValue={tenant.tagline ?? ""}
           placeholder="e.g. Home-style food, made fresh daily"
-          className="rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-gray-900 focus:outline-none"
+          className="rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-indigo-600 focus:outline-none"
         />
       </label>
 
@@ -111,7 +111,7 @@ export function BrandingForm({ tenant }: { tenant: Tenant }) {
           name="upiId"
           defaultValue={tenant.upiId ?? ""}
           placeholder="yourrestaurant@upi"
-          className="rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-gray-900 focus:outline-none"
+          className="rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-indigo-600 focus:outline-none"
         />
       </label>
 
@@ -128,7 +128,7 @@ export function BrandingForm({ tenant }: { tenant: Tenant }) {
             type="url"
             defaultValue={tenant.googleReviewUrl ?? ""}
             placeholder="https://g.page/r/your-restaurant/review"
-            className="rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-gray-900 focus:outline-none"
+            className="rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-indigo-600 focus:outline-none"
           />
         </label>
         <div className="grid grid-cols-2 gap-3">
@@ -142,7 +142,7 @@ export function BrandingForm({ tenant }: { tenant: Tenant }) {
               max="5"
               defaultValue={tenant.googleRating ?? ""}
               placeholder="4.5"
-              className="rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-gray-900 focus:outline-none"
+              className="rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-indigo-600 focus:outline-none"
             />
           </label>
           <label className="flex flex-col gap-1 text-sm font-medium text-gray-700">
@@ -154,7 +154,7 @@ export function BrandingForm({ tenant }: { tenant: Tenant }) {
               step="1"
               defaultValue={tenant.googleReviewCount ?? ""}
               placeholder="230"
-              className="rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-gray-900 focus:outline-none"
+              className="rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-indigo-600 focus:outline-none"
             />
           </label>
         </div>
@@ -165,7 +165,7 @@ export function BrandingForm({ tenant }: { tenant: Tenant }) {
             type="url"
             defaultValue={tenant.instagramUrl ?? ""}
             placeholder="https://instagram.com/yourrestaurant"
-            className="rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-gray-900 focus:outline-none"
+            className="rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-indigo-600 focus:outline-none"
           />
         </label>
         <label className="flex flex-col gap-1 text-sm font-medium text-gray-700">
@@ -175,7 +175,7 @@ export function BrandingForm({ tenant }: { tenant: Tenant }) {
             type="url"
             defaultValue={tenant.facebookUrl ?? ""}
             placeholder="https://facebook.com/yourrestaurant"
-            className="rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-gray-900 focus:outline-none"
+            className="rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-indigo-600 focus:outline-none"
           />
         </label>
       </div>
@@ -186,7 +186,7 @@ export function BrandingForm({ tenant }: { tenant: Tenant }) {
       <button
         type="submit"
         disabled={pending}
-        className="w-fit rounded-md bg-gray-900 px-4 py-2 text-sm font-semibold text-white hover:bg-gray-700 disabled:opacity-50"
+        className="w-fit rounded-md bg-indigo-600 px-4 py-2 text-sm font-semibold text-white hover:bg-indigo-700 disabled:opacity-50"
       >
         {pending ? "Saving…" : "Save changes"}
       </button>

@@ -27,7 +27,7 @@ export function AddStaffForm() {
           name="email"
           type="email"
           required
-          className="rounded-md border border-gray-300 px-3 py-1.5 text-sm focus:border-gray-900 focus:outline-none"
+          className="rounded-md border border-gray-300 px-3 py-1.5 text-sm focus:border-indigo-600 focus:outline-none"
         />
       </label>
 
@@ -39,7 +39,7 @@ export function AddStaffForm() {
           required
           minLength={8}
           placeholder="Share this with them directly"
-          className="rounded-md border border-gray-300 px-3 py-1.5 text-sm focus:border-gray-900 focus:outline-none"
+          className="rounded-md border border-gray-300 px-3 py-1.5 text-sm focus:border-indigo-600 focus:outline-none"
         />
       </label>
 
@@ -48,7 +48,7 @@ export function AddStaffForm() {
       <button
         type="submit"
         disabled={pending}
-        className="col-span-full w-fit rounded-md bg-gray-900 px-4 py-1.5 text-sm font-semibold text-white hover:bg-gray-700 disabled:opacity-50"
+        className="col-span-full w-fit rounded-md bg-indigo-600 px-4 py-1.5 text-sm font-semibold text-white hover:bg-indigo-700 disabled:opacity-50"
       >
         {pending ? "Adding…" : "Add staff login"}
       </button>

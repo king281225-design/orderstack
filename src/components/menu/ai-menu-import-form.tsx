@@ -117,7 +117,7 @@ export function AiMenuImportForm({ claudeConfigured }: { claudeConfigured: boole
             type="button"
             onClick={handleConfirm}
             disabled={isConfirming || includedCount === 0}
-            className="rounded-md bg-gray-900 px-3 py-1.5 text-sm font-semibold text-white hover:bg-gray-700 disabled:opacity-50"
+            className="rounded-md bg-indigo-600 px-3 py-1.5 text-sm font-semibold text-white hover:bg-indigo-700 disabled:opacity-50"
           >
             {isConfirming
               ? "Adding…"
@@ -177,7 +177,7 @@ export function AiMenuImportForm({ claudeConfigured }: { claudeConfigured: boole
             type="button"
             onClick={handleConfirm}
             disabled={isConfirming || includedCount === 0}
-            className="rounded-md bg-gray-900 px-3 py-1.5 text-sm font-semibold text-white hover:bg-gray-700 disabled:opacity-50"
+            className="rounded-md bg-indigo-600 px-3 py-1.5 text-sm font-semibold text-white hover:bg-indigo-700 disabled:opacity-50"
           >
             {isConfirming ? "Adding…" : `Add ${includedCount} reviewed item${includedCount === 1 ? "" : "s"} to menu`}
           </button>
@@ -228,7 +228,7 @@ export function AiMenuImportForm({ claudeConfigured }: { claudeConfigured: boole
           <button
             type="submit"
             disabled={extracting || Boolean(fileError)}
-            className="rounded-md bg-gray-900 px-3 py-1.5 text-sm font-semibold text-white hover:bg-gray-700 disabled:opacity-50"
+            className="rounded-md bg-indigo-600 px-3 py-1.5 text-sm font-semibold text-white hover:bg-indigo-700 disabled:opacity-50"
           >
             {extracting ? "Reading menu…" : "Extract menu"}
           </button>

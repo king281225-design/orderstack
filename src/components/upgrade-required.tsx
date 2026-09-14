@@ -8,7 +8,7 @@ export function UpgradeRequired({ feature, requiredPlanLabel }: { feature: strin
       <p className="mt-1 text-sm text-gray-500">Upgrade to {requiredPlanLabel} or higher to unlock it.</p>
       <Link
         href="/dashboard/billing"
-        className="mt-3 inline-block rounded-md bg-gray-900 px-4 py-1.5 text-sm font-semibold text-white hover:bg-gray-700"
+        className="mt-3 inline-block rounded-md bg-indigo-600 px-4 py-1.5 text-sm font-semibold text-white hover:bg-indigo-700"
       >
         View plans
       </Link>
