@@ -37,7 +37,7 @@ export default async function TablesPage({
 
   return (
     <div className="flex flex-col gap-6">
-      <div className="rounded-lg border border-gray-200 bg-white p-4 print:hidden">
+      <div className="rounded-lg border border-gray-200 bg-white dark:bg-[#1e2939] p-4 print:hidden">
         <h2 className="mb-2 text-lg font-semibold text-gray-900">Table QR codes</h2>
         <p className="mb-4 text-sm text-gray-500">
           Print these and put one per table. Scanning opens your storefront with &quot;Dine-in&quot;
@@ -69,7 +69,7 @@ export default async function TablesPage({
         {tables.map(({ n, qrDataUrl }) => (
           <div
             key={n}
-            className="flex flex-col items-center gap-2 rounded-lg border border-gray-200 bg-white p-4 text-center break-inside-avoid"
+            className="flex flex-col items-center gap-2 rounded-lg border border-gray-200 bg-white dark:bg-[#1e2939] p-4 text-center break-inside-avoid"
           >
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img src={qrDataUrl} alt={`QR code for table ${n}`} className="h-40 w-40" />

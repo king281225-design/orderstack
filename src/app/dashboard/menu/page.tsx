@@ -19,7 +19,7 @@ export default async function MenuPage() {
 
   return (
     <div className="flex flex-col gap-8">
-      <section className="rounded-lg border border-gray-200 bg-white p-4">
+      <section className="rounded-lg border border-gray-200 bg-white dark:bg-[#1e2939] p-4">
         <h2 className="mb-3 text-lg font-semibold text-gray-900">Categories</h2>
         <AddCategoryForm />
       </section>
@@ -45,7 +45,7 @@ export default async function MenuPage() {
           </div>
         )}
         {categories.map((category) => (
-          <div key={category.id} className="rounded-lg border border-gray-200 bg-white p-4">
+          <div key={category.id} className="rounded-lg border border-gray-200 bg-white dark:bg-[#1e2939] p-4">
             <CategoryHeader categoryId={category.id} name={category.name} />
 
             {category.items.length === 0 ? (

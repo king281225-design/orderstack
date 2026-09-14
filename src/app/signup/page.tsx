@@ -2,6 +2,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { getSession } from "@/lib/auth";
 import { SignupForm } from "@/components/signup-form";
+import { ThemeToggle } from "@/components/theme/theme-toggle";
 
 export default async function SignupPage() {
   const session = await getSession();
@@ -10,8 +11,11 @@ export default async function SignupPage() {
   }
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-indigo-50 via-white to-violet-50 px-4 py-10">
-      <div className="w-full max-w-sm rounded-xl border border-gray-200 bg-white p-8 shadow-sm">
+    <div className="relative flex min-h-screen items-center justify-center bg-gradient-to-br from-indigo-50 via-white to-violet-50 dark:from-[#05070d] dark:via-[#0b0f1a] dark:to-[#1e1147] px-4 py-10">
+      <div className="absolute right-4 top-4">
+        <ThemeToggle />
+      </div>
+      <div className="w-full max-w-sm rounded-xl border border-gray-200 bg-white dark:bg-[#1e2939] p-8 shadow-sm">
         <h1 className="mb-1 text-xl font-semibold text-gray-900">Set up your restaurant</h1>
         <p className="mb-6 text-sm text-gray-500">
           Create your account, then build your menu and branding before going live.

@@ -26,7 +26,7 @@ export default async function CouponsPage() {
         {coupons.length === 0 ? (
           <p className="text-sm text-gray-500">No coupons yet — add one above.</p>
         ) : (
-          <div className="overflow-x-auto rounded-lg border border-gray-200 bg-white">
+          <div className="overflow-x-auto rounded-lg border border-gray-200 bg-white dark:bg-[#1e2939]">
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b border-gray-200 text-left text-xs uppercase tracking-wide text-gray-500">

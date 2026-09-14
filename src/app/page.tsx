@@ -2,6 +2,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { getSession } from "@/lib/auth";
 import { BhojSetuLogo } from "@/components/brand/logo";
+import { ThemeToggle } from "@/components/theme/theme-toggle";
 
 const FAQS = [
   {
@@ -37,7 +38,10 @@ export default async function Home() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-indigo-50 via-white to-violet-50">
+    <div className="relative min-h-screen bg-gradient-to-br from-indigo-50 via-white to-violet-50 dark:from-[#05070d] dark:via-[#0b0f1a] dark:to-[#1e1147]">
+      <div className="absolute right-4 top-4">
+        <ThemeToggle />
+      </div>
       <div className="flex flex-col items-center gap-5 px-4 pt-20 pb-16 text-center">
         <BhojSetuLogo markSize={44} textClassName="text-2xl font-semibold text-gray-900" />
         <span className="rounded-full bg-gradient-to-r from-indigo-600 to-violet-600 px-3 py-1 text-xs font-semibold text-white">
@@ -59,7 +63,7 @@ export default async function Home() {
           </Link>
           <Link
             href="/login"
-            className="rounded-md border border-gray-300 bg-white px-5 py-2.5 text-sm font-semibold text-gray-700 hover:bg-gray-50"
+            className="rounded-md border border-gray-300 bg-white dark:bg-[#1e2939] px-5 py-2.5 text-sm font-semibold text-gray-700 hover:bg-gray-50"
           >
             Sign in
           </Link>
@@ -74,7 +78,7 @@ export default async function Home() {
           {FAQS.map((faq) => (
             <details
               key={faq.q}
-              className="group rounded-lg border border-gray-200 bg-white p-4 shadow-sm open:shadow-md open:ring-1 open:ring-indigo-100"
+              className="group rounded-lg border border-gray-200 bg-white dark:bg-[#1e2939] p-4 shadow-sm open:shadow-md open:ring-1 open:ring-indigo-100"
             >
               <summary className="cursor-pointer list-none text-sm font-semibold text-gray-900 marker:content-none">
                 <span className="flex items-start justify-between gap-2">

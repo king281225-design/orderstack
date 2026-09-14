@@ -33,7 +33,7 @@ export default async function StaffPage() {
             {staff.map((s) => (
               <div
                 key={s.id}
-                className="flex items-center justify-between rounded-md border border-gray-200 bg-white px-4 py-2 text-sm"
+                className="flex items-center justify-between rounded-md border border-gray-200 bg-white dark:bg-[#1e2939] px-4 py-2 text-sm"
               >
                 <span className="text-gray-700">{s.email}</span>
                 <form action={deleteStaffAction.bind(null, s.id)}>

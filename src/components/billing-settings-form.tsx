@@ -17,7 +17,7 @@ export function BillingSettingsForm({
   const [state, formAction, pending] = useActionState(updateBillingSettingsAction, initialState);
 
   return (
-    <form action={formAction} className="rounded-lg border border-gray-200 bg-white p-4">
+    <form action={formAction} className="rounded-lg border border-gray-200 bg-white dark:bg-[#1e2939] p-4">
       <h3 className="mb-1 text-sm font-semibold text-gray-900">Billing / invoice details</h3>
       <p className="mb-3 text-xs text-gray-500">
         Shown on the printed invoice for manually-created bills (/dashboard/orders/new). GST rate

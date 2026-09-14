@@ -55,7 +55,7 @@ export default async function DashboardOrdersPage() {
         </Link>
       </div>
 
-      <div className="flex items-center justify-between rounded-lg border border-gray-200 bg-white px-4 py-3">
+      <div className="flex items-center justify-between rounded-lg border border-gray-200 bg-white dark:bg-[#1e2939] px-4 py-3">
         <div>
           <p className="text-sm font-medium text-gray-900">Restaurant status</p>
           <p className="text-xs text-gray-500">
@@ -106,7 +106,7 @@ export default async function DashboardOrdersPage() {
             {history.slice(0, 20).map((order) => (
               <div
                 key={order.id}
-                className="flex items-center justify-between rounded-md border border-gray-200 bg-white px-4 py-2 text-sm"
+                className="flex items-center justify-between rounded-md border border-gray-200 bg-white dark:bg-[#1e2939] px-4 py-2 text-sm"
               >
                 <span className="text-gray-700">
                   #{order.orderNumber} · {order.customerName} · {formatINR(order.totalCents)}
@@ -134,7 +134,7 @@ function OrderCard({
   const next = NEXT_STEP[order.status];
 
   return (
-    <div className="rounded-lg border border-gray-200 bg-white p-4">
+    <div className="rounded-lg border border-gray-200 bg-white dark:bg-[#1e2939] p-4">
       <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
         <div>
           <span className="font-semibold text-gray-900">#{order.orderNumber}</span>{" "}

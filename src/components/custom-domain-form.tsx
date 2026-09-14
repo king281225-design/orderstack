@@ -9,7 +9,7 @@ export function CustomDomainForm({ customDomain }: { customDomain: string | null
   const [state, formAction, pending] = useActionState(setCustomDomainAction, initialState);
 
   return (
-    <div className="rounded-lg border border-gray-200 bg-white p-4">
+    <div className="rounded-lg border border-gray-200 bg-white dark:bg-[#1e2939] p-4">
       <h3 className="mb-1 text-sm font-semibold text-gray-900">Custom domain (optional)</h3>
       <p className="mb-3 text-xs text-gray-500">
         Point your own domain at your storefront instead of the platform link. Add a CNAME record

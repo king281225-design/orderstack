@@ -53,7 +53,7 @@ export default async function BillingPage({
         </div>
       )}
 
-      <section className="rounded-lg border border-gray-200 bg-white p-4">
+      <section className="rounded-lg border border-gray-200 bg-white dark:bg-[#1e2939] p-4">
         <p className="text-sm text-gray-500">Current plan</p>
         <p className="mt-1 text-xl font-semibold text-gray-900">{plan.label}</p>
         <p className="text-sm text-gray-600">{formatINR(plan.priceCents)} / month</p>
@@ -67,7 +67,7 @@ export default async function BillingPage({
         </p>
       </section>
 
-      <section className="rounded-lg border border-gray-200 bg-white p-4">
+      <section className="rounded-lg border border-gray-200 bg-white dark:bg-[#1e2939] p-4">
         <div className="flex items-center gap-2">
           <p className="text-sm text-gray-500">Subscription status</p>
           <span
@@ -108,7 +108,7 @@ export default async function BillingPage({
             {PLAN_TIERS.map((tier) => {
               const def = PLAN_DEFINITIONS[tier];
               return (
-                <div key={tier} className="flex flex-col gap-2 rounded-lg border border-gray-200 bg-white p-4">
+                <div key={tier} className="flex flex-col gap-2 rounded-lg border border-gray-200 bg-white dark:bg-[#1e2939] p-4">
                   <p className="text-sm font-semibold text-gray-900">{def.label}</p>
                   <p className="text-lg font-semibold text-gray-900">
                     {formatINR(def.priceCents)}
