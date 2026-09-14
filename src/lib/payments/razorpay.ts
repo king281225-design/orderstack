@@ -34,6 +34,45 @@ export function getRazorpayKeyId(): string | null {
   return process.env.RAZORPAY_KEY_ID ?? null;
 }
 
+/**
+ * The `razorpay` SDK's API layer (node_modules/razorpay/dist/api.js,
+ * normalizeError) does `throw { statusCode, error: err.response.data.error }`
+ * on any failed HTTP request — a plain object, never a real `Error` — where
+ * `error` is Razorpay's own documented REST error shape
+ * (`{ code, description, source, step, reason, metadata }`). Every
+ * `catch (err) { err instanceof Error ? err.message : "<generic fallback>" }`
+ * in this codebase was therefore always taking the generic-fallback branch
+ * for a Razorpay-thrown failure, silently hiding Razorpay's actual reason
+ * (e.g. "Authentication failed", or whatever's really blocking a
+ * subscription) behind a message like "Could not start a subscription."
+ * Use this instead of a bare `instanceof Error` check anywhere a Razorpay
+ * SDK call is in the try block.
+ *
+ * Confirmed against the installed SDK's own source (node_modules/razorpay/
+ * dist/api.js), not guessed. One gap inherent to the SDK itself, not fixable
+ * from here: if the request never got an HTTP response at all (e.g. a
+ * network-level failure), `normalizeError` crashes trying to read
+ * `err.response.status` on `undefined` — that surfaces as a real `Error`
+ * (`"Cannot read properties of undefined (reading 'status')"`), which the
+ * first branch below already returns as-is rather than a Razorpay
+ * description, since none exists to extract in that case.
+ */
+export function extractRazorpayErrorMessage(err: unknown, fallback: string): string {
+  if (err instanceof Error) return err.message;
+  if (
+    typeof err === "object" &&
+    err !== null &&
+    "error" in err &&
+    typeof (err as { error?: unknown }).error === "object" &&
+    (err as { error?: unknown }).error !== null &&
+    "description" in (err as { error: object }).error
+  ) {
+    const description = (err as { error: { description?: unknown } }).error.description;
+    if (typeof description === "string" && description) return description;
+  }
+  return fallback;
+}
+
 function getClient(): Razorpay {
   const key_id = process.env.RAZORPAY_KEY_ID;
   const key_secret = process.env.RAZORPAY_KEY_SECRET;

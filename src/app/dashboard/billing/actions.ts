@@ -10,7 +10,7 @@ import {
   startDiscountedPlanPurchase,
   verifyAndActivateDiscountedPlanPurchase,
 } from "@/lib/data/tenants";
-import { isRazorpayConfigured } from "@/lib/payments/razorpay";
+import { isRazorpayConfigured, extractRazorpayErrorMessage } from "@/lib/payments/razorpay";
 import { PLAN_TIERS } from "@/lib/plans";
 import type { PlanTier } from "@prisma/client";
 
@@ -30,7 +30,7 @@ export async function startSubscriptionAction(tier: PlanTier): Promise<StartSubs
     return { error: null, subscriptionId: subscription.id };
   } catch (err) {
     return {
-      error: err instanceof Error ? err.message : "Could not start a subscription.",
+      error: extractRazorpayErrorMessage(err, "Could not start a subscription."),
       subscriptionId: null,
     };
   }
@@ -91,7 +91,7 @@ export async function startDiscountedPlanPurchaseAction(
     return { error: null, orderId: order.id, amountCents: finalPriceCents };
   } catch (err) {
     return {
-      error: err instanceof Error ? err.message : "Could not start this purchase.",
+      error: extractRazorpayErrorMessage(err, "Could not start this purchase."),
       orderId: null,
       amountCents: null,
     };
