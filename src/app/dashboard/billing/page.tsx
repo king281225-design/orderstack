@@ -21,11 +21,16 @@ const STATUS_STYLE: Record<string, string> = {
   CANCELLED: "bg-gray-200 text-gray-600",
 };
 
-export default async function BillingPage() {
+export default async function BillingPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ trialExpired?: string }>;
+}) {
   const session = await requireOwnerSession();
   const tenant = await getTenantById(session.tenantId);
   if (!tenant) return null;
 
+  const { trialExpired } = await searchParams;
   const plan = PLAN_DEFINITIONS[tenant.planTier];
   const razorpayReady = isRazorpayConfigured();
   const keyId = getRazorpayKeyId();
@@ -35,6 +40,18 @@ export default async function BillingPage() {
   return (
     <div className="flex flex-col gap-6">
       <h2 className="text-lg font-semibold text-gray-900">Billing</h2>
+
+      {/* src/proxy.ts redirects here once the free trial (15 min since the
+          tenant was created, see getTenantTrialStatus) has run out on an
+          unpaid tenant. isActive is impossible while trialExpired is set
+          (the proxy skips a genuinely ACTIVE tenant), but keeping the check
+          means an owner who resolves it mid-page-load, e.g. by paying in
+          another tab, never sees a stale warning. */}
+      {trialExpired === "1" && !isActive && (
+        <div className="rounded-lg border border-amber-300 bg-amber-50 px-4 py-3 text-sm text-amber-800">
+          Your 15-minute free trial has ended. Subscribe to a plan below to keep using the dashboard.
+        </div>
+      )}
 
       <section className="rounded-lg border border-gray-200 bg-white p-4">
         <p className="text-sm text-gray-500">Current plan</p>

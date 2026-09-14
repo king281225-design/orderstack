@@ -1,8 +1,19 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { verifySessionToken } from "@/lib/auth";
-import { getTenantByCustomDomain } from "@/lib/data/tenants";
+import { getTenantByCustomDomain, getTenantTrialStatus } from "@/lib/data/tenants";
 
 const COOKIE_NAME = "os_session";
+
+// One-time dashboard trial: an owner/staff account gets 15 minutes of
+// dashboard access (wall-clock time since the tenant was created — see
+// getTenantTrialStatus's comment) before being forced to /dashboard/billing
+// to actually subscribe. Applies to owners/staff only — the public
+// storefront (/r/<slug>, a restaurant's own customers) is never gated by
+// this. Restaurants the platform's own subscriptionStatus already marks
+// ACTIVE (i.e. genuinely paid, by any tier) are exempt for as long as that
+// stays true.
+const TRIAL_MS = 15 * 60 * 1000;
+const BILLING_PATH = "/dashboard/billing";
 
 // Paths a custom domain should never be rewritten for — real top-level app
 // routes, not something to prefix with /r/<slug>.
@@ -31,6 +42,22 @@ export async function proxy(request: NextRequest) {
 
   if (isDashboard && (!session || (session.role !== "OWNER" && session.role !== "STAFF"))) {
     return NextResponse.redirect(new URL("/login", request.url));
+  }
+
+  // Trial gate — only once we know it's a real owner/staff session, and
+  // never on /dashboard/billing itself (that's the one page a
+  // trial-expired tenant must still be able to reach, to actually pay).
+  if (isDashboard && session && (session.role === "OWNER" || session.role === "STAFF") && session.tenantId) {
+    if (pathname !== BILLING_PATH && !pathname.startsWith(`${BILLING_PATH}/`)) {
+      const tenant = await getTenantTrialStatus(session.tenantId);
+      if (
+        tenant &&
+        tenant.subscriptionStatus !== "ACTIVE" &&
+        Date.now() - tenant.createdAt.getTime() > TRIAL_MS
+      ) {
+        return NextResponse.redirect(new URL(`${BILLING_PATH}?trialExpired=1`, request.url));
+      }
+    }
   }
 
   if (isSuperAdmin && (!session || session.role !== "SUPER_ADMIN")) {

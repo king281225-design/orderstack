@@ -33,6 +33,27 @@ export async function getTenantByCustomDomain(domain: string) {
   return prisma.tenant.findUnique({ where: { customDomain: domain.toLowerCase() } });
 }
 
+/**
+ * The one-time 15-minute dashboard trial (see src/proxy.ts) — a narrow
+ * select, since this runs on every owner/staff dashboard request. Timer is
+ * wall-clock time since the tenant row was created (Tenant.createdAt), not
+ * literal cumulative "active" seconds excluding idle/closed-tab time — that
+ * would need client heartbeat pings and materially more machinery for the
+ * same practical effect on a restaurant actually using the dashboard in one
+ * sitting, so this simpler, standard SaaS-trial definition was used instead.
+ * subscriptionStatus === "ACTIVE" is the one and only "already paid" signal
+ * anywhere in this schema (see startTenantSubscription/webhook handlers) —
+ * a super-admin's manual planTier assignment never sets it, so an
+ * admin-onboarded restaurant is just as subject to this trial as a
+ * self-serve one unless its owner actually pays.
+ */
+export async function getTenantTrialStatus(tenantId: string) {
+  return prisma.tenant.findUnique({
+    where: { id: tenantId },
+    select: { subscriptionStatus: true, createdAt: true },
+  });
+}
+
 const DOMAIN_RE = /^[a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?(\.[a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?)+$/i;
 
 export function isValidDomain(domain: string): boolean {

@@ -1,8 +1,23 @@
 @import "tailwindcss";
 
+/*
+ * Deliberately pinned to light regardless of the visitor's system theme.
+ * Every screen in this app (storefront, dashboard, super-admin) is
+ * hardcoded for light mode (bg-white cards, text-gray-900/700/500, etc.)
+ * with zero `dark:` variants anywhere in the codebase — the
+ * create-next-app boilerplate `prefers-color-scheme: dark` override that
+ * used to live here flipped body text to near-white (#ededed) on any
+ * phone/browser with system dark mode on, while those hardcoded white
+ * cards and inputs stayed white, making text unreadable
+ * (near-white-on-white) across login, checkout, dashboard — everywhere.
+ * `color-scheme: light` additionally stops the browser's own auto-dark
+ * heuristics from independently re-styling form controls (inputs,
+ * buttons) out from under this.
+ */
 :root {
   --background: #ffffff;
   --foreground: #171717;
+  color-scheme: light;
 }
 
 @theme inline {
@@ -10,13 +25,6 @@
   --color-foreground: var(--foreground);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
 }
 
 /*
