@@ -1,4 +1,4 @@
-# OrderStack — Launch Plan for September 14, 2026
+# BhojSetu — Launch Plan for September 14, 2026
 
 **Written:** September 2, 2026 · **Time to launch:** 12 days
 

@@ -45,7 +45,7 @@ export function SubscribeButton({
           key: keyId,
           subscription_id: subscriptionId,
           name: restaurantName,
-          description: "OrderStack subscription",
+          description: "BhojSetu subscription",
           ...PREFER_UPI_METHOD,
           handler: (response) => {
             startTransition(async () => {

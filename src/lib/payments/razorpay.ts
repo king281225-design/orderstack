@@ -55,7 +55,7 @@ export async function createRazorpayOrder(amountCents: number, receipt: string) 
 
 /**
  * Subscription billing (src/lib/data/tenants.ts) — a Razorpay Plan is a
- * shared, reusable resource (one per OrderStack plan tier), not created per
+ * shared, reusable resource (one per BhojSetu plan tier), not created per
  * subscription. amountCents is paise, same as createRazorpayOrder.
  */
 export async function createRazorpayPlan(input: {

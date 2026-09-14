@@ -2,6 +2,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { getSession } from "@/lib/auth";
 import { LoginForm } from "@/components/login-form";
+import { BhojSetuLogo } from "@/components/brand/logo";
 
 export default async function LoginPage() {
   const session = await getSession();
@@ -12,7 +13,11 @@ export default async function LoginPage() {
   return (
     <div className="flex min-h-screen items-center justify-center bg-gray-50 px-4">
       <div className="w-full max-w-sm rounded-xl border border-gray-200 bg-white p-8 shadow-sm">
-        <h1 className="mb-1 text-xl font-semibold text-gray-900">OrderStack</h1>
+        <BhojSetuLogo
+          markSize={32}
+          textClassName="text-xl font-semibold text-gray-900"
+          className="mb-1"
+        />
         <p className="mb-6 text-sm text-gray-500">
           Sign in to manage your restaurant or the platform.
         </p>

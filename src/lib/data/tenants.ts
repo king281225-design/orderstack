@@ -223,7 +223,7 @@ export async function getOrCreateRazorpayPlanId(tier: PlanTier): Promise<string>
 
   const def = PLAN_DEFINITIONS[tier];
   const plan = await createRazorpayPlan({
-    name: `OrderStack ${def.label}`,
+    name: `BhojSetu ${def.label}`,
     amountCents: def.priceCents,
     period: "monthly",
     interval: 1,
@@ -248,7 +248,7 @@ export async function startTenantSubscription(tenantId: string, tier: PlanTier) 
   const planId = await getOrCreateRazorpayPlanId(tier);
   // Razorpay subscriptions require a fixed number of billing cycles, not
   // "until cancelled" — 120 monthly cycles (10 years) stands in for
-  // indefinite; renew/replace manually if OrderStack is still running past
+  // indefinite; renew/replace manually if BhojSetu is still running past
   // that, which is a real limit worth revisiting well before it's hit.
   const subscription = await createRazorpaySubscription(planId, 120);
 

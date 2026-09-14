@@ -12,7 +12,7 @@ import { getR2Client, isR2Configured, R2_PREFIX } from "@/lib/storage";
  * The bucket is shared with another, unrelated project (see storage.ts) —
  * this route is otherwise an open, unauthenticated proxy for any key an
  * unauthenticated caller happens to ask for, so it must never sign a key
- * outside OrderStack's own R2_PREFIX. Object keys are random UUIDs, so
+ * outside BhojSetu's own R2_PREFIX. Object keys are random UUIDs, so
  * guessing one is impractical, but this closes the gap rather than relying
  * on that alone.
  */

@@ -30,7 +30,7 @@ function getClient(): Resend {
 }
 
 function getFromAddress(): string {
-  return process.env.RESEND_FROM_EMAIL || "OrderStack <onboarding@resend.dev>";
+  return process.env.RESEND_FROM_EMAIL || "BhojSetu <onboarding@resend.dev>";
 }
 
 type OrderForEmail = Order & { items: OrderItem[] };

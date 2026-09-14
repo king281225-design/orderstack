@@ -7,7 +7,7 @@ import { S3Client, PutObjectCommand } from "@aws-sdk/client-s3";
 /**
  * Real image uploads for logos and menu photos, backed by Cloudflare R2
  * (S3-compatible). The bucket ("dmc") is shared with another, unrelated
- * project — everything OrderStack writes lives under the `orderstack/`
+ * project — everything BhojSetu writes lives under the `orderstack/`
  * prefix so the two don't collide.
  *
  * The bucket is treated as private: uploads go straight to R2 via

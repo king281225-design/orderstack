@@ -70,7 +70,7 @@ export function WelcomeCouponForm({
           order_id: orderId,
           amount: amountCents,
           name: restaurantName,
-          description: `OrderStack ${PLAN_DEFINITIONS[tier].label} plan — WELCOME100 applied`,
+          description: `BhojSetu ${PLAN_DEFINITIONS[tier].label} plan — WELCOME100 applied`,
           ...PREFER_UPI_METHOD,
           handler: (response) => {
             startTransition(async () => {

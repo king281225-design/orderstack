@@ -26,11 +26,11 @@ type CartContextValue = {
 const CartContext = createContext<CartContextValue | null>(null);
 
 function storageKey(slug: string) {
-  return `orderstack_cart_${slug}`;
+  return `bhojsetu_cart_${slug}`;
 }
 
 function tableStorageKey(slug: string) {
-  return `orderstack_table_${slug}`;
+  return `bhojsetu_table_${slug}`;
 }
 
 export function CartProvider({ slug, children }: { slug: string; children: ReactNode }) {

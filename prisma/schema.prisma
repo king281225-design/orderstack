@@ -1,4 +1,4 @@
-// OrderStack v1 schema.
+// BhojSetu v1 schema.
 // Tenant isolation rule: every query against a tenant-scoped model (Category,
 // Item, Order, OrderItem, and non-super-admin User rows) MUST filter by
 // tenantId. Never trust a slug or id from the client alone — always re-derive
