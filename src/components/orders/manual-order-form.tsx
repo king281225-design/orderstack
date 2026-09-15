@@ -22,6 +22,12 @@ export function ManualOrderForm({
   const [lines, setLines] = useState<Line[]>([{ ...emptyLine }]);
   const [discount, setDiscount] = useState("");
   const [gstRate, setGstRate] = useState(defaultGstRate != null ? String(defaultGstRate) : "");
+  // Which line's "Item / service name" field currently has its menu-match
+  // dropdown open — at most one at a time, since only one input can be
+  // focused. Typing filters menuItems by name so an owner can search their
+  // own menu inline instead of switching to the separate "+ Add from menu"
+  // picker (which stays, for browsing the full list at a glance).
+  const [suggestFor, setSuggestFor] = useState<number | null>(null);
 
   const totals = useMemo(() => {
     const subtotalCents = lines.reduce((sum, l) => {
@@ -53,6 +59,17 @@ export function ManualOrderForm({
 
   function removeLine(index: number) {
     setLines((prev) => (prev.length > 1 ? prev.filter((_, i) => i !== index) : prev));
+  }
+
+  function selectSuggestion(index: number, item: { name: string; priceCents: number }) {
+    updateLine(index, { name: item.name, priceRupees: (item.priceCents / 100).toString() });
+    setSuggestFor(null);
+  }
+
+  function suggestionsFor(name: string) {
+    const q = name.trim().toLowerCase();
+    if (!q) return [];
+    return menuItems.filter((m) => m.name.toLowerCase().includes(q)).slice(0, 6);
   }
 
   const linesPayload = JSON.stringify(
@@ -153,14 +170,43 @@ export function ManualOrderForm({
         </div>
 
         <div className="flex flex-col gap-2">
-          {lines.map((line, i) => (
+          {lines.map((line, i) => {
+            const suggestions = suggestFor === i ? suggestionsFor(line.name) : [];
+            return (
             <div key={i} className="grid grid-cols-[1fr_90px_70px_auto] items-center gap-2">
-              <input
-                placeholder="Item / service name"
-                value={line.name}
-                onChange={(e) => updateLine(i, { name: e.target.value })}
-                className="rounded-md border border-gray-300 px-2 py-1.5 text-sm focus:border-indigo-600 focus:outline-none"
-              />
+              <div className="relative">
+                <input
+                  placeholder="Item / service name"
+                  value={line.name}
+                  onChange={(e) => {
+                    updateLine(i, { name: e.target.value });
+                    setSuggestFor(i);
+                  }}
+                  onFocus={() => setSuggestFor(i)}
+                  // A plain onBlur would fire and close the dropdown before a
+                  // click on a suggestion registers — closing on a short
+                  // delay instead lets the suggestion's own onClick run first.
+                  onBlur={() => setTimeout(() => setSuggestFor((cur) => (cur === i ? null : cur)), 150)}
+                  autoComplete="off"
+                  className="w-full rounded-md border border-gray-300 px-2 py-1.5 text-sm focus:border-indigo-600 focus:outline-none"
+                />
+                {suggestions.length > 0 && (
+                  <ul className="absolute z-10 mt-1 w-full max-w-xs overflow-hidden rounded-md border border-gray-200 bg-white shadow-lg dark:bg-[#241d17]">
+                    {suggestions.map((m) => (
+                      <li key={m.name}>
+                        <button
+                          type="button"
+                          onClick={() => selectSuggestion(i, m)}
+                          className="flex w-full items-center justify-between gap-2 px-3 py-1.5 text-left text-sm hover:bg-gray-50 dark:hover:bg-white/5"
+                        >
+                          <span className="truncate">{m.name}</span>
+                          <span className="shrink-0 text-xs text-gray-500">{formatINR(m.priceCents)}</span>
+                        </button>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </div>
               <input
                 type="number"
                 min="0"
@@ -186,7 +232,8 @@ export function ManualOrderForm({
                 Remove
               </button>
             </div>
-          ))}
+            );
+          })}
         </div>
 
         <button
