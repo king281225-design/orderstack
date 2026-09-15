@@ -2,7 +2,7 @@ import { listTenantsWithStats, getPlatformStats } from "@/lib/data/tenants";
 import { formatINR } from "@/lib/money";
 import { AddRestaurantForm } from "@/components/super-admin/add-restaurant-form";
 import { PlanSelect } from "@/components/super-admin/plan-select";
-import { setTenantStatusAction } from "@/app/super-admin/actions";
+import { setTenantStatusAction, setTenantSubscriptionOverrideAction } from "@/app/super-admin/actions";
 import { PLAN_DEFINITIONS } from "@/lib/plans";
 
 export default async function SuperAdminPage() {
@@ -56,6 +56,7 @@ export default async function SuperAdminPage() {
                 <th className="px-4 py-2">Orders</th>
                 <th className="px-4 py-2">Revenue</th>
                 <th className="px-4 py-2">Plan</th>
+                <th className="px-4 py-2">Trial</th>
                 <th className="px-4 py-2">Status</th>
                 <th className="px-4 py-2"></th>
               </tr>
@@ -73,6 +74,31 @@ export default async function SuperAdminPage() {
                   <td className="px-4 py-2">{formatINR(t.revenueCents)}</td>
                   <td className="px-4 py-2">
                     <PlanSelect tenantId={t.id} planTier={t.planTier} />
+                  </td>
+                  <td className="px-4 py-2">
+                    {/* Manual override of the "has this tenant ever paid" signal — bypasses the
+                        15-minute dashboard trial gate (src/proxy.ts) without a real Razorpay
+                        payment. Useful for demo/test tenants; see setTenantSubscriptionOverride's
+                        own comment for why this is kept separate from real subscription state. */}
+                    <form
+                      action={setTenantSubscriptionOverrideAction.bind(
+                        null,
+                        t.id,
+                        t.subscriptionStatus !== "ACTIVE",
+                      )}
+                    >
+                      <button
+                        type="submit"
+                        className={`rounded-full px-2 py-0.5 text-xs font-medium ${
+                          t.subscriptionStatus === "ACTIVE"
+                            ? "bg-green-100 text-green-700"
+                            : "bg-gray-200 text-gray-600"
+                        }`}
+                        title="Manually override the trial-gate signal (no real payment) — for demo/test tenants"
+                      >
+                        {t.subscriptionStatus === "ACTIVE" ? "Full access" : "Trial-limited"}
+                      </button>
+                    </form>
                   </td>
                   <td className="px-4 py-2">
                     <span
@@ -102,7 +128,7 @@ export default async function SuperAdminPage() {
               ))}
               {tenants.length === 0 && (
                 <tr>
-                  <td colSpan={7} className="px-4 py-6 text-center text-gray-500">
+                  <td colSpan={8} className="px-4 py-6 text-center text-gray-500">
                     No restaurants yet — add the first one above.
                   </td>
                 </tr>

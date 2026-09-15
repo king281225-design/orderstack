@@ -2,7 +2,12 @@
 
 import { revalidatePath } from "next/cache";
 import { requireRole } from "@/lib/auth";
-import { createTenantWithOwner, setTenantStatus, setTenantPlan } from "@/lib/data/tenants";
+import {
+  createTenantWithOwner,
+  setTenantStatus,
+  setTenantPlan,
+  setTenantSubscriptionOverride,
+} from "@/lib/data/tenants";
 import type { PlanTier } from "@prisma/client";
 
 export type CreateRestaurantState = { error: string | null; success: boolean };
@@ -50,5 +55,12 @@ export async function setTenantStatusAction(tenantId: string, status: "ACTIVE" |
 export async function setTenantPlanAction(tenantId: string, planTier: PlanTier) {
   await requireRole("SUPER_ADMIN");
   await setTenantPlan(tenantId, planTier);
+  revalidatePath("/super-admin");
+}
+
+/** Manual trial-gate override — see setTenantSubscriptionOverride's own comment. */
+export async function setTenantSubscriptionOverrideAction(tenantId: string, active: boolean) {
+  await requireRole("SUPER_ADMIN");
+  await setTenantSubscriptionOverride(tenantId, active);
   revalidatePath("/super-admin");
 }

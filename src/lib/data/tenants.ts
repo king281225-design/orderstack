@@ -234,6 +234,24 @@ export async function setTenantPlan(tenantId: string, planTier: PlanTier) {
 }
 
 /**
+ * Super-admin-only manual override of the "has this tenant ever paid"
+ * signal — bypasses both the 15-minute dashboard trial gate (src/proxy.ts,
+ * which only exempts subscriptionStatus === "ACTIVE") and the real Razorpay
+ * payment flow. Exists for demo/test tenants that need permanent dashboard
+ * access without a real transaction — same spirit as setTenantPlan's manual
+ * assignment above, just for the trial-gate signal instead of the tier.
+ * Deliberately separate from cancelTenantSubscription/the webhook path:
+ * this never touches razorpaySubscriptionId, so flipping it off again
+ * cannot accidentally cancel a real subscription that doesn't exist here.
+ */
+export async function setTenantSubscriptionOverride(tenantId: string, active: boolean) {
+  return prisma.tenant.update({
+    where: { id: tenantId },
+    data: { subscriptionStatus: active ? "ACTIVE" : "NONE" },
+  });
+}
+
+/**
  * Looks up (or lazily creates) the Razorpay Plan object for a tier. Plans
  * are a Razorpay-side resource shared across every tenant on that tier, not
  * per-tenant — created once via the API and cached in RazorpayPlan so

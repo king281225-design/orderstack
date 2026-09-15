@@ -52,3 +52,5 @@ next-env.d.ts
 # its language data to the project root on first use — a re-downloadable
 # cache file, not source.
 *.traineddata
+
+.vercel
