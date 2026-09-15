@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { getSession } from "@/lib/auth";
-import { BhojSetuLogo } from "@/components/brand/logo";
+import { BhojSetuFrontPageLogo } from "@/components/brand/logo";
 import { ThemeToggle } from "@/components/theme/theme-toggle";
 
 const FAQS = [
@@ -43,7 +43,13 @@ export default async function Home() {
         <ThemeToggle />
       </div>
       <div className="flex flex-col items-center gap-5 px-4 pt-20 pb-16 text-center">
-        <BhojSetuLogo markSize={44} textClassName="text-2xl font-semibold text-gray-900" />
+        {/* The source image is opaque (its own off-white background baked
+            in, not transparent) — a rounded card with a shadow makes that
+            look like a deliberate framed logo instead of a stray square
+            floating over the page, especially against the dark gradient. */}
+        <div className="overflow-hidden rounded-2xl shadow-lg">
+          <BhojSetuFrontPageLogo width={260} />
+        </div>
         <span className="rounded-full bg-gradient-to-r from-indigo-600 to-violet-600 px-3 py-1 text-xs font-semibold text-white">
           Real ordering for real restaurants
         </span>
