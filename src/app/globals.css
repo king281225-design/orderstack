@@ -80,7 +80,7 @@
   --color-indigo-700: #c94d03; /* PRIMARY_HOVER */
   --color-indigo-800: #a33f02;
 
-  --color-violet-50: #fff1e6;
+  --color-violet-50: #ffe9d9; /* distinct from indigo-50 so the from-indigo-50/to-violet-50 hero gradients keep visible warmth/depth instead of flattening to one tint */
   --color-violet-600: #d9480a;
   --color-violet-700: #b33d02;
   --color-violet-900: #7a2900;
@@ -121,7 +121,12 @@
  * `.text-gray-900{color:var(--color-gray-900)}`), so every existing
  * `text-gray-900`/`border-gray-200`/`bg-indigo-50`/etc. class across the
  * whole app repaints automatically — no per-component `dark:` class needed
- * for any of these. Two different rules by design:
+ * for any of these. Recolored warm (brown-black neutrals, burnt-orange chip
+ * tints) to match the light-mode brand palette above — the previous version
+ * of this block was a cool navy/blue-gray dark theme left over from before
+ * that palette existed, which visually clashed with the new orange primary
+ * (an orange button on a blue-black page reads as two different apps).
+ * Two different rules by design:
  *  - gray/slate: the FULL ramp is inverted (50<->950, 100<->900, ...) since
  *    these are used purely for neutral surfaces/text/borders, which
  *    genuinely need to flip everywhere.
@@ -136,7 +141,7 @@
  * `bg-white` card surfaces are the one thing this can't cover (see the
  * reasoning above — the `white` token is also used as button/badge
  * foreground text and must stay literally white), so those get an explicit
- * `dark:bg-[#1e2939]` class alongside them in the components themselves —
+ * `dark:bg-[#241d17]` class alongside them in the components themselves —
  * an ARBITRARY value, deliberately not `dark:bg-gray-800`: gray-800 is one
  * of the inverted tokens above (inverted for its TEXT role, to a near-white
  * value), so reusing it for a background here would silently resolve to
@@ -150,28 +155,34 @@
  */
 [data-theme="dark"] {
   color-scheme: dark;
-  --background: #0b0f1a;
-  --foreground: #e5e7eb;
+  --background: #14100c; /* warm near-black, matches the darkest gradient stop used on auth pages */
+  --foreground: #f3ece4; /* warm off-white, not cool gray */
 
-  --color-slate-50: #0f172a;
+  --color-slate-50: #171310;
 
-  --color-gray-50: #101828;
-  --color-gray-100: #1e2939;
-  --color-gray-200: #364153;
-  --color-gray-300: #4a5565;
-  --color-gray-400: #6a7282;
-  --color-gray-500: #99a1af;
-  --color-gray-600: #d1d5dc;
-  --color-gray-700: #e5e7eb;
-  --color-gray-800: #f3f4f6;
-  --color-gray-900: #f9fafb;
+  /* Full warm-neutral ramp (brown-black -> cream), replacing the old
+     cool blue-gray inversion so dark mode reads as "the same brand,
+     lights off" rather than a completely different, colder app. */
+  --color-gray-50: #14100c;
+  --color-gray-100: #241d17; /* card/surface — matches the dark:bg-[#241d17] literal used across components */
+  --color-gray-200: #3a2f26;
+  --color-gray-300: #55473a;
+  --color-gray-400: #7a6a5a;
+  --color-gray-500: #a89985;
+  --color-gray-600: #c7bbac;
+  --color-gray-700: #e3d9cd;
+  --color-gray-800: #f0e9e0;
+  --color-gray-900: #f8f4ef;
   --color-gray-950: #ffffff;
 
-  --color-indigo-50: #1e1b4b;
-  --color-indigo-100: #2c2870;
-  --color-indigo-200: #3a3596;
+  /* Pale chip backgrounds recolored from cool navy-purple to warm,
+     dark burnt-orange tints so badges/pills stay in the same brand
+     family instead of clashing with the orange primary buttons. */
+  --color-indigo-50: #3a1f0a;
+  --color-indigo-100: #4a2810;
+  --color-indigo-200: #5c3316;
 
-  --color-violet-50: #241b4b;
+  --color-violet-50: #33190a;
 
   --color-green-50: #052e1c;
   --color-green-100: #063e27;

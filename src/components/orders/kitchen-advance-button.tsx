@@ -20,7 +20,7 @@ export function KitchenAdvanceButton({
       type="button"
       disabled={isPending}
       onClick={() => startTransition(() => advanceOrderStatusAction(orderId, to))}
-      className="w-full rounded-md bg-white dark:bg-[#1e2939] px-3 py-2 text-base font-semibold text-gray-900 hover:bg-gray-200 disabled:opacity-50"
+      className="w-full rounded-md bg-white dark:bg-[#241d17] px-3 py-2 text-base font-semibold text-gray-900 hover:bg-gray-200 disabled:opacity-50"
     >
       {isPending ? "Working…" : label}
     </button>

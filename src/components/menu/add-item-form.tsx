@@ -25,7 +25,7 @@ export function AddItemForm({ categories }: { categories: { id: string; name: st
     <form
       ref={formRef}
       action={formAction}
-      className="grid grid-cols-1 gap-3 rounded-lg border border-gray-200 bg-white dark:bg-[#1e2939] p-4 sm:grid-cols-2"
+      className="grid grid-cols-1 gap-3 rounded-lg border border-gray-200 bg-white dark:bg-[#241d17] p-4 sm:grid-cols-2"
     >
       <h3 className="col-span-full text-sm font-semibold text-gray-900">Add a menu item</h3>
 

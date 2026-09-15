@@ -131,7 +131,7 @@ export default async function AnalyticsPage({
         />
       </section>
 
-      <section className="rounded-lg border border-gray-200 bg-white dark:bg-[#1e2939] p-4">
+      <section className="rounded-lg border border-gray-200 bg-white dark:bg-[#241d17] p-4">
         <h2 className="mb-3 text-sm font-semibold text-gray-900">Sales trend</h2>
         {summary.revenueByDay.length === 0 ? (
           <p className="text-sm text-gray-500">No orders in this range yet.</p>
@@ -158,7 +158,7 @@ export default async function AnalyticsPage({
       </section>
 
       <section className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-        <div className="rounded-lg border border-gray-200 bg-white dark:bg-[#1e2939] p-4">
+        <div className="rounded-lg border border-gray-200 bg-white dark:bg-[#241d17] p-4">
           <h2 className="mb-3 text-sm font-semibold text-gray-900">Top-selling items</h2>
           {topItems.length === 0 ? (
             <p className="text-sm text-gray-500">No orders in this range yet.</p>
@@ -176,7 +176,7 @@ export default async function AnalyticsPage({
           )}
         </div>
 
-        <div className="rounded-lg border border-gray-200 bg-white dark:bg-[#1e2939] p-4">
+        <div className="rounded-lg border border-gray-200 bg-white dark:bg-[#241d17] p-4">
           <h2 className="mb-3 text-sm font-semibold text-gray-900">Payment methods</h2>
           {summary.paymentMethodCounts.length === 0 ? (
             <p className="text-sm text-gray-500">No orders in this range yet.</p>
@@ -192,7 +192,7 @@ export default async function AnalyticsPage({
           )}
         </div>
 
-        <div className="rounded-lg border border-gray-200 bg-white dark:bg-[#1e2939] p-4">
+        <div className="rounded-lg border border-gray-200 bg-white dark:bg-[#241d17] p-4">
           <h2 className="mb-3 text-sm font-semibold text-gray-900">Order status summary</h2>
           {summary.orderStatusSummary.length === 0 ? (
             <p className="text-sm text-gray-500">No orders in this range yet.</p>
@@ -209,7 +209,7 @@ export default async function AnalyticsPage({
         </div>
       </section>
 
-      <section className="rounded-lg border border-gray-200 bg-white dark:bg-[#1e2939] p-4">
+      <section className="rounded-lg border border-gray-200 bg-white dark:bg-[#241d17] p-4">
         <h2 className="mb-3 text-sm font-semibold text-gray-900">Recent orders</h2>
         {summary.recentOrders.length === 0 ? (
           <p className="text-sm text-gray-500">No orders in this range yet.</p>
@@ -232,7 +232,7 @@ export default async function AnalyticsPage({
 
 function StatCard({ label, value }: { label: string; value: string }) {
   return (
-    <div className="rounded-lg border border-gray-200 bg-white dark:bg-[#1e2939] p-4">
+    <div className="rounded-lg border border-gray-200 bg-white dark:bg-[#241d17] p-4">
       <p className="text-xs font-medium uppercase tracking-wide text-gray-500">{label}</p>
       <p className="mt-1 text-2xl font-semibold text-gray-900">{value}</p>
     </div>

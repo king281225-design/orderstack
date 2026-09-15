@@ -19,7 +19,7 @@ export default async function InvoicesPage() {
       {orders.length === 0 ? (
         <p className="text-sm text-gray-500">No orders yet.</p>
       ) : (
-        <div className="overflow-x-auto rounded-lg border border-gray-200 bg-white dark:bg-[#1e2939]">
+        <div className="overflow-x-auto rounded-lg border border-gray-200 bg-white dark:bg-[#241d17]">
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b border-gray-200 text-left text-xs uppercase tracking-wide text-gray-500">

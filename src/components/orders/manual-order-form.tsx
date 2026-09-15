@@ -69,7 +69,7 @@ export function ManualOrderForm({
     <form ref={formRef} action={formAction} className="flex flex-col gap-6">
       <input type="hidden" name="lines" value={linesPayload} />
 
-      <section className="grid grid-cols-1 gap-3 rounded-lg border border-gray-200 bg-white dark:bg-[#1e2939] p-4 sm:grid-cols-2">
+      <section className="grid grid-cols-1 gap-3 rounded-lg border border-gray-200 bg-white dark:bg-[#241d17] p-4 sm:grid-cols-2">
         <h3 className="col-span-full text-sm font-semibold text-gray-900">Customer</h3>
         <label className="flex flex-col gap-1 text-xs font-medium text-gray-600">
           Name
@@ -127,7 +127,7 @@ export function ManualOrderForm({
         </label>
       </section>
 
-      <section className="rounded-lg border border-gray-200 bg-white dark:bg-[#1e2939] p-4">
+      <section className="rounded-lg border border-gray-200 bg-white dark:bg-[#241d17] p-4">
         <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
           <h3 className="text-sm font-semibold text-gray-900">Products / services</h3>
           {menuItems.length > 0 && (
@@ -198,7 +198,7 @@ export function ManualOrderForm({
         </button>
       </section>
 
-      <section className="grid grid-cols-1 gap-3 rounded-lg border border-gray-200 bg-white dark:bg-[#1e2939] p-4 sm:grid-cols-2">
+      <section className="grid grid-cols-1 gap-3 rounded-lg border border-gray-200 bg-white dark:bg-[#241d17] p-4 sm:grid-cols-2">
         <label className="flex flex-col gap-1 text-xs font-medium text-gray-600">
           Discount (₹, optional)
           <input

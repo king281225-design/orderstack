@@ -41,7 +41,7 @@ export default function DashboardHelpPage() {
         {FAQS.map((faq) => (
           <details
             key={faq.q}
-            className="group rounded-lg border border-gray-200 bg-white p-4 shadow-sm open:shadow-md open:ring-1 open:ring-indigo-100 dark:bg-[#1e2939]"
+            className="group rounded-lg border border-gray-200 bg-white p-4 shadow-sm open:shadow-md open:ring-1 open:ring-indigo-100 dark:bg-[#241d17]"
           >
             <summary className="cursor-pointer list-none text-sm font-semibold text-gray-900 marker:content-none">
               <span className="flex items-start justify-between gap-2">

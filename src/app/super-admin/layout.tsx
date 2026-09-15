@@ -13,7 +13,7 @@ export default async function SuperAdminLayout({ children }: { children: React.R
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-indigo-50/40 to-violet-50 dark:from-[#05070d] dark:via-[#0b0f1a] dark:to-[#1e1147]">
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-indigo-50/40 to-violet-50 dark:from-[#0f0b08] dark:via-[#1a120c] dark:to-[#3d1c05]">
       <header className="bg-gradient-to-r from-indigo-600 via-indigo-600 to-violet-600 shadow-md dark:from-indigo-800 dark:via-indigo-800 dark:to-violet-900">
         <div className="mx-auto flex max-w-5xl items-center justify-between px-4 py-3">
           <span className="inline-flex items-center gap-2 font-semibold text-white">

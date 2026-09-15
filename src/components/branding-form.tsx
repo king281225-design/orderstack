@@ -12,7 +12,7 @@ export function BrandingForm({ tenant }: { tenant: Tenant }) {
   return (
     <form
       action={formAction}
-      className="flex max-w-lg flex-col gap-4 rounded-lg border border-gray-200 bg-white dark:bg-[#1e2939] p-4"
+      className="flex max-w-lg flex-col gap-4 rounded-lg border border-gray-200 bg-white dark:bg-[#241d17] p-4"
     >
       <label className="flex flex-col gap-1 text-sm font-medium text-gray-700">
         Restaurant name

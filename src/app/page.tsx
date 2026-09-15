@@ -38,7 +38,7 @@ export default async function Home() {
   }
 
   return (
-    <div className="relative min-h-screen bg-gradient-to-br from-indigo-50 via-white to-violet-50 dark:from-[#05070d] dark:via-[#0b0f1a] dark:to-[#1e1147]">
+    <div className="relative min-h-screen bg-gradient-to-br from-indigo-50 via-white to-violet-50 dark:from-[#0f0b08] dark:via-[#1a120c] dark:to-[#3d1c05]">
       <div className="absolute right-4 top-4">
         <ThemeToggle />
       </div>
@@ -63,7 +63,7 @@ export default async function Home() {
           </Link>
           <Link
             href="/login"
-            className="rounded-md border border-gray-300 bg-white dark:bg-[#1e2939] px-5 py-2.5 text-sm font-semibold text-gray-700 hover:bg-gray-50"
+            className="rounded-md border border-gray-300 bg-white dark:bg-[#241d17] px-5 py-2.5 text-sm font-semibold text-gray-700 hover:bg-gray-50"
           >
             Sign in
           </Link>
@@ -78,7 +78,7 @@ export default async function Home() {
           {FAQS.map((faq) => (
             <details
               key={faq.q}
-              className="group rounded-lg border border-gray-200 bg-white dark:bg-[#1e2939] p-4 shadow-sm open:shadow-md open:ring-1 open:ring-indigo-100"
+              className="group rounded-lg border border-gray-200 bg-white dark:bg-[#241d17] p-4 shadow-sm open:shadow-md open:ring-1 open:ring-indigo-100"
             >
               <summary className="cursor-pointer list-none text-sm font-semibold text-gray-900 marker:content-none">
                 <span className="flex items-start justify-between gap-2">

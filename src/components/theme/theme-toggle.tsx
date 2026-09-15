@@ -43,7 +43,7 @@ export function ThemeToggle({ variant = "page" }: { variant?: "page" | "header" 
       className={
         variant === "header"
           ? "grid size-8 place-items-center rounded-full text-white/80 transition-colors hover:bg-white/15 hover:text-white"
-          : "grid size-8 place-items-center rounded-full text-gray-500 transition-colors hover:bg-indigo-50 hover:text-indigo-600 dark:hover:bg-[#1e2939] dark:hover:text-indigo-400"
+          : "grid size-8 place-items-center rounded-full text-gray-500 transition-colors hover:bg-indigo-50 hover:text-indigo-600 dark:hover:bg-[#241d17] dark:hover:text-indigo-400"
       }
     >
       {/* Moon — shown in light mode as the "switch to dark" affordance. */}

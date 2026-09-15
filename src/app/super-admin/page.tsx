@@ -28,7 +28,7 @@ export default async function SuperAdminPage() {
           {(["STARTER", "ADVANCED", "BUSINESS"] as const).map((tier) => {
             const def = PLAN_DEFINITIONS[tier];
             return (
-              <div key={tier} className="rounded-lg border border-gray-200 bg-white dark:bg-[#1e2939] p-4">
+              <div key={tier} className="rounded-lg border border-gray-200 bg-white dark:bg-[#241d17] p-4">
                 <p className="text-sm font-semibold text-gray-900">{def.label}</p>
                 <p className="mt-1 text-xl font-bold text-gray-900">
                   {formatINR(def.priceCents)}
@@ -47,7 +47,7 @@ export default async function SuperAdminPage() {
 
       <section>
         <h2 className="mb-3 text-lg font-semibold text-gray-900">Restaurants</h2>
-        <div className="overflow-x-auto rounded-lg border border-gray-200 bg-white dark:bg-[#1e2939]">
+        <div className="overflow-x-auto rounded-lg border border-gray-200 bg-white dark:bg-[#241d17]">
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b border-gray-200 text-left text-xs uppercase tracking-wide text-gray-500">
@@ -117,7 +117,7 @@ export default async function SuperAdminPage() {
 
 function StatCard({ label, value }: { label: string; value: string }) {
   return (
-    <div className="rounded-lg border border-gray-200 bg-white dark:bg-[#1e2939] p-4">
+    <div className="rounded-lg border border-gray-200 bg-white dark:bg-[#241d17] p-4">
       <p className="text-xs font-medium uppercase tracking-wide text-gray-500">{label}</p>
       <p className="mt-1 text-2xl font-semibold text-gray-900">{value}</p>
     </div>

@@ -24,7 +24,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
   const tier = tenant.planTier;
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-indigo-50/40 to-violet-50 dark:from-[#05070d] dark:via-[#0b0f1a] dark:to-[#1e1147]">
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-indigo-50/40 to-violet-50 dark:from-[#0f0b08] dark:via-[#1a120c] dark:to-[#3d1c05]">
       {/* print:hidden — a printed invoice (/dashboard/orders/[id]/print) must never carry the dashboard chrome.
           A bold gradient fill (not just a white bar with a thin accent strip) — the earlier, more timid version
           of this header was flagged twice as still not looking good. */}
