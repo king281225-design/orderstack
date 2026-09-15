@@ -1,5 +1,6 @@
 import { PrismaClient } from "@prisma/client";
 import { PrismaMariaDb } from "@prisma/adapter-mariadb";
+import { resolveDatabaseUrl } from "./database-url";
 
 // Prisma 7 dropped the Rust query engine in favor of JS driver adapters, so
 // PrismaClient needs an explicit adapter instead of reading DATABASE_URL from
@@ -28,7 +29,7 @@ function createPrismaClient() {
   // get recycled by the client first, rather than found already-dead later.
   // Only applied when not already specified in DATABASE_URL, so a local
   // MySQL setup (fast, same-network) isn't affected unless it wants to be.
-  const url = new URL(connectionString);
+  const url = new URL(resolveDatabaseUrl(connectionString));
   if (!url.searchParams.has("connectTimeout")) {
     url.searchParams.set("connectTimeout", "30000");
   }
