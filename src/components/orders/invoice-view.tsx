@@ -45,6 +45,15 @@ export function InvoiceView({
 
   return (
     <div className={thermal ? "invoice-thermal mx-auto" : "mx-auto max-w-2xl"}>
+      {/* The actual print/PDF page size — not just the on-screen width above —
+          has to change with the toggle too, or a real 80mm thermal printer
+          (e.g. a TVS RP 3160 Gold, max print width 80mm) still gets handed an
+          A4-shaped page. @page rules apply document-wide regardless of where
+          the <style> tag sits, so toggling this one is enough; see
+          globals.css's own comment for why this moved out of a static rule
+          there. 3mm margin keeps content within the printer's actual 80mm
+          print width rather than right at its edge. */}
+      <style>{`@page { size: ${thermal ? "80mm auto" : "A4"}; margin: ${thermal ? "3mm" : "12mm"}; }`}</style>
       <PrintControls onThermalChange={setThermal} />
 
       <div className="rounded-lg border border-gray-200 bg-white p-6 text-gray-900 print:rounded-none print:border-0 print:p-0">

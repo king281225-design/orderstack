@@ -208,24 +208,31 @@
 }
 
 /*
- * Printable invoice (src/app/dashboard/orders/[id]/print) — A4 by default;
- * the "thermal receipt view" toggle on that page swaps in .invoice-thermal
- * to narrow the printable area to a typical 80mm roll width instead.
- * Everything outside .invoice-print (dashboard nav/header) is hidden via
- * Tailwind's print:hidden utility on the layout itself, not here.
+ * Printable invoice (src/app/dashboard/orders/[id]/print) — A4 by default.
+ * The actual @page size (A4 vs. an 80mm thermal roll) is set dynamically by
+ * InvoiceView itself (a <style> tag toggled with the "thermal receipt
+ * layout" checkbox) rather than fixed here — this file previously hardcoded
+ * @page { size: A4 } unconditionally, which meant checking that box only
+ * ever narrowed the on-screen content to receipt width without telling the
+ * browser's print engine to actually use an 80mm page: printing to a real
+ * 80mm thermal printer (confirmed against a TVS RP 3160 Gold's own spec:
+ * 80mm max print width) still produced an A4-shaped print/PDF. Only the
+ * background reset stays global here since every printed page wants it,
+ * not just the invoice. Everything outside .invoice-print (dashboard nav/
+ * header) is hidden via Tailwind's print:hidden utility on the layout
+ * itself, not here.
  */
 @media print {
-  @page {
-    size: A4;
-    margin: 12mm;
-  }
   body {
     background: #fff !important;
   }
 }
 
 .invoice-thermal {
-  max-width: 302px; /* ~80mm at 96dpi */
+  /* 80mm roll minus the 3mm-per-side @page margin InvoiceView sets in
+     thermal mode, so the on-screen preview's width matches the printed
+     page exactly instead of narrowing to an arbitrary smaller number. */
+  max-width: 74mm;
   font-size: 12px;
 }
 
