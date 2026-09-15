@@ -1,8 +1,9 @@
-import Link from "next/link";
 import { redirect } from "next/navigation";
 import { getSession } from "@/lib/auth";
-import { BhojSetuFrontPageLogo } from "@/components/brand/logo";
 import { ThemeToggle } from "@/components/theme/theme-toggle";
+import { LandingHero } from "@/components/landing/landing-hero";
+import { LandingFeatures } from "@/components/landing/landing-features";
+import { LandingFaq } from "@/components/landing/landing-faq";
 
 const FAQS = [
   {
@@ -38,67 +39,13 @@ export default async function Home() {
   }
 
   return (
-    <div className="relative min-h-screen bg-gradient-to-br from-indigo-50 via-white to-violet-50 dark:from-[#0f0b08] dark:via-[#1a120c] dark:to-[#3d1c05]">
-      <div className="absolute right-4 top-4">
+    <div className="relative min-h-screen overflow-x-hidden bg-gradient-to-br from-indigo-50 via-white to-violet-50 dark:from-[#0f0b08] dark:via-[#1a120c] dark:to-[#3d1c05]">
+      <div className="absolute right-4 top-4 z-20">
         <ThemeToggle />
       </div>
-      <div className="flex flex-col items-center gap-5 px-4 pt-20 pb-16 text-center">
-        {/* The source image is opaque (its own off-white background baked
-            in, not transparent) — a rounded card with a shadow makes that
-            look like a deliberate framed logo instead of a stray square
-            floating over the page, especially against the dark gradient. */}
-        <div className="overflow-hidden rounded-2xl shadow-lg">
-          <BhojSetuFrontPageLogo width={260} />
-        </div>
-        <span className="rounded-full bg-gradient-to-r from-indigo-600 to-violet-600 px-3 py-1 text-xs font-semibold text-white">
-          Real ordering for real restaurants
-        </span>
-        <h1 className="max-w-xl text-3xl font-bold text-gray-900 sm:text-4xl">
-          Your restaurant, online in minutes
-        </h1>
-        <p className="max-w-md text-sm text-gray-600">
-          Have a restaurant? Set up your own storefront below. If you&apos;re a customer, use the
-          ordering link your restaurant gave you (e.g. <code>/r/your-restaurant</code>).
-        </p>
-        <div className="mt-2 flex gap-3">
-          <Link
-            href="/signup"
-            className="rounded-md bg-gradient-to-r from-indigo-600 to-violet-600 px-5 py-2.5 text-sm font-semibold text-white shadow-md shadow-indigo-200 hover:from-indigo-700 hover:to-violet-700"
-          >
-            Set up your restaurant
-          </Link>
-          <Link
-            href="/login"
-            className="rounded-md border border-gray-300 bg-white dark:bg-[#241d17] px-5 py-2.5 text-sm font-semibold text-gray-700 hover:bg-gray-50"
-          >
-            Sign in
-          </Link>
-        </div>
-      </div>
-
-      <section className="mx-auto max-w-3xl px-4 pb-20">
-        <h2 className="mb-6 text-center text-xl font-semibold text-gray-900">
-          Frequently asked questions
-        </h2>
-        <div className="grid gap-3 sm:grid-cols-2">
-          {FAQS.map((faq) => (
-            <details
-              key={faq.q}
-              className="group rounded-lg border border-gray-200 bg-white dark:bg-[#241d17] p-4 shadow-sm open:shadow-md open:ring-1 open:ring-indigo-100"
-            >
-              <summary className="cursor-pointer list-none text-sm font-semibold text-gray-900 marker:content-none">
-                <span className="flex items-start justify-between gap-2">
-                  {faq.q}
-                  <span className="mt-0.5 shrink-0 text-indigo-500 transition-transform group-open:rotate-45">
-                    +
-                  </span>
-                </span>
-              </summary>
-              <p className="mt-2 text-sm text-gray-600">{faq.a}</p>
-            </details>
-          ))}
-        </div>
-      </section>
+      <LandingHero />
+      <LandingFeatures />
+      <LandingFaq faqs={FAQS} />
     </div>
   );
 }

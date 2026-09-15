@@ -282,3 +282,241 @@ body {
     animation: none;
   }
 }
+
+/* Landing-page hero + FAQ motion (src/components/landing/*) — load-once
+   entrance animation in the hero, scroll-triggered entrance + a custom
+   accordion in the FAQ section. All decorative/floating animation is
+   disabled under prefers-reduced-motion (WCAG 2.3.3); the entrance
+   animations degrade to a plain opacity fade instead of disappearing. */
+
+@keyframes hero-float-logo {
+  0% {
+    transform: translateY(0);
+    box-shadow: 0 10px 25px -8px rgba(23, 23, 23, 0.15);
+  }
+  25% {
+    transform: translateY(-10px);
+    box-shadow: 0 18px 28px -10px rgba(23, 23, 23, 0.2);
+  }
+  50% {
+    transform: translateY(0);
+    box-shadow: 0 10px 25px -8px rgba(23, 23, 23, 0.15);
+  }
+  75% {
+    transform: translateY(8px);
+    box-shadow: 0 6px 16px -6px rgba(23, 23, 23, 0.12);
+  }
+  100% {
+    transform: translateY(0);
+    box-shadow: 0 10px 25px -8px rgba(23, 23, 23, 0.15);
+  }
+}
+.animate-hero-logo {
+  animation: hero-float-logo 5.5s ease-in-out infinite;
+}
+
+@keyframes hero-float-fork {
+  0% {
+    transform: translateY(0) rotate(0deg);
+  }
+  25% {
+    transform: translateY(-15px) rotate(-3deg);
+  }
+  50% {
+    transform: translateY(0) rotate(3deg);
+  }
+  75% {
+    transform: translateY(10px) rotate(-2deg);
+  }
+  100% {
+    transform: translateY(0) rotate(0deg);
+  }
+}
+.animate-hero-fork {
+  animation: hero-float-fork 6.5s ease-in-out infinite;
+}
+
+@keyframes hero-float-spoon {
+  0% {
+    transform: translateY(0) rotate(0deg);
+  }
+  25% {
+    transform: translateY(12px) rotate(3deg);
+  }
+  50% {
+    transform: translateY(0) rotate(-3deg);
+  }
+  75% {
+    transform: translateY(-15px) rotate(1deg);
+  }
+  100% {
+    transform: translateY(0) rotate(0deg);
+  }
+}
+.animate-hero-spoon {
+  animation: hero-float-spoon 7s ease-in-out infinite;
+}
+
+/* Generic gentle drift for food particles/blobs — each element supplies its
+   own --particle-x/--particle-y/--particle-r (or --blob-x/--blob-y) and
+   duration as inline custom properties so one keyframe covers all of them. */
+@keyframes hero-float-particle {
+  0%,
+  100% {
+    transform: translate(0, 0) rotate(0deg);
+  }
+  50% {
+    transform: translate(var(--particle-x, 12px), var(--particle-y, -18px)) rotate(var(--particle-r, 12deg));
+  }
+}
+.animate-hero-particle {
+  animation: hero-float-particle var(--particle-duration, 14s) ease-in-out infinite;
+}
+
+@keyframes hero-blob-drift {
+  0%,
+  100% {
+    transform: translate(0, 0);
+  }
+  50% {
+    transform: translate(var(--blob-x, 16px), var(--blob-y, -12px));
+  }
+}
+.animate-hero-blob {
+  animation: hero-blob-drift var(--blob-duration, 16s) ease-in-out infinite;
+}
+
+/* Slow opacity "breathe" for the cutlery glow loop — deliberately no
+   rotation/spin (the brand brief calls out avoiding large rotating
+   objects), just a gentle pulse so the glow doesn't read as static. */
+@keyframes hero-glow-pulse {
+  0%,
+  100% {
+    opacity: 0.45;
+  }
+  50% {
+    opacity: 0.85;
+  }
+}
+.animate-hero-glow {
+  animation: hero-glow-pulse 6.5s ease-in-out infinite;
+}
+
+@keyframes hero-fade-up {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+.animate-hero-badge {
+  animation: hero-fade-up 0.5s ease-out both;
+}
+.animate-hero-headline {
+  animation: hero-fade-up 0.85s ease-out both;
+}
+.animate-hero-paragraph {
+  animation: hero-fade-up 0.55s ease-out both;
+}
+.animate-hero-cta {
+  animation: hero-fade-up 0.6s ease-out both;
+}
+
+/* One-time shimmer sweep across the hero badge, timed to start right after
+   its own fade-in settles. Never repeats (animation-iteration-count: 1). */
+@keyframes hero-badge-shimmer {
+  from {
+    transform: translateX(-120%) skewX(-15deg);
+  }
+  to {
+    transform: translateX(220%) skewX(-15deg);
+  }
+}
+.hero-badge-shimmer::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(115deg, transparent 30%, rgba(255, 255, 255, 0.55) 50%, transparent 70%);
+  animation: hero-badge-shimmer 1.1s ease-out 0.6s 1 both;
+}
+
+/* Generic scroll entrance — toggled by useScrollReveal (landing/*), shared
+   by the FAQ section and the feature-cards section (JS-driven, not
+   CSS-only, so it fires once on scroll into view rather than replaying on
+   every re-render). */
+.reveal {
+  opacity: 0;
+  /* --reveal-delay staggers only the entrance (opacity/transform) —
+     border-color/box-shadow/background-color stay at 0 delay so hovering a
+     card after it has revealed still feels instant, not lagged by whatever
+     stagger position that card had on scroll-in. */
+  transition:
+    opacity 0.6s ease-out var(--reveal-delay, 0s),
+    transform 0.6s ease-out var(--reveal-delay, 0s),
+    border-color 0.25s ease-out,
+    box-shadow 0.25s ease-out,
+    background-color 0.25s ease-out;
+}
+/* :not(.is-visible), not a plain .reveal base transform — so that once
+   revealed, nothing here keeps declaring `transform` and fighting a card's
+   own hover:-translate-y-0.5 lift at equal (0,2,0) specificity. */
+.reveal:not(.is-visible) {
+  transform: translateY(20px);
+}
+.reveal.is-visible {
+  opacity: 1;
+}
+
+/* Accordion height animation via the grid-template-rows 0fr->1fr trick —
+   animates real height with no JS measurement and no layout thrash. */
+.accordion-panel {
+  display: grid;
+  grid-template-rows: 0fr;
+  transition: grid-template-rows 350ms ease;
+}
+.accordion-panel.is-open {
+  grid-template-rows: 1fr;
+}
+.accordion-panel > div {
+  overflow: hidden;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .animate-hero-logo,
+  .animate-hero-fork,
+  .animate-hero-spoon,
+  .animate-hero-particle,
+  .animate-hero-blob {
+    animation: none;
+  }
+  .animate-hero-glow {
+    animation: none;
+    opacity: 0.65;
+  }
+  .hero-badge-shimmer::after {
+    animation: none;
+  }
+  .animate-hero-badge,
+  .animate-hero-headline,
+  .animate-hero-paragraph,
+  .animate-hero-cta {
+    animation: hero-fade-up-reduced 0.3s ease-out both;
+  }
+  .reveal {
+    transform: none;
+    transition: opacity 0.3s ease-out;
+  }
+}
+
+@keyframes hero-fade-up-reduced {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
