@@ -32,7 +32,12 @@ export default async function ResetPasswordPage({
     <div className="relative flex min-h-screen items-center justify-center bg-gradient-to-br from-indigo-50 via-white to-violet-50 dark:from-[#0f0b08] dark:via-[#1a120c] dark:to-[#3d1c05] px-4">
       <div className="absolute right-4 top-4"><ThemeToggle /></div>
       <div className="w-full max-w-sm rounded-xl border border-gray-200 bg-white dark:bg-[#241d17] p-8 shadow-sm">
-        <BhojSetuLogo height={36} className="mb-1" priority />
+        {/* light chip behind the logo so its dark "Bhoj" lettering stays
+            legible against this card's dark-mode background — see
+            login/page.tsx for the full explanation. */}
+        <span className="mb-1 inline-block rounded-md bg-white/95 px-2 py-1">
+          <BhojSetuLogo height={36} priority />
+        </span>
         {check?.valid && token ? (
           <>
             <p className="mb-6 text-sm text-gray-500">Choose a new password for your account.</p>
