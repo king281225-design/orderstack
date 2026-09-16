@@ -285,10 +285,20 @@ model Category {
   name      String
   sortOrder Int      @default(0)
   createdAt DateTime @default(now())
+  // One level of subcategory nesting (e.g. "Main Course" -> "Rice & Biryani"),
+  // used by the AI menu-import wizard (/dashboard/menu/import). SetNull (not
+  // Cascade) so deleting a parent category promotes its subcategories back to
+  // top-level rather than risking a destructive cascade onto real menu items.
+  // Only the wizard creates subcategories today — the manual "add category"
+  // form still only creates top-level categories.
+  parentCategoryId String?
+  parent        Category?  @relation("CategoryHierarchy", fields: [parentCategoryId], references: [id], onDelete: SetNull)
+  subcategories Category[] @relation("CategoryHierarchy")
 
   items Item[]
 
   @@index([tenantId])
+  @@index([parentCategoryId])
   @@map("categories")
 }
 
@@ -302,6 +312,21 @@ model Item {
   description String?  @db.Text
   priceCents  Int
   imageUrl    String?  @db.Text
+  // null = not detectable/not specified on the menu — never guessed. Set by
+  // the AI menu-import wizard (or manual edit) only when the source menu
+  // explicitly marks an item veg/non-veg.
+  isVeg       Boolean?
+  // string[] drawn only from a fixed whitelist (see ALLOWED_TAGS in
+  // src/lib/ai/menu-import.ts) — enforced in application code, not by the
+  // database. Null/empty = no tags.
+  tags        Json?
+  // { label: string; priceCents: number }[] | null — structured size/portion
+  // pricing (e.g. Half/Full) captured by the AI menu-import wizard. When
+  // present, priceCents above is set to the lowest variant's price so every
+  // existing price-reading code path (sorting, analytics, "from ₹x") keeps
+  // working unmodified; variants is the authoritative structured detail used
+  // by the storefront's variant picker (see src/lib/data/orders.ts).
+  variants    Json?
   isAvailable Boolean  @default(true)
   sortOrder   Int      @default(0)
   createdAt   DateTime @default(now())

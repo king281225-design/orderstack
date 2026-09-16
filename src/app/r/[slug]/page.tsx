@@ -17,7 +17,22 @@ export default async function StorefrontPage({
   const tenant = await getTenantBySlug(slug);
   if (!tenant || tenant.status === "SUSPENDED") notFound();
 
-  const categories = await listPublicMenu(tenant.id);
+  const rawCategories = await listPublicMenu(tenant.id);
+  // Prisma's Json columns (tags/variants) come back typed as generic
+  // JsonValue — cast to the shapes createItem/updateItem actually ever
+  // write (see menu-import wizard's publish action), rather than widening
+  // MenuBrowser's own prop types to accept arbitrary JSON.
+  const toPublicItems = (items: (typeof rawCategories)[number]["items"]) =>
+    items.map((item) => ({
+      ...item,
+      tags: (item.tags as string[] | null) ?? null,
+      variants: (item.variants as { label: string; priceCents: number }[] | null) ?? null,
+    }));
+  const categories = rawCategories.map((c) => ({
+    ...c,
+    items: toPublicItems(c.items),
+    subcategories: c.subcategories.map((sc) => ({ ...sc, items: toPublicItems(sc.items) })),
+  }));
 
   return (
     <>

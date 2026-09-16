@@ -8,6 +8,8 @@ export type CartLine = {
   priceCents: number;
   imageUrl: string | null;
   quantity: number;
+  /** Display/convenience cache only, same as name/priceCents above — the server always re-derives the real variant price from Item.variants at checkout, never trusts this. */
+  variantLabel?: string | null;
 };
 
 type CartContextValue = {

@@ -4,10 +4,32 @@ import { getItemsForOrder } from "@/lib/data/menu";
 import { validateCoupon, tryRedeemCoupon, CouponRedemptionLimitError } from "@/lib/data/coupons";
 import type { FulfillmentType, OrderStatus, PaymentMethod, PaymentStatus } from "@prisma/client";
 
-export type CartLine = { itemId: string; quantity: number };
+export type CartLine = { itemId: string; quantity: number; variantLabel?: string | null };
 
 export class EmptyCartError extends Error {}
 export class InvalidItemsError extends Error {}
+
+/**
+ * Resolves a submitted variantLabel against the item's OWN real
+ * Item.variants (a JSON column) — the client only ever sends a label, never
+ * a price, so a tampered cart can't change what a variant actually costs.
+ * Falls back to the item's plain price/name when no variantLabel is
+ * submitted or it doesn't match any real variant.
+ */
+function resolveLinePrice(
+  item: { name: string; priceCents: number; variants: unknown },
+  variantLabel?: string | null,
+): { nameSnapshot: string; priceCentsSnapshot: number } {
+  if (variantLabel && Array.isArray(item.variants)) {
+    const match = (item.variants as { label?: unknown; priceCents?: unknown }[]).find(
+      (v) => typeof v?.label === "string" && v.label === variantLabel && typeof v.priceCents === "number",
+    );
+    if (match && typeof match.priceCents === "number") {
+      return { nameSnapshot: `${item.name} (${variantLabel})`, priceCentsSnapshot: match.priceCents };
+    }
+  }
+  return { nameSnapshot: item.name, priceCentsSnapshot: item.priceCents };
+}
 
 /**
  * Creates an order for a public customer. Prices and item names are always
@@ -46,10 +68,11 @@ export async function createOrder(
   const lines = cart.map((l) => {
     const item = itemMap.get(l.itemId);
     if (!item) throw new InvalidItemsError("One or more items are no longer available.");
+    const { nameSnapshot, priceCentsSnapshot } = resolveLinePrice(item, l.variantLabel);
     return {
       itemId: item.id,
-      nameSnapshot: item.name,
-      priceCentsSnapshot: item.priceCents,
+      nameSnapshot,
+      priceCentsSnapshot,
       quantity: l.quantity,
     };
   });

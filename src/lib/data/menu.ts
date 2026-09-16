@@ -1,4 +1,5 @@
 import "server-only";
+import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { rupeesToCents } from "@/lib/money";
 
@@ -9,12 +10,19 @@ import { rupeesToCents } from "@/lib/money";
  * session (requireTenantSession), never from client input.
  */
 
+/** { label, priceCents }[] structured size/portion pricing — see Item.variants schema comment. */
+export type MenuItemVariant = { label: string; priceCents: number };
+
 export async function listMenuForTenant(tenantId: string) {
   return prisma.category.findMany({
-    where: { tenantId },
+    where: { tenantId, parentCategoryId: null },
     orderBy: { sortOrder: "asc" },
     include: {
       items: { orderBy: { sortOrder: "asc" } },
+      subcategories: {
+        orderBy: { sortOrder: "asc" },
+        include: { items: { orderBy: { sortOrder: "asc" } } },
+      },
     },
   });
 }
@@ -22,22 +30,39 @@ export async function listMenuForTenant(tenantId: string) {
 /** Public storefront: only available items, only for the given tenant. */
 export async function listPublicMenu(tenantId: string) {
   const categories = await prisma.category.findMany({
-    where: { tenantId },
+    where: { tenantId, parentCategoryId: null },
     orderBy: { sortOrder: "asc" },
     include: {
       items: { where: { isAvailable: true }, orderBy: { sortOrder: "asc" } },
+      subcategories: {
+        orderBy: { sortOrder: "asc" },
+        include: {
+          items: { where: { isAvailable: true }, orderBy: { sortOrder: "asc" } },
+        },
+      },
     },
   });
-  return categories.filter((c) => c.items.length > 0);
+  return categories
+    .map((c) => ({ ...c, subcategories: c.subcategories.filter((sc) => sc.items.length > 0) }))
+    .filter((c) => c.items.length > 0 || c.subcategories.length > 0);
 }
 
-export async function createCategory(tenantId: string, name: string) {
+export async function createCategory(
+  tenantId: string,
+  name: string,
+  opts?: { parentCategoryId?: string | null },
+) {
   const last = await prisma.category.findFirst({
     where: { tenantId },
     orderBy: { sortOrder: "desc" },
   });
   return prisma.category.create({
-    data: { tenantId, name, sortOrder: (last?.sortOrder ?? -1) + 1 },
+    data: {
+      tenantId,
+      name,
+      sortOrder: (last?.sortOrder ?? -1) + 1,
+      parentCategoryId: opts?.parentCategoryId ?? null,
+    },
   });
 }
 
@@ -60,6 +85,9 @@ export async function createItem(
     description?: string | null;
     priceCents: number;
     imageUrl?: string | null;
+    isVeg?: boolean | null;
+    tags?: string[] | null;
+    variants?: MenuItemVariant[] | null;
   },
 ) {
   // Confirm the category actually belongs to this tenant before attaching to it.
@@ -79,6 +107,9 @@ export async function createItem(
       description: data.description ?? null,
       priceCents: data.priceCents,
       imageUrl: data.imageUrl ?? null,
+      isVeg: data.isVeg ?? null,
+      tags: data.tags && data.tags.length > 0 ? data.tags : undefined,
+      variants: data.variants && data.variants.length > 0 ? data.variants : undefined,
       sortOrder: (last?.sortOrder ?? -1) + 1,
     },
   });
@@ -94,6 +125,9 @@ export async function updateItem(
     imageUrl: string | null;
     isAvailable: boolean;
     categoryId: string;
+    isVeg: boolean | null;
+    tags: string[] | null;
+    variants: MenuItemVariant[] | null;
   }>,
 ) {
   if (data.categoryId) {
@@ -104,7 +138,19 @@ export async function updateItem(
     });
     if (!category) throw new Error("Category not found for this restaurant.");
   }
-  return prisma.item.updateMany({ where: { id: itemId, tenantId }, data });
+  // Json fields need Prisma.DbNull (not a plain `null`) to explicitly clear
+  // them, and mixing a plain string[] with the rest of `data` otherwise
+  // confuses Prisma's checked/unchecked update-input union — built
+  // separately here rather than spreading the whole partial through as-is.
+  const { tags, variants, ...rest } = data;
+  return prisma.item.updateMany({
+    where: { id: itemId, tenantId },
+    data: {
+      ...rest,
+      ...(tags !== undefined ? { tags: tags && tags.length > 0 ? tags : Prisma.DbNull } : {}),
+      ...(variants !== undefined ? { variants: variants && variants.length > 0 ? variants : Prisma.DbNull } : {}),
+    },
+  });
 }
 
 export async function deleteItem(tenantId: string, itemId: string) {

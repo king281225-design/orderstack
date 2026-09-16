@@ -4,19 +4,167 @@ import { useMemo, useState } from "react";
 import { useCart } from "@/lib/cart";
 import { formatINR } from "@/lib/money";
 
+type PublicVariant = { label: string; priceCents: number };
+
 type PublicItem = {
   id: string;
   name: string;
   description: string | null;
   priceCents: number;
   imageUrl: string | null;
+  isVeg?: boolean | null;
+  tags?: string[] | null;
+  variants?: PublicVariant[] | null;
 };
-type PublicCategory = { id: string; name: string; items: PublicItem[] };
+type PublicCategory = { id: string; name: string; items: PublicItem[]; subcategories?: PublicCategory[] };
 
 // Staggered entrance delay per item, capped so a long menu doesn't make the
 // last rows wait an absurd amount of time before appearing.
 const STAGGER_MS = 35;
 const MAX_STAGGER_INDEX = 12;
+
+function VegDot({ isVeg }: { isVeg: boolean | null | undefined }) {
+  if (isVeg === null || isVeg === undefined) return null;
+  const color = isVeg ? "#16a34a" : "#dc2626";
+  return (
+    <span
+      className="inline-flex h-3.5 w-3.5 shrink-0 items-center justify-center border"
+      style={{ borderColor: color }}
+      aria-label={isVeg ? "Vegetarian" : "Non-vegetarian"}
+      title={isVeg ? "Vegetarian" : "Non-vegetarian"}
+    >
+      <span className="h-1.5 w-1.5 rounded-full" style={{ backgroundColor: color }} />
+    </span>
+  );
+}
+
+function ItemCard({
+  item,
+  qty,
+  staggerDelayMs,
+  onAdd,
+  onSetQuantity,
+}: {
+  item: PublicItem;
+  qty: number;
+  staggerDelayMs: number;
+  onAdd: (args: { itemId: string; name: string; priceCents: number; imageUrl: string | null; variantLabel?: string | null }) => void;
+  onSetQuantity: (itemId: string, quantity: number) => void;
+}) {
+  const variants = item.variants && item.variants.length > 0 ? item.variants : null;
+  const [selectedVariant, setSelectedVariant] = useState(0);
+  const effectivePriceCents = variants ? variants[selectedVariant].priceCents : item.priceCents;
+  const effectiveLabel = variants ? variants[selectedVariant].label : null;
+
+  return (
+    <div
+      className="animate-fade-in-up flex items-center gap-3 p-3 transition-colors hover:bg-black/[0.03]"
+      style={{
+        borderColor: "color-mix(in srgb, var(--brand-card-bg) 85%, black)",
+        animationDelay: `${staggerDelayMs}ms`,
+      }}
+    >
+      {item.imageUrl ? (
+        // eslint-disable-next-line @next/next/no-img-element
+        <img src={item.imageUrl} alt={item.name} className="h-14 w-14 shrink-0 rounded-md object-cover" />
+      ) : (
+        <div
+          className="h-14 w-14 shrink-0 rounded-md"
+          style={{ backgroundColor: "color-mix(in srgb, var(--brand-card-bg) 88%, black)" }}
+        />
+      )}
+      <div className="min-w-0 flex-1">
+        <div className="flex items-center gap-1.5">
+          <VegDot isVeg={item.isVeg} />
+          <p className="truncate text-sm font-medium text-gray-900">{item.name}</p>
+        </div>
+        {item.description && <p className="truncate text-xs text-gray-500">{item.description}</p>}
+        {item.tags && item.tags.length > 0 && (
+          <div className="mt-1 flex flex-wrap gap-1">
+            {item.tags.map((tag) => (
+              <span
+                key={tag}
+                className="rounded px-1.5 py-0.5 text-[10px] font-semibold"
+                style={{
+                  backgroundColor: "color-mix(in srgb, var(--brand-primary) 12%, transparent)",
+                  color: "var(--brand-primary)",
+                }}
+              >
+                {tag}
+              </span>
+            ))}
+          </div>
+        )}
+        {variants && qty === 0 && (
+          <div className="mt-1 flex flex-wrap gap-1">
+            {variants.map((v, i) => (
+              <button
+                key={v.label}
+                type="button"
+                onClick={() => setSelectedVariant(i)}
+                className="rounded-full border px-2 py-0.5 text-[11px] font-medium"
+                style={
+                  i === selectedVariant
+                    ? { backgroundColor: "var(--brand-secondary)", borderColor: "var(--brand-secondary)", color: "white" }
+                    : { borderColor: "var(--brand-secondary)", color: "var(--brand-secondary)" }
+                }
+              >
+                {v.label} · {formatINR(v.priceCents)}
+              </button>
+            ))}
+          </div>
+        )}
+        <span
+          className="mt-1 inline-block rounded px-1.5 py-0.5 text-xs font-semibold"
+          style={{
+            backgroundColor: "color-mix(in srgb, var(--brand-secondary) 15%, transparent)",
+            color: "var(--brand-secondary)",
+          }}
+        >
+          {formatINR(effectivePriceCents)}
+        </span>
+      </div>
+
+      {qty === 0 ? (
+        <button
+          onClick={() =>
+            onAdd({
+              itemId: item.id,
+              name: effectiveLabel ? `${item.name} (${effectiveLabel})` : item.name,
+              priceCents: effectivePriceCents,
+              imageUrl: item.imageUrl,
+              variantLabel: effectiveLabel,
+            })
+          }
+          className="shrink-0 rounded-md px-3 py-1.5 text-sm font-semibold text-white"
+          style={{ backgroundColor: "var(--brand-primary)" }}
+        >
+          Add
+        </button>
+      ) : (
+        <div className="flex shrink-0 items-center gap-2">
+          <button
+            onClick={() => onSetQuantity(item.id, qty - 1)}
+            className="h-7 w-7 rounded-md border text-sm font-semibold"
+            style={{ borderColor: "var(--brand-secondary)", color: "var(--brand-secondary)" }}
+            aria-label={`Remove one ${item.name}`}
+          >
+            −
+          </button>
+          <span className="w-4 text-center text-sm font-medium">{qty}</span>
+          <button
+            onClick={() => onSetQuantity(item.id, qty + 1)}
+            className="h-7 w-7 rounded-md border text-sm font-semibold"
+            style={{ borderColor: "var(--brand-secondary)", color: "var(--brand-secondary)" }}
+            aria-label={`Add one more ${item.name}`}
+          >
+            +
+          </button>
+        </div>
+      )}
+    </div>
+  );
+}
 
 export function MenuBrowser({ categories }: { categories: PublicCategory[] }) {
   const { lines, addItem, setQuantity } = useCart();
@@ -27,22 +175,30 @@ export function MenuBrowser({ categories }: { categories: PublicCategory[] }) {
 
   const visibleCategories = useMemo(() => {
     const q = query.trim().toLowerCase();
+    const filterItems = (items: PublicItem[]) =>
+      q
+        ? items.filter(
+            (item) =>
+              item.name.toLowerCase().includes(q) || (item.description ?? "").toLowerCase().includes(q),
+          )
+        : items;
+
     return categories
       .filter((c) => activeCategoryId === null || c.id === activeCategoryId)
-      .map((c) => ({
-        ...c,
-        items: q
-          ? c.items.filter(
-              (item) =>
-                item.name.toLowerCase().includes(q) ||
-                (item.description ?? "").toLowerCase().includes(q),
-            )
-          : c.items,
-      }))
-      .filter((c) => c.items.length > 0);
+      .map((c) => {
+        const subcategories = (c.subcategories ?? [])
+          .map((sc) => ({ ...sc, items: filterItems(sc.items) }))
+          .filter((sc) => sc.items.length > 0);
+        return { ...c, items: filterItems(c.items), subcategories };
+      })
+      .filter((c) => c.items.length > 0 || c.subcategories.length > 0);
   }, [categories, query, activeCategoryId]);
 
   let renderedIndex = -1; // running count across all visible items, for the stagger delay
+  const nextStaggerDelay = () => {
+    renderedIndex++;
+    return Math.min(renderedIndex, MAX_STAGGER_INDEX) * STAGGER_MS;
+  };
 
   return (
     <div className="mx-auto flex max-w-xl flex-col gap-4 px-4 py-4">
@@ -96,95 +252,50 @@ export function MenuBrowser({ categories }: { categories: PublicCategory[] }) {
           >
             {category.name}
           </h2>
-          <div
-            className="flex flex-col divide-y overflow-hidden rounded-lg border shadow-sm"
-            style={{
-              backgroundColor: "var(--brand-card-bg)",
-              borderColor: "color-mix(in srgb, var(--brand-card-bg) 85%, black)",
-            }}
-          >
-            {category.items.map((item) => {
-              const qty = quantityFor(item.id);
-              renderedIndex++;
-              const staggerIndex = Math.min(renderedIndex, MAX_STAGGER_INDEX);
-              return (
-                <div
+          {category.items.length > 0 && (
+            <div
+              className="flex flex-col divide-y overflow-hidden rounded-lg border shadow-sm"
+              style={{
+                backgroundColor: "var(--brand-card-bg)",
+                borderColor: "color-mix(in srgb, var(--brand-card-bg) 85%, black)",
+              }}
+            >
+              {category.items.map((item) => (
+                <ItemCard
                   key={item.id}
-                  className="animate-fade-in-up flex items-center gap-3 p-3 transition-colors hover:bg-black/[0.03]"
-                  style={{
-                    borderColor: "color-mix(in srgb, var(--brand-card-bg) 85%, black)",
-                    animationDelay: `${staggerIndex * STAGGER_MS}ms`,
-                  }}
-                >
-                  {item.imageUrl ? (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img
-                      src={item.imageUrl}
-                      alt={item.name}
-                      className="h-14 w-14 shrink-0 rounded-md object-cover"
-                    />
-                  ) : (
-                    <div
-                      className="h-14 w-14 shrink-0 rounded-md"
-                      style={{ backgroundColor: "color-mix(in srgb, var(--brand-card-bg) 88%, black)" }}
-                    />
-                  )}
-                  <div className="min-w-0 flex-1">
-                    <p className="truncate text-sm font-medium text-gray-900">{item.name}</p>
-                    {item.description && (
-                      <p className="truncate text-xs text-gray-500">{item.description}</p>
-                    )}
-                    <span
-                      className="mt-1 inline-block rounded px-1.5 py-0.5 text-xs font-semibold"
-                      style={{
-                        backgroundColor: "color-mix(in srgb, var(--brand-secondary) 15%, transparent)",
-                        color: "var(--brand-secondary)",
-                      }}
-                    >
-                      {formatINR(item.priceCents)}
-                    </span>
-                  </div>
+                  item={item}
+                  qty={quantityFor(item.id)}
+                  staggerDelayMs={nextStaggerDelay()}
+                  onAdd={addItem}
+                  onSetQuantity={setQuantity}
+                />
+              ))}
+            </div>
+          )}
 
-                  {qty === 0 ? (
-                    <button
-                      onClick={() =>
-                        addItem({
-                          itemId: item.id,
-                          name: item.name,
-                          priceCents: item.priceCents,
-                          imageUrl: item.imageUrl,
-                        })
-                      }
-                      className="shrink-0 rounded-md px-3 py-1.5 text-sm font-semibold text-white"
-                      style={{ backgroundColor: "var(--brand-primary)" }}
-                    >
-                      Add
-                    </button>
-                  ) : (
-                    <div className="flex shrink-0 items-center gap-2">
-                      <button
-                        onClick={() => setQuantity(item.id, qty - 1)}
-                        className="h-7 w-7 rounded-md border text-sm font-semibold"
-                        style={{ borderColor: "var(--brand-secondary)", color: "var(--brand-secondary)" }}
-                        aria-label={`Remove one ${item.name}`}
-                      >
-                        −
-                      </button>
-                      <span className="w-4 text-center text-sm font-medium">{qty}</span>
-                      <button
-                        onClick={() => setQuantity(item.id, qty + 1)}
-                        className="h-7 w-7 rounded-md border text-sm font-semibold"
-                        style={{ borderColor: "var(--brand-secondary)", color: "var(--brand-secondary)" }}
-                        aria-label={`Add one more ${item.name}`}
-                      >
-                        +
-                      </button>
-                    </div>
-                  )}
-                </div>
-              );
-            })}
-          </div>
+          {(category.subcategories ?? []).map((sub) => (
+            <div key={sub.id} className="mt-3 pl-2">
+              <h3 className="mb-1.5 text-sm font-semibold text-gray-700">{sub.name}</h3>
+              <div
+                className="flex flex-col divide-y overflow-hidden rounded-lg border shadow-sm"
+                style={{
+                  backgroundColor: "var(--brand-card-bg)",
+                  borderColor: "color-mix(in srgb, var(--brand-card-bg) 85%, black)",
+                }}
+              >
+                {sub.items.map((item) => (
+                  <ItemCard
+                    key={item.id}
+                    item={item}
+                    qty={quantityFor(item.id)}
+                    staggerDelayMs={nextStaggerDelay()}
+                    onAdd={addItem}
+                    onSetQuantity={setQuantity}
+                  />
+                ))}
+              </div>
+            </div>
+          ))}
         </section>
       ))}
 
