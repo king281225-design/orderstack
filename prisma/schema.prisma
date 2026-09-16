@@ -86,6 +86,14 @@ enum SubscriptionStatus {
   CANCELLED
 }
 
+// Starter/Advanced monthly vs annual pricing (see src/lib/plans.ts). Each
+// (tier, period) pair gets its own cached Razorpay Plan object — see
+// RazorpayPlan below.
+enum BillingPeriod {
+  MONTHLY
+  ANNUAL
+}
+
 model Tenant {
   id                     String             @id @default(cuid())
   slug                   String             @unique
@@ -208,15 +216,20 @@ model SubscriptionPurchase {
   @@map("subscription_purchases")
 }
 
-// Caches the Razorpay Plan object id created for each PlanTier (see
-// src/lib/plans.ts for the tier prices) so subscribing a tenant doesn't
-// create a duplicate Plan on Razorpay's side every time — created lazily on
-// first use via getOrCreateRazorpayPlanId (src/lib/data/tenants.ts).
+// Caches the Razorpay Plan object id created for each (PlanTier,
+// BillingPeriod) pair (see src/lib/plans.ts for the prices) so subscribing a
+// tenant doesn't create a duplicate Plan on Razorpay's side every time —
+// created lazily on first use via getOrCreateRazorpayPlanId
+// (src/lib/data/tenants.ts). period defaults to MONTHLY so the 3 rows that
+// existed before annual billing was added keep their existing (tier-only)
+// identity under the new composite key.
 model RazorpayPlan {
-  tier      PlanTier @id
+  tier      PlanTier
+  period    BillingPeriod @default(MONTHLY)
   planId    String
-  createdAt DateTime @default(now())
+  createdAt DateTime      @default(now())
 
+  @@id([tier, period])
   @@map("razorpay_plans")
 }
 
@@ -255,6 +268,13 @@ model User {
   name                String?
   createdAt           DateTime             @default(now())
   passwordResetTokens PasswordResetToken[]
+  // Single-device-login enforcement for Starter/Advanced tenants (Business
+  // tenants are exempt — see src/lib/data/sessions.ts). Overwritten every
+  // time this user logs in; a JWT session whose embedded `sid` no longer
+  // matches this value has been superseded by a newer login elsewhere and is
+  // treated as logged out (checked in src/proxy.ts). Null = never logged in,
+  // or the check doesn't apply to this account's tenant.
+  currentSessionId    String?
 
   @@index([tenantId])
   @@map("users")

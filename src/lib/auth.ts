@@ -1,5 +1,6 @@
 import "server-only";
 import { cookies } from "next/headers";
+import { randomUUID } from "crypto";
 import { SignJWT, jwtVerify } from "jose";
 import bcrypt from "bcryptjs";
 import type { Role } from "@prisma/client";
@@ -24,7 +25,19 @@ export type SessionPayload = {
   role: Role;
   tenantId: string | null;
   email: string;
+  // Single-device-login enforcement for Starter/Advanced tenants (see
+  // src/lib/data/sessions.ts and src/proxy.ts) — a fresh random id minted on
+  // every login. A session whose sid no longer matches the user's
+  // currentSessionId in the database has been superseded by a newer login
+  // elsewhere. Absent on tokens issued before this feature shipped, which is
+  // treated the same as a mismatch (forces one re-login, then self-heals).
+  sid: string;
 };
+
+/** A fresh, unguessable per-login identifier — see SessionPayload.sid. */
+export function generateSessionId(): string {
+  return randomUUID();
+}
 
 export async function hashPassword(plain: string): Promise<string> {
   return bcrypt.hash(plain, 10);

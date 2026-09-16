@@ -1,10 +1,9 @@
 import { requireOwnerSession } from "@/lib/auth";
 import { getTenantById } from "@/lib/data/tenants";
 import { isRazorpayConfigured, getRazorpayKeyId } from "@/lib/payments/razorpay";
-import { PLAN_DEFINITIONS, PLAN_TIERS } from "@/lib/plans";
+import { PLAN_DEFINITIONS } from "@/lib/plans";
 import { formatINR } from "@/lib/money";
-import { SubscribeButton } from "@/components/billing/subscribe-button";
-import { WelcomeCouponForm } from "@/components/billing/welcome-coupon-form";
+import { PlanCards } from "@/components/billing/plan-cards";
 import { cancelSubscriptionAction } from "@/app/dashboard/billing/actions";
 
 const STATUS_LABEL: Record<string, string> = {
@@ -97,42 +96,7 @@ export default async function BillingPage({
       </section>
 
       {razorpayReady && !isActive && keyId && (
-        <section>
-          <h3 className="mb-1 text-sm font-semibold text-gray-900">Choose a plan</h3>
-          <p className="mb-3 text-xs text-gray-500">
-            Pick a plan and pay for it yourself, billed automatically every month via Razorpay.
-            Your plan only changes once payment actually goes through — picking one here doesn&apos;t
-            charge anything until you complete the checkout.
-          </p>
-          <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
-            {PLAN_TIERS.map((tier) => {
-              const def = PLAN_DEFINITIONS[tier];
-              return (
-                <div key={tier} className="flex flex-col gap-2 rounded-lg border border-gray-200 bg-white dark:bg-[#241d17] p-4">
-                  <p className="text-sm font-semibold text-gray-900">{def.label}</p>
-                  <p className="text-lg font-semibold text-gray-900">
-                    {formatINR(def.priceCents)}
-                    <span className="text-xs font-normal text-gray-500"> /month</span>
-                  </p>
-                  <ul className="mb-1 flex-1 text-xs text-gray-500">
-                    {def.features.map((f) => (
-                      <li key={f}>• {f}</li>
-                    ))}
-                  </ul>
-                  <SubscribeButton
-                    keyId={keyId}
-                    restaurantName={tenant.name}
-                    tier={tier}
-                    label={`Subscribe to ${def.label}`}
-                  />
-                  {welcomeCouponEligible && (
-                    <WelcomeCouponForm keyId={keyId} restaurantName={tenant.name} tier={tier} />
-                  )}
-                </div>
-              );
-            })}
-          </div>
-        </section>
+        <PlanCards keyId={keyId} restaurantName={tenant.name} welcomeCouponEligible={welcomeCouponEligible} />
       )}
     </div>
   );

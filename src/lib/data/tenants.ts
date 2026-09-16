@@ -1,8 +1,8 @@
 import "server-only";
 import { prisma } from "@/lib/prisma";
 import { hashPassword } from "@/lib/auth";
-import type { PlanTier, SubscriptionStatus } from "@prisma/client";
-import { PLAN_DEFINITIONS } from "@/lib/plans";
+import type { BillingPeriod, PlanTier, SubscriptionStatus } from "@prisma/client";
+import { PLAN_DEFINITIONS, getPlanPriceCents } from "@/lib/plans";
 import {
   createRazorpayPlan,
   createRazorpaySubscription,
@@ -267,25 +267,25 @@ export async function setTenantSubscriptionOverride(tenantId: string, active: bo
  * extractRazorpayErrorMessage) and matching on message text would be
  * fragile.
  */
-export async function getOrCreateRazorpayPlanId(tier: PlanTier): Promise<string> {
-  const cached = await prisma.razorpayPlan.findUnique({ where: { tier } });
+export async function getOrCreateRazorpayPlanId(tier: PlanTier, period: BillingPeriod = "MONTHLY"): Promise<string> {
+  const cached = await prisma.razorpayPlan.findUnique({ where: { tier_period: { tier, period } } });
   if (cached) {
     try {
       await fetchRazorpayPlan(cached.planId);
       return cached.planId;
     } catch {
-      await prisma.razorpayPlan.delete({ where: { tier } });
+      await prisma.razorpayPlan.delete({ where: { tier_period: { tier, period } } });
     }
   }
 
   const def = PLAN_DEFINITIONS[tier];
   const plan = await createRazorpayPlan({
-    name: `BhojSetu ${def.label}`,
-    amountCents: def.priceCents,
-    period: "monthly",
+    name: `BhojSetu ${def.label} (${period === "ANNUAL" ? "Annual" : "Monthly"})`,
+    amountCents: getPlanPriceCents(tier, period),
+    period: period === "ANNUAL" ? "yearly" : "monthly",
     interval: 1,
   });
-  await prisma.razorpayPlan.create({ data: { tier, planId: plan.id } });
+  await prisma.razorpayPlan.create({ data: { tier, period, planId: plan.id } });
   return plan.id;
 }
 
@@ -298,16 +298,17 @@ export async function getOrCreateRazorpayPlanId(tier: PlanTier): Promise<string>
  * setSubscriptionStatusByRazorpaySubscriptionId below) — so a tenant is
  * never shown as "on" a paid plan it hasn't paid for.
  */
-export async function startTenantSubscription(tenantId: string, tier: PlanTier) {
+export async function startTenantSubscription(tenantId: string, tier: PlanTier, period: BillingPeriod = "MONTHLY") {
   const tenant = await prisma.tenant.findUnique({ where: { id: tenantId } });
   if (!tenant) throw new Error("Restaurant not found.");
 
-  const planId = await getOrCreateRazorpayPlanId(tier);
+  const planId = await getOrCreateRazorpayPlanId(tier, period);
   // Razorpay subscriptions require a fixed number of billing cycles, not
-  // "until cancelled" — 120 monthly cycles (10 years) stands in for
-  // indefinite; renew/replace manually if BhojSetu is still running past
-  // that, which is a real limit worth revisiting well before it's hit.
-  const subscription = await createRazorpaySubscription(planId, 120);
+  // "until cancelled" — 120 monthly cycles / 10 annual cycles (10 years
+  // either way) stand in for indefinite; renew/replace manually if BhojSetu
+  // is still running past that, which is a real limit worth revisiting well
+  // before it's hit.
+  const subscription = await createRazorpaySubscription(planId, period === "ANNUAL" ? 10 : 120);
 
   await prisma.tenant.update({
     where: { id: tenantId },

@@ -1,6 +1,7 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { verifySessionToken } from "@/lib/auth";
 import { getTenantByCustomDomain, getTenantTrialStatus } from "@/lib/data/tenants";
+import { isSessionStillActive } from "@/lib/data/sessions";
 
 const COOKIE_NAME = "os_session";
 
@@ -42,6 +43,21 @@ export async function proxy(request: NextRequest) {
 
   if (isDashboard && (!session || (session.role !== "OWNER" && session.role !== "STAFF"))) {
     return NextResponse.redirect(new URL("/login", request.url));
+  }
+
+  // Single-device-login enforcement (Starter/Advanced tenants — see
+  // src/lib/data/sessions.ts; Business tenants are exempt). Checked before
+  // the trial gate and on every dashboard path including /dashboard/billing
+  // itself, since a superseded session shouldn't be able to reach anything,
+  // not even to pay. Clears the now-invalid cookie so the redirect doesn't
+  // loop back here.
+  if (isDashboard && session && (session.role === "OWNER" || session.role === "STAFF") && session.tenantId) {
+    const stillActive = await isSessionStillActive(session.sub, session.sid, session.tenantId);
+    if (!stillActive) {
+      const response = NextResponse.redirect(new URL("/login?loggedOutElsewhere=1", request.url));
+      response.cookies.delete(COOKIE_NAME);
+      return response;
+    }
   }
 
   // Trial gate — only once we know it's a real owner/staff session, and

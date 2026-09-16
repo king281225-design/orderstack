@@ -34,6 +34,7 @@ export default async function SuperAdminPage() {
                   {formatINR(def.priceCents)}
                   <span className="text-xs font-normal text-gray-500">/mo</span>
                 </p>
+                <p className="text-xs text-gray-400">or {formatINR(def.annualPriceCents)}/yr</p>
                 <ul className="mt-2 flex flex-col gap-0.5 text-xs text-gray-500">
                   {def.features.map((f) => (
                     <li key={f}>• {f}</li>

@@ -4,7 +4,7 @@ import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { startSubscriptionAction, verifySubscriptionAction } from "@/app/dashboard/billing/actions";
 import { loadRazorpayCheckout, openRazorpayCheckout, PREFER_UPI_METHOD } from "@/lib/razorpay-client";
-import type { PlanTier } from "@prisma/client";
+import type { BillingPeriod, PlanTier } from "@prisma/client";
 
 /**
  * Starts a real recurring Razorpay subscription for one specific plan tier
@@ -17,11 +17,13 @@ export function SubscribeButton({
   keyId,
   restaurantName,
   tier,
+  period = "MONTHLY",
   label,
 }: {
   keyId: string;
   restaurantName: string;
   tier: PlanTier;
+  period?: BillingPeriod;
   /** Button text, e.g. "Subscribe to Starter — ₹499/mo". Defaults to a generic label if omitted. */
   label?: string;
 }) {
@@ -32,7 +34,7 @@ export function SubscribeButton({
   function handleSubscribe() {
     setError(null);
     startTransition(async () => {
-      const result = await startSubscriptionAction(tier);
+      const result = await startSubscriptionAction(tier, period);
       if (result.error || !result.subscriptionId) {
         setError(result.error ?? "Could not start a subscription.");
         return;

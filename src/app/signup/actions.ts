@@ -1,13 +1,14 @@
 "use server";
 
 import { redirect } from "next/navigation";
-import { createSession } from "@/lib/auth";
+import { createSession, generateSessionId } from "@/lib/auth";
 import {
   createTenantWithOwner,
   isValidSlug,
   SlugTakenError,
   EmailTakenError,
 } from "@/lib/data/tenants";
+import { setUserActiveSession } from "@/lib/data/sessions";
 
 export type SignupState = { error: string | null };
 
@@ -60,11 +61,14 @@ export async function signupAction(_prev: SignupState, formData: FormData): Prom
   }
 
   const owner = tenant.users[0];
+  const sid = generateSessionId();
+  await setUserActiveSession(owner.id, sid);
   await createSession({
     sub: owner.id,
     role: owner.role,
     tenantId: owner.tenantId,
     email: owner.email,
+    sid,
   });
 
   redirect("/dashboard");
