@@ -54,3 +54,6 @@ next-env.d.ts
 *.traineddata
 
 .vercel
+
+.vercel
+.env*
