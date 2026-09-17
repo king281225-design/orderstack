@@ -123,7 +123,14 @@ export async function createOrder(
     discountCents = computed;
   }
 
-  const totalCents = Math.max(0, subtotalCents - discountCents);
+  // GST on customer storefront orders, same rate/mechanism as manual bills
+  // (createManualOrder below) — computed server-side from the tenant's own
+  // configured rate, never trusted from the client's own order-summary
+  // preview (checkout-form.tsx shows the same math for display only).
+  const tenant = await prisma.tenant.findUnique({ where: { id: tenantId }, select: { gstRate: true } });
+  const taxableCents = Math.max(0, subtotalCents - discountCents);
+  const taxCents = tenant?.gstRate && tenant.gstRate > 0 ? Math.round((taxableCents * tenant.gstRate) / 100) : 0;
+  const totalCents = taxableCents + taxCents;
 
   return prisma.order.create({
     data: {
@@ -138,6 +145,8 @@ export async function createOrder(
       paymentMethod: input.paymentMethod,
       notes: input.notes ?? null,
       subtotalCents,
+      taxCents,
+      gstRatePercent: taxCents > 0 ? tenant!.gstRate : null,
       totalCents,
       couponId,
       couponCode,
@@ -212,6 +221,7 @@ export async function createManualOrder(
       subtotalCents,
       discountCents,
       taxCents,
+      gstRatePercent: taxCents > 0 ? gstRate : null,
       totalCents,
       // Manual bills are typically settled on the spot — a manually-created
       // order still starts PENDING/UNPAID like any other, the owner marks it

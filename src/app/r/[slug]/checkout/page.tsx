@@ -22,6 +22,8 @@ export default async function CheckoutPage({
         restaurantName={tenant.name}
         hasUpi={Boolean(tenant.upiId)}
         hasRazorpay={isCustomerCheckoutRazorpayEnabled() && isRazorpayConfigured()}
+        gstRate={tenant.gstRate}
+        businessState={tenant.businessState}
         deliveryZone={
           tenant.latitude != null && tenant.longitude != null && tenant.deliveryRadiusKm != null
             ? { latitude: tenant.latitude, longitude: tenant.longitude, radiusKm: tenant.deliveryRadiusKm }

@@ -10,6 +10,7 @@ import {
   markPaymentStatus,
 } from "@/lib/data/orders";
 import { sendOwnerNewOrderEmail, sendCustomerOrderConfirmationEmail } from "@/lib/notifications/email";
+import { createWaiterCall } from "@/lib/data/waiter-calls";
 import {
   validateCoupon,
   CouponNotFoundError,
@@ -214,5 +215,25 @@ export async function verifyRazorpayPaymentAction(
   if (!valid) return { ok: false };
 
   await markPaymentStatus(tenant.id, orderId, "PAID", razorpayPaymentId);
+  return { ok: true };
+}
+
+export type CallWaiterResult = { ok: boolean; error?: string };
+
+/**
+ * A dine-in customer pressing "Call waiter" (src/components/storefront/
+ * waiter-call-button.tsx) — the table label comes from the cart context,
+ * which only ever gets it from a real table QR scan (see
+ * CaptureTableParam), never typed in freely, so no length/format
+ * validation beyond "non-empty" is needed here.
+ */
+export async function callWaiterAction(slug: string, tableLabel: string): Promise<CallWaiterResult> {
+  const tenant = await getTenantBySlug(slug);
+  if (!tenant || tenant.status === "SUSPENDED") return { ok: false, error: "Restaurant not found." };
+
+  const trimmed = tableLabel.trim();
+  if (!trimmed) return { ok: false, error: "No table found — please rescan the table's QR code." };
+
+  await createWaiterCall(tenant.id, trimmed);
   return { ok: true };
 }

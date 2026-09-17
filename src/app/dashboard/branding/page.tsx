@@ -26,6 +26,7 @@ export default async function BrandingPage() {
         gstRate={tenant.gstRate}
         businessAddress={tenant.businessAddress}
         gstin={tenant.gstin}
+        businessState={tenant.businessState}
       />
     </div>
   );

@@ -19,12 +19,18 @@ export function CheckoutForm({
   restaurantName,
   hasUpi,
   hasRazorpay,
+  gstRate,
+  businessState,
   deliveryZone,
 }: {
   slug: string;
   restaurantName: string;
   hasUpi: boolean;
   hasRazorpay: boolean;
+  /** Null means no tax is added — matches how createOrder itself decides whether to charge GST. */
+  gstRate: number | null;
+  /** When set alongside gstRate, the tax preview below splits into CGST+SGST — same rule as the printed manual-bill invoice. */
+  businessState: string | null;
   /** Null if the owner hasn't set a delivery radius — the whole zone check is then a no-op. */
   deliveryZone: DeliveryZone | null;
 }) {
@@ -122,7 +128,18 @@ export function CheckoutForm({
   }
 
   const discountCents = appliedCoupon?.discountCents ?? 0;
-  const payableCents = Math.max(0, totalCents - discountCents);
+  const taxableCents = Math.max(0, totalCents - discountCents);
+  // Preview only, for the customer's own benefit before they submit — the
+  // actual charge is always recomputed from the tenant's live gstRate
+  // inside createOrder itself, same "never trust the client" rule as the
+  // cart's item prices and the coupon discount above.
+  const taxCents = gstRate && gstRate > 0 ? Math.round((taxableCents * gstRate) / 100) : 0;
+  const showGstSplit = taxCents > 0 && Boolean(businessState);
+  const halfGstRate = showGstSplit ? gstRate! / 2 : 0;
+  const sgstCents = showGstSplit ? Math.floor(taxCents / 2) : 0;
+  const cgstCents = showGstSplit ? taxCents - sgstCents : 0;
+  const payableCents = taxableCents + taxCents;
+  const showTotalRow = Boolean(appliedCoupon) || taxCents > 0;
 
   if (lines.length === 0) {
     return (
@@ -240,8 +257,8 @@ export function CheckoutForm({
         </ul>
         <div className="mt-2 border-t border-gray-100 pt-2 text-sm">
           <div className="flex justify-between">
-            <span className={appliedCoupon ? "text-gray-500" : "font-semibold"}>Subtotal</span>
-            <span className={appliedCoupon ? "text-gray-500" : "font-semibold"}>
+            <span className={showTotalRow ? "text-gray-500" : "font-semibold"}>Subtotal</span>
+            <span className={showTotalRow ? "text-gray-500" : "font-semibold"}>
               {formatINR(totalCents)}
             </span>
           </div>
@@ -251,7 +268,25 @@ export function CheckoutForm({
               <span>−{formatINR(discountCents)}</span>
             </div>
           )}
-          {appliedCoupon && (
+          {taxCents > 0 && !showGstSplit && (
+            <div className="flex justify-between text-gray-500">
+              <span>Tax / GST</span>
+              <span>+ {formatINR(taxCents)}</span>
+            </div>
+          )}
+          {showGstSplit && (
+            <>
+              <div className="flex justify-between text-gray-500">
+                <span>CGST @ {halfGstRate}%</span>
+                <span>+ {formatINR(cgstCents)}</span>
+              </div>
+              <div className="flex justify-between text-gray-500">
+                <span>SGST @ {halfGstRate}%</span>
+                <span>+ {formatINR(sgstCents)}</span>
+              </div>
+            </>
+          )}
+          {showTotalRow && (
             <div className="mt-1 flex justify-between border-t border-gray-100 pt-1 font-semibold">
               <span>Total</span>
               <span>{formatINR(payableCents)}</span>

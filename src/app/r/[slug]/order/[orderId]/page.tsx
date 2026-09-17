@@ -27,6 +27,16 @@ export default async function OrderStatusPage({
   const order = await getOrderForTenant(tenant.id, orderId);
   if (!order) notFound();
 
+  // Same rule as the manual-bill printed invoice (invoice-view.tsx): a
+  // customer is always in the same state as the restaurant they're
+  // ordering from, so a configured state means CGST+SGST, never IGST — just
+  // the compliant way to present the same tax amount that already exists
+  // whenever gstRatePercent is set.
+  const showGstSplit = order.taxCents > 0 && Boolean(tenant.businessState) && order.gstRatePercent != null;
+  const halfGstRate = showGstSplit ? order.gstRatePercent! / 2 : 0;
+  const sgstCents = showGstSplit ? Math.floor(order.taxCents / 2) : 0;
+  const cgstCents = showGstSplit ? order.taxCents - sgstCents : 0;
+
   const showQr = order.paymentMethod === "UPI" && Boolean(tenant.upiId) && order.status !== "CANCELLED";
   const qr = showQr
     ? await buildUpiQr({
@@ -93,15 +103,33 @@ export default async function OrderStatusPage({
           ))}
         </ul>
         <div className="mt-2 border-t border-gray-100 pt-2 text-sm">
+          {(order.discountCents > 0 || order.taxCents > 0) && (
+            <div className="flex justify-between text-gray-500">
+              <span>Subtotal</span>
+              <span>{formatINR(order.subtotalCents)}</span>
+            </div>
+          )}
           {order.discountCents > 0 && (
+            <div className="flex justify-between text-green-700">
+              <span>Coupon {order.couponCode}</span>
+              <span>−{formatINR(order.discountCents)}</span>
+            </div>
+          )}
+          {order.taxCents > 0 && !showGstSplit && (
+            <div className="flex justify-between text-gray-500">
+              <span>Tax / GST</span>
+              <span>+ {formatINR(order.taxCents)}</span>
+            </div>
+          )}
+          {showGstSplit && (
             <>
               <div className="flex justify-between text-gray-500">
-                <span>Subtotal</span>
-                <span>{formatINR(order.subtotalCents)}</span>
+                <span>CGST @ {halfGstRate}%</span>
+                <span>+ {formatINR(cgstCents)}</span>
               </div>
-              <div className="flex justify-between text-green-700">
-                <span>Coupon {order.couponCode}</span>
-                <span>−{formatINR(order.discountCents)}</span>
+              <div className="flex justify-between text-gray-500">
+                <span>SGST @ {halfGstRate}%</span>
+                <span>+ {formatINR(sgstCents)}</span>
               </div>
             </>
           )}

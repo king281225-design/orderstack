@@ -191,6 +191,7 @@ function OrderCard({
             Coupon {order.couponCode} (−{formatINR(order.discountCents)})
           </span>
         )}
+        {order.taxCents > 0 && <span className="text-gray-500">+GST {formatINR(order.taxCents)}</span>}
         <span
           className={`rounded-full px-2 py-0.5 text-xs font-medium ${
             order.paymentStatus === "PAID"

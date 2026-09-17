@@ -9,6 +9,7 @@ type InvoiceLine = { id: string; nameSnapshot: string; priceCentsSnapshot: numbe
 export function InvoiceView({
   tenantName,
   businessAddress,
+  businessState,
   gstin,
   invoiceNumber,
   createdAt,
@@ -20,12 +21,15 @@ export function InvoiceView({
   discountCents,
   couponCode,
   taxCents,
+  gstRatePercent,
   totalCents,
   paymentMethod,
   paymentStatus,
 }: {
   tenantName: string;
   businessAddress: string | null;
+  /** When set, the tax line below splits into CGST+SGST instead of one combined line — see the Tenant.businessState schema comment. */
+  businessState: string | null;
   gstin: string | null;
   invoiceNumber: string;
   createdAt: string;
@@ -37,10 +41,23 @@ export function InvoiceView({
   discountCents: number;
   couponCode: string | null;
   taxCents: number;
+  /** Snapshotted at order time — see Order.gstRatePercent. Null on orders placed before this existed, or with no tax. */
+  gstRatePercent: number | null;
   totalCents: number;
   paymentMethod: string;
   paymentStatus: string;
 }) {
+  // A dine-in/walk-in customer is always in the same state as the
+  // restaurant, so once a state is on file this is always an intra-state
+  // supply — CGST + SGST, each half the total rate, never IGST. Falls back
+  // to the old single combined line when either piece of data is missing
+  // (older orders placed before gstRatePercent existed, or a tenant that
+  // hasn't set a state yet) so nothing changes for them.
+  const showGstSplit = taxCents > 0 && businessState && gstRatePercent != null;
+  const halfRate = showGstSplit ? gstRatePercent! / 2 : 0;
+  const sgstCents = showGstSplit ? Math.floor(taxCents / 2) : 0;
+  const cgstCents = showGstSplit ? taxCents - sgstCents : 0;
+
   const [thermal, setThermal] = useState(false);
 
   return (
@@ -61,6 +78,7 @@ export function InvoiceView({
           <h1 className="text-xl font-bold">{tenantName}</h1>
           {businessAddress && <p className="text-xs text-gray-600 whitespace-pre-line">{businessAddress}</p>}
           {gstin && <p className="text-xs text-gray-600">GSTIN: {gstin}</p>}
+          {businessState && <p className="text-xs text-gray-600">Place of supply: {businessState}</p>}
         </header>
 
         <div className="mb-4 flex flex-wrap justify-between gap-2 text-sm">
@@ -102,7 +120,13 @@ export function InvoiceView({
           {discountCents > 0 && (
             <Row label={`Discount${couponCode ? ` (${couponCode})` : ""}`} value={`− ${formatINR(discountCents)}`} />
           )}
-          {taxCents > 0 && <Row label="Tax / GST" value={`+ ${formatINR(taxCents)}`} />}
+          {taxCents > 0 && !showGstSplit && <Row label="Tax / GST" value={`+ ${formatINR(taxCents)}`} />}
+          {showGstSplit && (
+            <>
+              <Row label={`CGST @ ${halfRate}%`} value={`+ ${formatINR(cgstCents)}`} />
+              <Row label={`SGST @ ${halfRate}%`} value={`+ ${formatINR(sgstCents)}`} />
+            </>
+          )}
           <Row label="Grand total" value={formatINR(totalCents)} bold />
           <Row label="Payment method" value={paymentMethod} />
           <Row label="Payment status" value={paymentStatus} />

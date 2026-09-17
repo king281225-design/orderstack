@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useState } from "react";
 import { ThemeToggle } from "@/components/theme/theme-toggle";
+import { NotificationBell, type PendingWaiterCall } from "@/components/dashboard/notification-bell";
 
 export type DashboardNavLink = { href: string; label: string };
 
@@ -28,12 +29,18 @@ export function DashboardHeader({
   isOpen,
   links,
   logoutAction,
+  pendingOrderCount,
+  waiterCalls,
+  acknowledgeWaiterCallAction,
 }: {
   tenantName: string;
   tenantSlug: string;
   isOpen: boolean;
   links: DashboardNavLink[];
   logoutAction: () => Promise<void>;
+  pendingOrderCount: number;
+  waiterCalls: PendingWaiterCall[];
+  acknowledgeWaiterCallAction: (id: string) => Promise<void>;
 }) {
   const [menuOpen, setMenuOpen] = useState(false);
 
@@ -55,6 +62,11 @@ export function DashboardHeader({
         </div>
 
         <div className="flex shrink-0 items-center gap-1">
+          <NotificationBell
+            pendingOrderCount={pendingOrderCount}
+            waiterCalls={waiterCalls}
+            acknowledgeAction={acknowledgeWaiterCallAction}
+          />
           <ThemeToggle variant="header" />
           <form action={logoutAction} className="hidden md:block">
             <button type="submit" className="text-sm text-white/80 hover:text-white">

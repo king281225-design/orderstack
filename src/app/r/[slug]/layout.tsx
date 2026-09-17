@@ -5,6 +5,7 @@ import { getActivePromotableCoupons } from "@/lib/data/coupons";
 import { CartProvider } from "@/lib/cart";
 import { CartBar } from "@/components/storefront/cart-bar";
 import { PromoBar } from "@/components/storefront/promo-bar";
+import { WaiterCallButton } from "@/components/storefront/waiter-call-button";
 
 // Always render at request time — this reads live tenant/menu/order data
 // from Postgres, which build-time static generation has no access to.
@@ -74,6 +75,7 @@ export default async function StorefrontLayout({
 
         <div className="flex-1 pb-20">{children}</div>
 
+        <WaiterCallButton slug={slug} />
         <CartBar slug={slug} isOpen={tenant.isOpen} />
       </div>
     </CartProvider>

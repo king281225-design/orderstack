@@ -9,6 +9,7 @@ import {
   DomainTakenError,
 } from "@/lib/data/tenants";
 import { saveUpload } from "@/lib/storage";
+import { INDIA_STATES } from "@/lib/india-states";
 
 export type BrandingState = { error: string | null; success: boolean };
 
@@ -157,6 +158,7 @@ export async function updateBillingSettingsAction(
   const gstRateRaw = String(formData.get("gstRate") ?? "").trim();
   const businessAddress = String(formData.get("businessAddress") ?? "").trim();
   const gstin = String(formData.get("gstin") ?? "").trim();
+  const businessStateRaw = String(formData.get("businessState") ?? "").trim();
 
   let gstRate: number | null = null;
   if (gstRateRaw) {
@@ -166,10 +168,17 @@ export async function updateBillingSettingsAction(
     }
   }
 
+  // Only ever accept one of the fixed dropdown values — never freeform text
+  // from a tampered request — so invoice-view.tsx's "is this set" check
+  // stays a reliable signal.
+  const businessState =
+    businessStateRaw && (INDIA_STATES as readonly string[]).includes(businessStateRaw) ? businessStateRaw : null;
+
   await updateTenantBranding(session.tenantId, {
     gstRate,
     businessAddress: businessAddress || null,
     gstin: gstin || null,
+    businessState,
   });
 
   revalidatePath("/dashboard/branding");

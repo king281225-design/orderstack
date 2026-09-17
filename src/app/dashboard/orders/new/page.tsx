@@ -1,7 +1,28 @@
 import { requireTenantSession } from "@/lib/auth";
-import { listMenuForTenant } from "@/lib/data/menu";
+import { listMenuForTenant, type MenuItemVariant } from "@/lib/data/menu";
 import { getTenantById } from "@/lib/data/tenants";
-import { ManualOrderForm } from "@/components/orders/manual-order-form";
+import { ManualOrderForm, type PickableMenuItem } from "@/components/orders/manual-order-form";
+
+function isVariantArray(v: unknown): v is MenuItemVariant[] {
+  return Array.isArray(v) && v.every((r) => typeof r?.label === "string" && typeof r?.priceCents === "number");
+}
+
+/**
+ * Expands each item into one pickable entry per Half/Full-style variant
+ * (labeled "Item (Half)"/"Item (Full)" so they're distinct, searchable
+ * options) instead of the single flat item.priceCents — which is just the
+ * *lowest* variant's price (see variant-rows-editor.tsx) and previously left
+ * staff with no way to actually pick Full from the "+ Add from menu" quick-
+ * pick or the inline search.
+ */
+function toPickableItems(items: { name: string; priceCents: number; variants: unknown }[]): PickableMenuItem[] {
+  return items.flatMap((i) => {
+    if (isVariantArray(i.variants) && i.variants.length > 0) {
+      return i.variants.map((v) => ({ name: `${i.name} (${v.label})`, priceCents: v.priceCents }));
+    }
+    return [{ name: i.name, priceCents: i.priceCents }];
+  });
+}
 
 export default async function NewOrderPage() {
   const session = await requireTenantSession();
@@ -10,9 +31,10 @@ export default async function NewOrderPage() {
     getTenantById(session.tenantId),
   ]);
 
-  const menuItems = categories.flatMap((c) =>
-    c.items.map((i) => ({ name: i.name, priceCents: i.priceCents })),
-  );
+  const menuItems = categories.flatMap((c) => [
+    ...toPickableItems(c.items),
+    ...c.subcategories.flatMap((sc) => toPickableItems(sc.items)),
+  ]);
 
   return (
     <div className="flex flex-col gap-4">

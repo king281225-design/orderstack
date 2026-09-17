@@ -68,6 +68,11 @@ enum OrderSource {
   MANUAL
 }
 
+enum WaiterCallStatus {
+  PENDING
+  ACKNOWLEDGED
+}
+
 // Pricing/feature copy for each tier lives in code (src/lib/plans.ts), not
 // here — this just records which tier a tenant is on. Assigned manually by
 // the super-admin for now: real recurring auto-billing needs both real
@@ -163,6 +168,15 @@ model Tenant {
   // restaurant's registered address/GSTIN/phone, typed once in Settings.
   businessAddress         String?            @db.Text
   gstin                   String?
+  // Indian state/UT the restaurant is registered in (see src/lib/india-states.ts
+  // for the fixed dropdown list) — printed on the invoice as the GST "place
+  // of supply", and its presence is what switches a manual bill's printed
+  // invoice from a single "Tax/GST" line to a proper CGST+SGST split (see
+  // Order.gstRatePercent below and invoice-view.tsx). A dine-in/walk-in
+  // customer is essentially always in the same state as the restaurant, so
+  // this deliberately doesn't model interstate IGST — just the correct
+  // compliant presentation of the same total tax amount.
+  businessState           String?
   // Set the first (and only) time this tenant redeems WELCOME100 on a ₹499
   // Starter plan purchase (see startTenantSubscription's welcomeCode param) —
   // a non-null value means "already used," independent of whether that
@@ -187,8 +201,31 @@ model Tenant {
   coupons               Coupon[]
   subscriptionPurchases SubscriptionPurchase[]
   itemAddOns            ItemAddOn[]
+  waiterCalls           WaiterCall[]
 
   @@map("tenants")
+}
+
+/**
+ * A dine-in customer pressing "Call waiter" on a table's QR-linked storefront
+ * (see src/components/storefront/waiter-call-button.tsx) — no order
+ * required, just a table number and a timestamp. Shown to the owner/staff as
+ * a badge + sound on the dashboard bell (src/components/dashboard/
+ * notification-bell.tsx) until acknowledged. Deliberately a separate,
+ * lightweight model rather than reusing Order — a waiter call isn't a
+ * purchase and has no line items, payment, or status flow of its own.
+ */
+model WaiterCall {
+  id             String           @id @default(cuid())
+  tenantId       String
+  tenant         Tenant           @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  tableLabel     String
+  status         WaiterCallStatus @default(PENDING)
+  createdAt      DateTime         @default(now())
+  acknowledgedAt DateTime?
+
+  @@index([tenantId, status])
+  @@map("waiter_calls")
 }
 
 /**
@@ -429,11 +466,21 @@ model Order {
   // (whose value/status can change or be deleted after the fact).
   subtotalCents      Int
   // GST/tax amount, computed server-side at order time from the tenant's
-  // gstRate (see createManualOrder) and snapshotted here for the same reason
-  // discountCents is — a later change to the tenant's rate must never shift
-  // a historical order's total. Always 0 for storefront customer orders
-  // (menu pricing doesn't currently include a tax line).
+  // gstRate (see createOrder/createManualOrder) and snapshotted here for the
+  // same reason discountCents is — a later change to the tenant's rate must
+  // never shift a historical order's total. Zero whenever the tenant has no
+  // gstRate configured — applies to storefront customer orders too (added
+  // on top of the item prices at checkout, same rate as manual bills), not
+  // just manually-created ones.
   taxCents           Int             @default(0)
+  // The GST % actually used to compute taxCents above, snapshotted for the
+  // same reason taxCents itself is (a later change to the tenant's rate must
+  // never reshape a historical invoice) — null whenever taxCents is 0. Only
+  // this, plus the tenant's *current* businessState, is needed to render a
+  // compliant CGST+SGST split on the printed invoice (see invoice-view.tsx);
+  // businessState itself isn't snapshotted since it's a display/format
+  // choice, not a monetary value.
+  gstRatePercent     Float?
   totalCents         Int
   couponId           String?
   coupon             Coupon?         @relation(fields: [couponId], references: [id], onDelete: SetNull)

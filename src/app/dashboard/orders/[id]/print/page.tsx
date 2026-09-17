@@ -27,6 +27,7 @@ export default async function PrintInvoicePage({ params }: { params: Promise<{ i
     <InvoiceView
       tenantName={tenant.name}
       businessAddress={tenant.businessAddress}
+      businessState={tenant.businessState}
       gstin={tenant.gstin}
       invoiceNumber={`INV-${order.orderNumber}`}
       createdAt={order.createdAt.toLocaleString("en-IN")}
@@ -38,6 +39,7 @@ export default async function PrintInvoicePage({ params }: { params: Promise<{ i
       discountCents={order.discountCents}
       couponCode={order.couponCode}
       taxCents={order.taxCents}
+      gstRatePercent={order.gstRatePercent}
       totalCents={order.totalCents}
       paymentMethod={PAYMENT_METHOD_LABEL[order.paymentMethod] ?? order.paymentMethod}
       paymentStatus={order.paymentStatus}

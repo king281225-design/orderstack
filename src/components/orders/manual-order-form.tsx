@@ -10,11 +10,14 @@ type Line = { name: string; priceRupees: string; quantity: string };
 
 const emptyLine: Line = { name: "", priceRupees: "", quantity: "1" };
 
+/** One pickable entry — a flat-priced item, or one Half/Full-style variant of one (see orders/new/page.tsx's toPickableItems). */
+export type PickableMenuItem = { name: string; priceCents: number };
+
 export function ManualOrderForm({
   menuItems,
   defaultGstRate,
 }: {
-  menuItems: { name: string; priceCents: number }[];
+  menuItems: PickableMenuItem[];
   defaultGstRate: number | null;
 }) {
   const [state, formAction, pending] = useActionState(createManualOrderAction, initialState);
@@ -62,7 +65,18 @@ export function ManualOrderForm({
   }
 
   function selectSuggestion(index: number, item: { name: string; priceCents: number }) {
-    updateLine(index, { name: item.name, priceRupees: (item.priceCents / 100).toString() });
+    setLines((prev) => {
+      const next = prev.map((l, i) =>
+        i === index ? { ...l, name: item.name, priceRupees: (item.priceCents / 100).toString() } : l,
+      );
+      // Picking a suggestion while typing into the very last row is the
+      // common "keep adding items" flow — appending a fresh blank row right
+      // after gives immediate, obvious visual confirmation the click did
+      // something (the row you clicked into fills in AND a new one appears
+      // below it), instead of a silent in-place update that's easy to miss.
+      if (index === prev.length - 1) next.push({ ...emptyLine });
+      return next;
+    });
     setSuggestFor(null);
   }
 

@@ -1,6 +1,9 @@
 import { redirect } from "next/navigation";
 import { getSession } from "@/lib/auth";
 import { getTenantById } from "@/lib/data/tenants";
+import { listOrdersForTenant } from "@/lib/data/orders";
+import { listPendingWaiterCalls } from "@/lib/data/waiter-calls";
+import { acknowledgeWaiterCallAction } from "@/app/dashboard/actions";
 import { logoutAction } from "@/app/logout/actions";
 import { tierHasFeature } from "@/lib/plans";
 import { DashboardHeader, type DashboardNavLink } from "@/components/dashboard/dashboard-header";
@@ -13,7 +16,11 @@ export default async function DashboardLayout({ children }: { children: React.Re
     redirect("/login");
   }
 
-  const tenant = await getTenantById(session.tenantId);
+  const [tenant, pendingOrders, waiterCalls] = await Promise.all([
+    getTenantById(session.tenantId),
+    listOrdersForTenant(session.tenantId, ["PENDING"]),
+    listPendingWaiterCalls(session.tenantId),
+  ]);
   if (!tenant) redirect("/login");
 
   const isOwner = session.role === "OWNER";
@@ -50,6 +57,9 @@ export default async function DashboardLayout({ children }: { children: React.Re
         isOpen={tenant.isOpen}
         links={links}
         logoutAction={logoutAction}
+        pendingOrderCount={pendingOrders.length}
+        waiterCalls={waiterCalls.map((c) => ({ id: c.id, tableLabel: c.tableLabel }))}
+        acknowledgeWaiterCallAction={acknowledgeWaiterCallAction}
       />
       <main className="mx-auto max-w-5xl px-4 py-6">{children}</main>
     </div>

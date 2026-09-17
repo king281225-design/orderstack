@@ -200,6 +200,7 @@ export async function updateTenantBranding(
     gstRate?: number | null;
     businessAddress?: string | null;
     gstin?: string | null;
+    businessState?: string | null;
   },
 ) {
   return prisma.tenant.update({ where: { id: tenantId }, data });

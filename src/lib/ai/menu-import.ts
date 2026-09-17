@@ -295,6 +295,47 @@ const isNoiseLine = (text: string) => noiseRe.test(text) || /^[+\d][\d\s\-()]{8,
 const variantLineRe =
   /^(half|full|regular|large|small|medium|quarter|mini|jumbo)\b[^0-9₹]{0,20}(?:₹|rs\.?|inr)?\s*([0-9]{1,5}(?:[.,][0-9]{1,2})?)\s*(?:\/-)?\s*$/i;
 
+// Real Indian restaurant menus at least as often print Half/Full pricing on
+// the SAME line as the dish (a two-column layout collapsed by OCR/plain-text
+// extraction into one line) as they do on a separate line below it
+// (variantLineRe above). Two shapes are recognized: the words "Half"/"Full"
+// each followed by their own price anywhere on the line, or a bare
+// "120/220" pair right at the end (the universal cheaper-first convention —
+// guarded by requiring the first number to be <= the second, so an
+// unrelated fraction-like "5/10" ratio elsewhere in a description can't be
+// mistaken for a price pair).
+const halfFullWordsRe =
+  /\bhalf\b\D{0,15}?([0-9]{1,5}(?:[.,][0-9]{1,2})?)\D{0,20}?\bfull\b\D{0,15}?([0-9]{1,5}(?:[.,][0-9]{1,2})?)/i;
+const slashPairRe =
+  /(?:₹|rs\.?|inr)?\s*([0-9]{2,5}(?:[.,][0-9]{1,2})?)\s*\/\s*(?:₹|rs\.?|inr)?\s*([0-9]{2,5}(?:[.,][0-9]{1,2})?)\s*(?:\/-)?\s*$/i;
+
+/** Same-line Half/Full detection — tried before the plain single-price regex in parseLines. */
+function detectSameLineHalfFull(line: string): { nameOnly: string; variants: ExtractedVariant[] } | null {
+  const wordsMatch = line.match(halfFullWordsRe);
+  if (wordsMatch && wordsMatch.index !== undefined) {
+    const half = Number(wordsMatch[1].replace(",", "."));
+    const full = Number(wordsMatch[2].replace(",", "."));
+    if (Number.isFinite(half) && Number.isFinite(full) && half > 0 && full > 0) {
+      const nameOnly = line.slice(0, wordsMatch.index).replace(/[.\-_\s]+$/g, "").trim();
+      if (nameOnly.length > 0 && /[a-zA-Z]/.test(nameOnly)) {
+        return { nameOnly, variants: [{ label: "Half", priceRupees: half }, { label: "Full", priceRupees: full }] };
+      }
+    }
+  }
+  const slashMatch = line.match(slashPairRe);
+  if (slashMatch && slashMatch.index !== undefined) {
+    const first = Number(slashMatch[1].replace(",", "."));
+    const second = Number(slashMatch[2].replace(",", "."));
+    if (Number.isFinite(first) && Number.isFinite(second) && first > 0 && second > 0 && first <= second) {
+      const nameOnly = line.slice(0, slashMatch.index).replace(/[.\-_\s]+$/g, "").trim();
+      if (nameOnly.length > 0 && /[a-zA-Z]/.test(nameOnly)) {
+        return { nameOnly, variants: [{ label: "Half", priceRupees: first }, { label: "Full", priceRupees: second }] };
+      }
+    }
+  }
+  return null;
+}
+
 const NON_VEG_MARKER = /\bnon[-\s]?veg(?:etarian)?\b/i;
 const VEG_MARKER = /\bveg(?:etarian)?\b/i;
 const NON_VEG_KEYWORDS =
@@ -323,7 +364,15 @@ function detectTags(text: string): MenuItemTag[] {
   return tags;
 }
 
-type ParsedLine = { text: string; price: number | null; nameOnly: string; confidence: number; page: number };
+type ParsedLine = {
+  text: string;
+  price: number | null;
+  nameOnly: string;
+  confidence: number;
+  page: number;
+  /** Set when the line itself carries a same-line Half/Full pair — see detectSameLineHalfFull. */
+  variants?: ExtractedVariant[] | null;
+};
 
 function parseLines(chunks: TextChunk[]): ParsedLine[] {
   const out: ParsedLine[] = [];
@@ -335,6 +384,20 @@ function parseLines(chunks: TextChunk[]): ParsedLine[] {
 
     for (const line of lines) {
       if (isNoiseLine(line)) continue;
+
+      const sameLineVariant = detectSameLineHalfFull(line);
+      if (sameLineVariant) {
+        out.push({
+          text: line,
+          price: null,
+          nameOnly: sameLineVariant.nameOnly,
+          confidence: chunk.confidence,
+          page: chunk.page,
+          variants: sameLineVariant.variants,
+        });
+        continue;
+      }
+
       const m = line.match(priceRe);
       if (!m || m.index === undefined) {
         out.push({ text: line, price: null, nameOnly: line, confidence: chunk.confidence, page: chunk.page });
@@ -412,7 +475,10 @@ export function parseMenuChunks(chunks: TextChunk[], fileIndex: number): Extract
   const looksLikeHeadingAt = (i: number, text: string) => {
     const shapeMatches = text.length <= 30 && /[a-zA-Z]/.test(text) && !/[0-9]/.test(text);
     if (!shapeMatches) return false;
-    if (!parsed.slice(i + 1, i + 6).some((next) => next.price !== null)) return false;
+    const hasNearbyPrice = parsed
+      .slice(i + 1, i + 6)
+      .some((next) => next.price !== null || (next.variants && next.variants.length > 0));
+    if (!hasNearbyPrice) return false;
     if (isAllCaps(text) || categoryKeywordRe.test(text)) return true;
     return current === null;
   };
@@ -447,6 +513,18 @@ export function parseMenuChunks(chunks: TextChunk[], fileIndex: number): Extract
         lastLineWasItem = true;
         continue;
       }
+    }
+
+    // A same-line Half/Full pair detected in parseLines (detectSameLineHalfFull)
+    // — build the item with structured variants directly, bypassing the
+    // single-price branch below entirely.
+    if (p.variants && p.variants.length > 0) {
+      const item = makeItem(p.nameOnly, p.text, null, fileIndex, p.page, p.confidence);
+      item.variants = p.variants;
+      item.needsReview = computeNeedsReview(null, p.variants, p.confidence);
+      ensureCategory().items.push(item);
+      lastLineWasItem = true;
+      continue;
     }
 
     // A real dish name has at least one letter — a bare price, a stray
