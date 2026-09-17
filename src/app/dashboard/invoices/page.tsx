@@ -14,7 +14,8 @@ export default async function InvoicesPage() {
       <h2 className="text-lg font-semibold text-gray-900">Invoices ({orders.length})</h2>
       <p className="text-sm text-gray-500">
         Every order — storefront or manually billed — gets a unique invoice number. Open one to
-        print it or save it as a PDF.
+        print it (including to a thermal/receipt printer, via the narrow-width toggle on the
+        invoice page) or save it as a PDF — no separate POS or kitchen-printer system needed.
       </p>
       {orders.length === 0 ? (
         <p className="text-sm text-gray-500">No orders yet.</p>

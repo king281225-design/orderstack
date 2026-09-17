@@ -9,6 +9,9 @@ import {
   type MenuActionState,
 } from "@/app/dashboard/menu/actions";
 import { formatINR } from "@/lib/money";
+import { ALLOWED_TAGS } from "@/lib/menu-wizard/constants";
+import { VariantRowsEditor, type VariantRow } from "@/components/menu/variant-rows-editor";
+import { ItemAddOnsManager } from "@/components/menu/item-addons-manager";
 
 const initialState: MenuActionState = { error: null };
 
@@ -20,7 +23,17 @@ type Item = {
   imageUrl: string | null;
   isAvailable: boolean;
   categoryId: string;
+  variants?: unknown;
+  tags?: unknown;
+  addOns?: { id: string; name: string; priceCents: number; isAvailable: boolean }[];
 };
+
+function isVariantArray(v: unknown): v is { label: string; priceCents: number }[] {
+  return Array.isArray(v);
+}
+function isTagArray(v: unknown): v is string[] {
+  return Array.isArray(v);
+}
 
 export function ItemRow({
   item,
@@ -32,6 +45,11 @@ export function ItemRow({
   const [editing, setEditing] = useState(false);
   const boundAction = updateItemAction.bind(null, item.id);
   const [state, formAction, pending] = useActionState(boundAction, initialState);
+  const existingVariants = isVariantArray(item.variants) ? item.variants : [];
+  const existingTags = new Set(isTagArray(item.tags) ? item.tags : []);
+  const [variantRows, setVariantRows] = useState<VariantRow[]>(
+    existingVariants.map((v) => ({ label: v.label, price: (v.priceCents / 100).toString() })),
+  );
 
   // Close the edit form automatically once a save actually succeeds. Not
   // done via useEffect (react-hooks/set-state-in-effect forbids a
@@ -107,6 +125,21 @@ export function ItemRow({
             />
           </label>
 
+          <VariantRowsEditor rows={variantRows} onChange={setVariantRows} />
+          <input type="hidden" name="variantsJson" value={JSON.stringify(variantRows)} />
+
+          <div className="col-span-full flex flex-col gap-1.5 text-xs font-medium text-gray-600">
+            <span>Tags (optional)</span>
+            <div className="flex flex-wrap gap-3">
+              {ALLOWED_TAGS.map((tag) => (
+                <label key={tag} className="flex items-center gap-1.5 font-normal text-gray-700">
+                  <input type="checkbox" name="tags" value={tag} defaultChecked={existingTags.has(tag)} />
+                  {tag}
+                </label>
+              ))}
+            </div>
+          </div>
+
           {state.error && <p className="col-span-full text-sm text-red-600">{state.error}</p>}
 
           <div className="col-span-full flex gap-2">
@@ -147,6 +180,7 @@ export function ItemRow({
       <div className="min-w-0 flex-1">
         <p className="truncate text-sm font-medium text-gray-900">{item.name}</p>
         {item.description && <p className="truncate text-xs text-gray-500">{item.description}</p>}
+        <ItemAddOnsManager itemId={item.id} addOns={item.addOns ?? []} />
       </div>
       <span className="text-sm font-medium text-gray-700">{formatINR(item.priceCents)}</span>
       <form action={toggleItemAvailableAction.bind(null, item.id, !item.isAvailable)}>

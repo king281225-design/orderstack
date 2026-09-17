@@ -4,6 +4,9 @@ import { ThemeToggle } from "@/components/theme/theme-toggle";
 import { LandingHero } from "@/components/landing/landing-hero";
 import { LandingFeatures } from "@/components/landing/landing-features";
 import { LandingFaq } from "@/components/landing/landing-faq";
+import { PublicPricingTable } from "@/components/marketing/public-pricing-table";
+import { TrustBadges } from "@/components/marketing/trust-badges";
+import { TestimonialsSection, TESTIMONIALS } from "@/components/marketing/testimonials-section";
 
 const FAQS = [
   {
@@ -30,6 +33,10 @@ const FAQS = [
     q: "Is my restaurant's data kept separate from other restaurants?",
     a: "Yes — every restaurant's menu, orders, and customers are fully isolated at the database level. Nothing is ever shared or mixed between restaurants.",
   },
+  {
+    q: "Does this work with my POS system or kitchen printer?",
+    a: "There's no separate POS terminal to buy — bills, invoices, and kitchen tickets print straight from your browser to any printer you already use, including thermal/receipt printers, right from your Orders and Billing pages. If you need a deeper integration with a specific POS system, get in touch and we'll see what's possible.",
+  },
 ];
 
 export default async function Home() {
@@ -45,6 +52,9 @@ export default async function Home() {
       </div>
       <LandingHero />
       <LandingFeatures />
+      <PublicPricingTable />
+      <TrustBadges />
+      <TestimonialsSection testimonials={TESTIMONIALS} />
       <LandingFaq faqs={FAQS} />
     </div>
   );

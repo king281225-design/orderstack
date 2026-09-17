@@ -18,27 +18,32 @@ export async function listMenuForTenant(tenantId: string) {
     where: { tenantId, parentCategoryId: null },
     orderBy: { sortOrder: "asc" },
     include: {
-      items: { orderBy: { sortOrder: "asc" } },
+      items: { orderBy: { sortOrder: "asc" }, include: { addOns: { orderBy: { sortOrder: "asc" } } } },
       subcategories: {
         orderBy: { sortOrder: "asc" },
-        include: { items: { orderBy: { sortOrder: "asc" } } },
+        include: {
+          items: { orderBy: { sortOrder: "asc" }, include: { addOns: { orderBy: { sortOrder: "asc" } } } },
+        },
       },
     },
   });
 }
 
-/** Public storefront: only available items, only for the given tenant. */
+/** Public storefront: only available items (and only available add-ons on them), only for the given tenant. */
 export async function listPublicMenu(tenantId: string) {
+  const itemsArgs = {
+    where: { isAvailable: true },
+    orderBy: { sortOrder: "asc" as const },
+    include: { addOns: { where: { isAvailable: true }, orderBy: { sortOrder: "asc" as const } } },
+  };
   const categories = await prisma.category.findMany({
     where: { tenantId, parentCategoryId: null },
     orderBy: { sortOrder: "asc" },
     include: {
-      items: { where: { isAvailable: true }, orderBy: { sortOrder: "asc" } },
+      items: itemsArgs,
       subcategories: {
         orderBy: { sortOrder: "asc" },
-        include: {
-          items: { where: { isAvailable: true }, orderBy: { sortOrder: "asc" } },
-        },
+        include: { items: itemsArgs },
       },
     },
   });
@@ -157,10 +162,40 @@ export async function deleteItem(tenantId: string, itemId: string) {
   return prisma.item.deleteMany({ where: { id: itemId, tenantId } });
 }
 
+/** Add/remove only (no rename) — same MVP scope as the rest of this file. */
+export async function createItemAddOn(
+  tenantId: string,
+  itemId: string,
+  data: { name: string; priceCents: number },
+) {
+  const item = await prisma.item.findFirst({ where: { id: itemId, tenantId } });
+  if (!item) throw new Error("Item not found for this restaurant.");
+
+  const last = await prisma.itemAddOn.findFirst({ where: { tenantId, itemId }, orderBy: { sortOrder: "desc" } });
+  return prisma.itemAddOn.create({
+    data: {
+      tenantId,
+      itemId,
+      name: data.name,
+      priceCents: data.priceCents,
+      sortOrder: (last?.sortOrder ?? -1) + 1,
+    },
+  });
+}
+
+export async function toggleItemAddOnAvailable(tenantId: string, addOnId: string, isAvailable: boolean) {
+  return prisma.itemAddOn.updateMany({ where: { id: addOnId, tenantId }, data: { isAvailable } });
+}
+
+export async function deleteItemAddOn(tenantId: string, addOnId: string) {
+  return prisma.itemAddOn.deleteMany({ where: { id: addOnId, tenantId } });
+}
+
 /** Re-derives price/name server-side from tenant-scoped items — never trust cart prices from the client. */
 export async function getItemsForOrder(tenantId: string, itemIds: string[]) {
   return prisma.item.findMany({
     where: { tenantId, id: { in: itemIds }, isAvailable: true },
+    include: { addOns: { where: { isAvailable: true } } },
   });
 }
 

@@ -5,6 +5,7 @@ import { useCart } from "@/lib/cart";
 import { formatINR } from "@/lib/money";
 
 type PublicVariant = { label: string; priceCents: number };
+type PublicAddOn = { id: string; name: string; priceCents: number };
 
 type PublicItem = {
   id: string;
@@ -15,6 +16,7 @@ type PublicItem = {
   isVeg?: boolean | null;
   tags?: string[] | null;
   variants?: PublicVariant[] | null;
+  addOns?: PublicAddOn[] | null;
 };
 type PublicCategory = { id: string; name: string; items: PublicItem[]; subcategories?: PublicCategory[] };
 
@@ -48,13 +50,28 @@ function ItemCard({
   item: PublicItem;
   qty: number;
   staggerDelayMs: number;
-  onAdd: (args: { itemId: string; name: string; priceCents: number; imageUrl: string | null; variantLabel?: string | null }) => void;
+  onAdd: (args: {
+    itemId: string;
+    name: string;
+    priceCents: number;
+    imageUrl: string | null;
+    variantLabel?: string | null;
+    addOnIds?: string[] | null;
+  }) => void;
   onSetQuantity: (itemId: string, quantity: number) => void;
 }) {
   const variants = item.variants && item.variants.length > 0 ? item.variants : null;
+  const addOns = item.addOns && item.addOns.length > 0 ? item.addOns : null;
   const [selectedVariant, setSelectedVariant] = useState(0);
-  const effectivePriceCents = variants ? variants[selectedVariant].priceCents : item.priceCents;
+  const [selectedAddOnIds, setSelectedAddOnIds] = useState<string[]>([]);
+  const basePriceCents = variants ? variants[selectedVariant].priceCents : item.priceCents;
+  const selectedAddOns = addOns ? addOns.filter((a) => selectedAddOnIds.includes(a.id)) : [];
+  const effectivePriceCents = basePriceCents + selectedAddOns.reduce((sum, a) => sum + a.priceCents, 0);
   const effectiveLabel = variants ? variants[selectedVariant].label : null;
+
+  function toggleAddOn(id: string) {
+    setSelectedAddOnIds((prev) => (prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]));
+  }
 
   return (
     <div
@@ -114,6 +131,32 @@ function ItemCard({
             ))}
           </div>
         )}
+        {addOns && qty === 0 && (
+          <div className="mt-1 flex flex-wrap gap-2">
+            {addOns.map((a) => {
+              const checked = selectedAddOnIds.includes(a.id);
+              return (
+                <label
+                  key={a.id}
+                  className="flex cursor-pointer items-center gap-1 rounded-full border px-2 py-0.5 text-[11px] font-medium"
+                  style={
+                    checked
+                      ? { backgroundColor: "var(--brand-secondary)", borderColor: "var(--brand-secondary)", color: "white" }
+                      : { borderColor: "var(--brand-secondary)", color: "var(--brand-secondary)" }
+                  }
+                >
+                  <input
+                    type="checkbox"
+                    checked={checked}
+                    onChange={() => toggleAddOn(a.id)}
+                    className="sr-only"
+                  />
+                  + {a.name} ({formatINR(a.priceCents)})
+                </label>
+              );
+            })}
+          </div>
+        )}
         <span
           className="mt-1 inline-block rounded px-1.5 py-0.5 text-xs font-semibold"
           style={{
@@ -127,15 +170,18 @@ function ItemCard({
 
       {qty === 0 ? (
         <button
-          onClick={() =>
+          onClick={() => {
+            const baseName = effectiveLabel ? `${item.name} (${effectiveLabel})` : item.name;
+            const name = selectedAddOns.length > 0 ? `${baseName} + ${selectedAddOns.map((a) => a.name).join(", ")}` : baseName;
             onAdd({
               itemId: item.id,
-              name: effectiveLabel ? `${item.name} (${effectiveLabel})` : item.name,
+              name,
               priceCents: effectivePriceCents,
               imageUrl: item.imageUrl,
               variantLabel: effectiveLabel,
-            })
-          }
+              addOnIds: selectedAddOnIds.length > 0 ? selectedAddOnIds : null,
+            });
+          }}
           className="shrink-0 rounded-md px-3 py-1.5 text-sm font-semibold text-white"
           style={{ backgroundColor: "var(--brand-primary)" }}
         >

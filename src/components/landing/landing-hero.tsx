@@ -15,6 +15,7 @@ import {
   TomatoSliceIcon,
 } from "@/components/landing/hero-decorations";
 import { ScooterIcon, ShoppingBagIcon, StorefrontIcon, TrendingUpIcon } from "@/components/landing/feature-icons";
+import { buildWhatsAppUrl, DEMO_STOREFRONT_SLUG } from "@/lib/contact";
 
 /**
  * Desktop-only mouse parallax on the logo card, fork, spoon and background
@@ -185,18 +186,33 @@ export function LandingHero() {
         ordering link your restaurant gave you (e.g. <code>/r/your-restaurant</code>).
       </p>
 
-      <div className="animate-hero-cta relative z-10 mt-2 flex gap-3" style={{ animationDelay: "550ms" }}>
+      <div className="animate-hero-cta relative z-10 mt-2 flex flex-wrap justify-center gap-3" style={{ animationDelay: "550ms" }}>
         <Link
           href="/signup"
           className="rounded-md bg-gradient-to-r from-indigo-600 to-violet-600 px-5 py-2.5 text-sm font-semibold text-white shadow-md shadow-indigo-200 transition-all duration-300 ease-out hover:-translate-y-0.5 hover:scale-[1.02] hover:from-indigo-700 hover:to-violet-700 hover:shadow-[0_10px_25px_-5px_rgba(232,93,4,0.45)] active:scale-[0.98] dark:shadow-none"
         >
           Set up your restaurant
         </Link>
+        <a
+          href={buildWhatsAppUrl("Hi, I'd like to book a demo of BhojSetu for my restaurant.")}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="rounded-md border border-indigo-300 bg-indigo-50 px-5 py-2.5 text-sm font-semibold text-indigo-700 transition-all duration-[250ms] ease-out hover:-translate-y-0.5 hover:bg-indigo-100 dark:border-indigo-400/40 dark:bg-indigo-500/10 dark:text-indigo-300 dark:hover:bg-indigo-500/20"
+        >
+          Book a demo
+        </a>
         <Link
           href="/login"
           className="rounded-md border border-gray-300 bg-white px-5 py-2.5 text-sm font-semibold text-gray-700 transition-all duration-[250ms] ease-out hover:-translate-y-0.5 hover:border-indigo-400 hover:bg-indigo-50/60 dark:bg-[#241d17] dark:hover:bg-[#2e2016]"
         >
           Sign in
+        </Link>
+      </div>
+
+      <div className="animate-hero-cta relative z-10 flex flex-col items-center gap-1 text-xs text-gray-500" style={{ animationDelay: "620ms" }}>
+        <span>No card required — start free</span>
+        <Link href={`/r/${DEMO_STOREFRONT_SLUG}`} target="_blank" className="font-medium text-indigo-600 hover:underline dark:text-indigo-400">
+          See a live demo →
         </Link>
       </div>
 

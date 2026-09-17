@@ -5,16 +5,49 @@ import { requireTenantSession } from "@/lib/auth";
 import {
   createCategory,
   createItem,
+  createItemAddOn,
   deleteCategory,
   deleteItem,
+  deleteItemAddOn,
   hasAnyMenuItems,
   renameCategory,
   seedSampleMenu,
+  toggleItemAddOnAvailable,
   updateItem,
+  type MenuItemVariant,
 } from "@/lib/data/menu";
 import { updateTenantMenuDocument } from "@/lib/data/tenants";
 import { rupeesToCents } from "@/lib/money";
 import { saveUpload } from "@/lib/storage";
+import { ALLOWED_TAGS, type MenuItemTag } from "@/lib/menu-wizard/constants";
+
+const ALLOWED_TAG_SET = new Set<string>(ALLOWED_TAGS);
+
+/** Parses the hidden variantsJson field a form submits — see VariantRowsEditor. Silently drops incomplete/invalid rows rather than erroring, since a half-filled row is more likely an in-progress edit than intentional. */
+function parseVariantsField(formData: FormData): MenuItemVariant[] {
+  const raw = String(formData.get("variantsJson") ?? "[]");
+  let rows: { label?: unknown; price?: unknown }[];
+  try {
+    rows = JSON.parse(raw);
+  } catch {
+    return [];
+  }
+  if (!Array.isArray(rows)) return [];
+  const out: MenuItemVariant[] = [];
+  for (const r of rows) {
+    const label = typeof r.label === "string" ? r.label.trim() : "";
+    const priceCents = typeof r.price === "string" || typeof r.price === "number" ? rupeesToCents(r.price) : 0;
+    if (label && priceCents > 0) out.push({ label, priceCents });
+  }
+  return out;
+}
+
+function parseTagsField(formData: FormData): MenuItemTag[] {
+  return formData
+    .getAll("tags")
+    .map((t) => String(t))
+    .filter((t): t is MenuItemTag => ALLOWED_TAG_SET.has(t));
+}
 
 export type MenuActionState = { error: string | null };
 const ok: MenuActionState = { error: null };
@@ -73,7 +106,11 @@ export async function createItemAction(
   if (!categoryId || !name || !price) {
     return { error: "Name, price, and category are required." };
   }
-  const priceCents = rupeesToCents(price);
+  const variants = parseVariantsField(formData);
+  // Same rule the AI-import wizard already uses: when variants exist, the
+  // item's own priceCents is the lowest variant's price — the plain Price
+  // field above becomes a fallback for items with no variants.
+  const priceCents = variants.length > 0 ? Math.min(...variants.map((v) => v.priceCents)) : rupeesToCents(price);
   if (priceCents <= 0) return { error: "Enter a valid price." };
 
   let imageUrl: string | null = null;
@@ -87,6 +124,8 @@ export async function createItemAction(
       description: description || null,
       priceCents,
       imageUrl,
+      variants: variants.length > 0 ? variants : null,
+      tags: parseTagsField(formData),
     });
   } catch (err) {
     return { error: err instanceof Error ? err.message : "Could not add item." };
@@ -124,7 +163,8 @@ export async function updateItemAction(
   if (!categoryId || !name || !price) {
     return { error: "Name, price, and category are required." };
   }
-  const priceCents = rupeesToCents(price);
+  const variants = parseVariantsField(formData);
+  const priceCents = variants.length > 0 ? Math.min(...variants.map((v) => v.priceCents)) : rupeesToCents(price);
   if (priceCents <= 0) return { error: "Enter a valid price." };
 
   let imageUrl: string | undefined;
@@ -138,6 +178,8 @@ export async function updateItemAction(
       name,
       description: description || null,
       priceCents,
+      variants: variants.length > 0 ? variants : null,
+      tags: parseTagsField(formData),
       ...(imageUrl ? { imageUrl } : {}),
     });
   } catch (err) {
@@ -146,6 +188,40 @@ export async function updateItemAction(
 
   revalidatePath("/dashboard/menu");
   return ok;
+}
+
+export async function createItemAddOnAction(
+  itemId: string,
+  _prev: MenuActionState,
+  formData: FormData,
+): Promise<MenuActionState> {
+  const session = await requireTenantSession();
+  const name = String(formData.get("name") ?? "").trim();
+  const price = String(formData.get("price") ?? "");
+  if (!name || !price) return { error: "Name and price are required." };
+  const priceCents = rupeesToCents(price);
+  if (priceCents <= 0) return { error: "Enter a valid price." };
+
+  try {
+    await createItemAddOn(session.tenantId, itemId, { name, priceCents });
+  } catch (err) {
+    return { error: err instanceof Error ? err.message : "Could not add the add-on." };
+  }
+
+  revalidatePath("/dashboard/menu");
+  return ok;
+}
+
+export async function toggleItemAddOnAvailableAction(addOnId: string, isAvailable: boolean) {
+  const session = await requireTenantSession();
+  await toggleItemAddOnAvailable(session.tenantId, addOnId, isAvailable);
+  revalidatePath("/dashboard/menu");
+}
+
+export async function deleteItemAddOnAction(addOnId: string) {
+  const session = await requireTenantSession();
+  await deleteItemAddOn(session.tenantId, addOnId);
+  revalidatePath("/dashboard/menu");
 }
 
 export async function deleteItemAction(itemId: string) {

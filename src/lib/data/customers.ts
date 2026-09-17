@@ -59,9 +59,40 @@ export async function listCustomersForTenant(tenantId: string) {
     }
   }
 
-  return Array.from(byPhone.values()).sort(
-    (a, b) => b.lastOrderAt.getTime() - a.lastOrderAt.getTime(),
-  );
+  return Array.from(byPhone.values())
+    .map((c) => ({ ...c, loyaltyPoints: loyaltyPointsFor(c.totalSpentCents) }))
+    .sort((a, b) => b.lastOrderAt.getTime() - a.lastOrderAt.getTime());
+}
+
+/**
+ * A simple, fixed points-per-spend rule (1 point per ₹10) rather than a
+ * stored balance — consistent with this file's own "no separate table,
+ * derive from Order rows" approach above, and with an auto-applied
+ * discount-on-Nth-order left out of scope (redeeming points isn't wired
+ * into checkout; an owner who wants to reward a specific repeat customer
+ * can already do that manually with the existing Coupon system). Points
+ * are shown for recognition/reporting, not spent anywhere yet.
+ */
+function loyaltyPointsFor(totalSpentCents: number): number {
+  return Math.floor(totalSpentCents / 1000);
+}
+
+/** CSV export for the Customers page — see /api/dashboard/customers/export. */
+export function customersToCsv(
+  customers: { name: string; phone: string; email: string | null; orderCount: number; totalSpentCents: number; loyaltyPoints: number; lastOrderAt: Date }[],
+): string {
+  const escape = (v: string) => `"${v.replace(/"/g, '""')}"`;
+  const header = ["Name", "Phone", "Email", "Orders", "Total spent (₹)", "Loyalty points", "Last order"];
+  const rows = customers.map((c) => [
+    c.name,
+    c.phone,
+    c.email ?? "",
+    String(c.orderCount),
+    (c.totalSpentCents / 100).toFixed(2),
+    String(c.loyaltyPoints),
+    c.lastOrderAt.toISOString(),
+  ]);
+  return [header, ...rows].map((row) => row.map(escape).join(",")).join("\r\n");
 }
 
 /** Count of customers whose first-ever order fell within the window — feeds the analytics "new customers" figure. */

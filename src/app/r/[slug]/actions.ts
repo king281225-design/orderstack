@@ -30,9 +30,11 @@ import {
 const cartLineSchema = z.object({
   itemId: z.string().min(1),
   quantity: z.number().int().positive(),
-  // Re-resolved server-side against the item's own real Item.variants — see
-  // resolveLinePrice in src/lib/data/orders.ts. Never trust a price here.
+  // Re-resolved server-side against the item's own real Item.variants/
+  // ItemAddOn rows — see resolveLinePrice in src/lib/data/orders.ts. Never
+  // trust a price here.
   variantLabel: z.string().nullable().optional(),
+  addOnIds: z.array(z.string().min(1)).nullable().optional(),
 });
 
 const checkoutSchema = z.object({

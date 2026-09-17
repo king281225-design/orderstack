@@ -54,13 +54,6 @@ export function LandingFeatures() {
           </div>
         ))}
       </div>
-
-      <p
-        className={`reveal mt-8 text-center text-xs text-gray-400 ${visible ? "is-visible" : ""}`}
-        style={{ "--reveal-delay": "400ms" } as CSSProperties}
-      >
-        Subscription billing secured by Razorpay
-      </p>
     </section>
   );
 }

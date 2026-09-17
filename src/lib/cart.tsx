@@ -10,6 +10,8 @@ export type CartLine = {
   quantity: number;
   /** Display/convenience cache only, same as name/priceCents above — the server always re-derives the real variant price from Item.variants at checkout, never trusts this. */
   variantLabel?: string | null;
+  /** Selected ItemAddOn ids — the server re-derives their real current price/name from the database, never trusts this. */
+  addOnIds?: string[] | null;
 };
 
 type CartContextValue = {

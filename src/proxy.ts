@@ -27,6 +27,11 @@ const RESERVED_PREFIXES = [
   "/signup",
   "/forgot-password",
   "/reset-password",
+  "/about",
+  "/contact",
+  "/terms",
+  "/privacy",
+  "/refund",
 ];
 
 // Edge-level gate on the two authenticated areas. This is defense in depth —

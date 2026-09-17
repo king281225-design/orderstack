@@ -95,13 +95,13 @@ enum BillingPeriod {
 }
 
 model Tenant {
-  id                     String             @id @default(cuid())
-  slug                   String             @unique
-  name                   String
-  tagline                String?
+  id                      String             @id @default(cuid())
+  slug                    String             @unique
+  name                    String
+  tagline                 String?
   // R2/S3 URLs (presigned or otherwise) regularly exceed MySQL's default
   // VARCHAR(191) for a String field, so these are explicitly TEXT.
-  logoUrl                String?            @db.Text
+  logoUrl                 String?            @db.Text
   // Five brand colors, each with a real, visible job on the storefront (see
   // src/app/r/[slug]/layout.tsx and src/components/storefront/menu-browser.tsx):
   // Primary = buttons/CTAs, Secondary = category accents/price badges/quantity
@@ -110,59 +110,59 @@ model Tenant {
   // surface. Defaults reproduce the original hardcoded look exactly (dark
   // primary, orange secondary, white everything else) so no existing
   // storefront changes appearance until its owner touches branding.
-  colorPrimary           String             @default("#111827")
-  colorSecondary         String             @default("#f97316")
-  colorAccent            String             @default("#ffffff")
-  colorHeaderText        String             @default("#ffffff")
-  colorCardBackground    String             @default("#ffffff")
-  isOpen                 Boolean            @default(true)
-  status                 TenantStatus       @default(ACTIVE)
+  colorPrimary            String             @default("#111827")
+  colorSecondary          String             @default("#f97316")
+  colorAccent             String             @default("#ffffff")
+  colorHeaderText         String             @default("#ffffff")
+  colorCardBackground     String             @default("#ffffff")
+  isOpen                  Boolean            @default(true)
+  status                  TenantStatus       @default(ACTIVE)
   // Nominal tier — either set by the super-admin's manual override, or the
   // last tier the owner actually paid for via /dashboard/billing. Does NOT
   // by itself mean the tenant is entitled to anything paid: check
   // subscriptionStatus for that. Defaults to STARTER for every new tenant
   // purely as a display fallback, not as a free grant.
-  planTier               PlanTier           @default(STARTER)
-  subscriptionStatus     SubscriptionStatus @default(NONE)
-  razorpaySubscriptionId String?
+  planTier                PlanTier           @default(STARTER)
+  subscriptionStatus      SubscriptionStatus @default(NONE)
+  razorpaySubscriptionId  String?
   // Set the moment the owner clicks Subscribe on a specific tier's card
   // (src/lib/data/tenants.ts startTenantSubscription), before any payment
   // has happened — planTier itself is only updated to match once payment is
   // actually confirmed (verifyAndActivateSubscription, or the webhook),
   // whichever fires first. Cleared back to null at that point.
-  pendingPlanTier        PlanTier?
-  upiId                  String?
+  pendingPlanTier         PlanTier?
+  upiId                   String?
   // A photographed/scanned physical menu, offered as an alternative to
   // building the digital menu item-by-item (see "hardcopy menu upload" on
   // /dashboard/menu) — shown to customers as a link on the storefront.
-  menuDocumentUrl        String?            @db.Text
-  menuDocumentType       String? // "pdf" | "image"
+  menuDocumentUrl         String?            @db.Text
+  menuDocumentType        String? // "pdf" | "image"
   // Manual entry, shown on the storefront menu page — there's no live Google
   // Places/Business API credential, so this is the owner typing in their own
   // rating/link rather than a real-time synced widget. See CLAUDE.md.
-  googleReviewUrl        String?            @db.Text
-  googleRating           Float?
-  googleReviewCount      Int?
-  instagramUrl           String?            @db.Text
-  facebookUrl            String?            @db.Text
+  googleReviewUrl         String?            @db.Text
+  googleRating            Float?
+  googleReviewCount       Int?
+  instagramUrl            String?            @db.Text
+  facebookUrl             String?            @db.Text
   // Delivery radius (src/lib/geo.ts's Haversine check, run client-side via
   // the customer's browser geolocation — no geocoding API key exists or is
   // needed). latitude/longitude are the restaurant's own location, set from
   // /dashboard/branding either by the owner's own "use my current location"
   // or typed in manually. All three null = the feature is off entirely and
   // checkout behaves exactly as before.
-  latitude               Float?
-  longitude              Float?
-  deliveryRadiusKm       Float?
+  latitude                Float?
+  longitude               Float?
+  deliveryRadiusKm        Float?
   // GST/tax rate (percent, e.g. 5 for 5%) applied to manually-created bills
   // (see /dashboard/orders/new) and shown on the printed invoice. Null means
   // no tax line is added — storefront customer orders are unaffected either
   // way, this only ever feeds Order.taxCents on MANUAL-source orders.
-  gstRate                Float?
+  gstRate                 Float?
   // Shown on the printed invoice header alongside the tenant name — a
   // restaurant's registered address/GSTIN/phone, typed once in Settings.
-  businessAddress        String?            @db.Text
-  gstin                  String?
+  businessAddress         String?            @db.Text
+  gstin                   String?
   // Set the first (and only) time this tenant redeems WELCOME100 on a ₹499
   // Starter plan purchase (see startTenantSubscription's welcomeCode param) —
   // a non-null value means "already used," independent of whether that
@@ -176,9 +176,9 @@ model Tenant {
   // against this to rewrite to /r/<slug>. Not meaningful until this app is
   // deployed to a public host and the owner points real DNS at it, but the
   // resolution logic itself is real and testable via the Host header alone.
-  customDomain           String?            @unique
-  createdAt              DateTime           @default(now())
-  updatedAt              DateTime           @updatedAt
+  customDomain            String?            @unique
+  createdAt               DateTime           @default(now())
+  updatedAt               DateTime           @updatedAt
 
   users                 User[]
   categories            Category[]
@@ -186,6 +186,7 @@ model Tenant {
   orders                Order[]
   coupons               Coupon[]
   subscriptionPurchases SubscriptionPurchase[]
+  itemAddOns            ItemAddOn[]
 
   @@map("tenants")
 }
@@ -299,12 +300,12 @@ model PasswordResetToken {
 }
 
 model Category {
-  id        String   @id @default(cuid())
-  tenantId  String
-  tenant    Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  name      String
-  sortOrder Int      @default(0)
-  createdAt DateTime @default(now())
+  id               String     @id @default(cuid())
+  tenantId         String
+  tenant           Tenant     @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  name             String
+  sortOrder        Int        @default(0)
+  createdAt        DateTime   @default(now())
   // One level of subcategory nesting (e.g. "Main Course" -> "Rice & Biryani"),
   // used by the AI menu-import wizard (/dashboard/menu/import). SetNull (not
   // Cascade) so deleting a parent category promotes its subcategories back to
@@ -312,8 +313,8 @@ model Category {
   // Only the wizard creates subcategories today — the manual "add category"
   // form still only creates top-level categories.
   parentCategoryId String?
-  parent        Category?  @relation("CategoryHierarchy", fields: [parentCategoryId], references: [id], onDelete: SetNull)
-  subcategories Category[] @relation("CategoryHierarchy")
+  parent           Category?  @relation("CategoryHierarchy", fields: [parentCategoryId], references: [id], onDelete: SetNull)
+  subcategories    Category[] @relation("CategoryHierarchy")
 
   items Item[]
 
@@ -353,26 +354,54 @@ model Item {
   updatedAt   DateTime @updatedAt
 
   orderItems OrderItem[]
+  addOns     ItemAddOn[]
 
   @@index([tenantId])
   @@index([categoryId])
   @@map("items")
 }
 
+/**
+ * Optional extras a customer can add to an item at checkout (e.g. "Extra
+ * cheese +₹30") — added/removed only (no separate rename), same MVP scope
+ * as everything else here. Selected add-ons are never stored as their own
+ * row on the order: resolveLinePrice (src/lib/data/orders.ts) folds each
+ * selected add-on's current name/price into the order line's own
+ * nameSnapshot/priceCentsSnapshot at order time, the same snapshot pattern
+ * already used for variants — so an order's receipt is unaffected by a
+ * later add-on price change or deletion.
+ */
+model ItemAddOn {
+  id          String   @id @default(cuid())
+  tenantId    String
+  tenant      Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  itemId      String
+  item        Item     @relation(fields: [itemId], references: [id], onDelete: Cascade)
+  name        String
+  priceCents  Int
+  isAvailable Boolean  @default(true)
+  sortOrder   Int      @default(0)
+  createdAt   DateTime @default(now())
+
+  @@index([tenantId])
+  @@index([itemId])
+  @@map("item_add_ons")
+}
+
 model Order {
-  id                String          @id @default(cuid())
+  id                 String          @id @default(cuid())
   // MySQL requires an AUTO_INCREMENT column to be indexed (unique or
   // primary) — unlike Postgres, it can't sit on a plain non-key column.
-  orderNumber       Int             @unique @default(autoincrement())
-  tenantId          String
-  tenant            Tenant          @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  customerName      String
-  customerPhone     String
+  orderNumber        Int             @unique @default(autoincrement())
+  tenantId           String
+  tenant             Tenant          @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  customerName       String
+  customerPhone      String
   // Optional — only collected so an order-confirmation email can be sent
   // (see src/lib/notifications/email.ts). Phone stays the required contact.
-  customerEmail     String?
-  fulfillmentType   FulfillmentType
-  deliveryAddress   String?         @db.Text
+  customerEmail      String?
+  fulfillmentType    FulfillmentType
+  deliveryAddress    String?         @db.Text
   // Distance from the restaurant's set location to wherever the customer's
   // browser reported at checkout (src/lib/geo.ts) — null if delivery-zone
   // checking isn't configured, or the customer's browser didn't share
@@ -384,45 +413,45 @@ model Order {
   // Set for DINE_IN orders placed via a table's QR link (?table=<label>) —
   // no separate Table entity; labels are just whatever the QR grid on
   // /dashboard/tables generated ("1", "2", ...), not a persisted resource.
-  tableLabel        String?
-  paymentMethod     PaymentMethod
+  tableLabel         String?
+  paymentMethod      PaymentMethod
   // Kitchen/fulfillment status (accept -> preparing -> ready -> completed) —
   // separate from paymentStatus below, which tracks money, not food.
-  status            OrderStatus     @default(PENDING)
+  status             OrderStatus     @default(PENDING)
   // Where this order came from — see the OrderSource comment above. Feeds
   // the dashboard's "manual bill" badge and lets Customers/Analytics tell
   // the two apart without changing how either is computed.
-  source            OrderSource     @default(STOREFRONT)
+  source             OrderSource     @default(STOREFRONT)
   // totalCents is what's actually charged (subtotal - discountCents + taxCents).
   // subtotalCents is the pre-discount, pre-tax sum of order items, kept so
   // history shows both — never recomputed from current item prices, and the
   // coupon's discount is snapshotted here too, not re-read from the coupon
   // (whose value/status can change or be deleted after the fact).
-  subtotalCents     Int
+  subtotalCents      Int
   // GST/tax amount, computed server-side at order time from the tenant's
   // gstRate (see createManualOrder) and snapshotted here for the same reason
   // discountCents is — a later change to the tenant's rate must never shift
   // a historical order's total. Always 0 for storefront customer orders
   // (menu pricing doesn't currently include a tax line).
-  taxCents          Int             @default(0)
-  totalCents        Int
-  couponId          String?
-  coupon            Coupon?         @relation(fields: [couponId], references: [id], onDelete: SetNull)
-  couponCode        String?
-  discountCents     Int             @default(0)
-  notes             String?         @db.Text
+  taxCents           Int             @default(0)
+  totalCents         Int
+  couponId           String?
+  coupon             Coupon?         @relation(fields: [couponId], references: [id], onDelete: SetNull)
+  couponCode         String?
+  discountCents      Int             @default(0)
+  notes              String?         @db.Text
   // COD/UPI stay PENDING until the owner manually marks them paid (see
   // markOrderPaid) — matches the plan's "reconciled manually". RAZORPAY
   // orders are moved to PAID/FAILED automatically, by the client-side
   // checkout-verification action and/or the webhook (src/lib/payments/
   // razorpay.ts), whichever fires first.
-  paymentStatus     PaymentStatus   @default(PENDING)
+  paymentStatus      PaymentStatus   @default(PENDING)
   // Set once a Razorpay order is created for this order; unique because
   // it's a 1:1 link and the webhook looks orders up by it.
-  razorpayOrderId   String?         @unique
-  razorpayPaymentId String?
-  createdAt         DateTime        @default(now())
-  updatedAt         DateTime        @updatedAt
+  razorpayOrderId    String?         @unique
+  razorpayPaymentId  String?
+  createdAt          DateTime        @default(now())
+  updatedAt          DateTime        @updatedAt
 
   items OrderItem[]
 

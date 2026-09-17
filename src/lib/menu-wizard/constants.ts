@@ -12,7 +12,7 @@ export const MAX_WIZARD_FILES = 10;
 // by client components (the Verify step's tag checkboxes/confidence
 // threshold), so they live here rather than in that server-only module.
 // menu-import.ts imports them from here rather than redefining them.
-export const ALLOWED_TAGS = ["Bestseller", "Chef Special", "Spicy", "New", "Recommended"] as const;
+export const ALLOWED_TAGS = ["Bestseller", "Chef Special", "Spicy", "New", "Recommended", "Combo"] as const;
 export type MenuItemTag = (typeof ALLOWED_TAGS)[number];
 
 // Below this, an item is flagged for the owner's review even if it does have

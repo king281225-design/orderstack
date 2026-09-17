@@ -151,7 +151,12 @@ export function CheckoutForm({
       notes: String(formData.get("notes") ?? ""),
       couponCode: appliedCoupon?.code ?? "",
     };
-    const cart = lines.map((l) => ({ itemId: l.itemId, quantity: l.quantity, variantLabel: l.variantLabel ?? null }));
+    const cart = lines.map((l) => ({
+      itemId: l.itemId,
+      quantity: l.quantity,
+      variantLabel: l.variantLabel ?? null,
+      addOnIds: l.addOnIds ?? null,
+    }));
 
     startTransition(async () => {
       const result = await placeOrderAction(slug, cart, fields);
