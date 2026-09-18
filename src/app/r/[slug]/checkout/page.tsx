@@ -1,9 +1,14 @@
+import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { getTenantBySlug } from "@/lib/data/tenants";
 import { isRazorpayConfigured, isCustomerCheckoutRazorpayEnabled } from "@/lib/payments/razorpay";
 import { CheckoutForm } from "@/components/storefront/checkout-form";
 
 export const dynamic = "force-dynamic";
+
+// Transactional page, not content — never indexed, and never worth a
+// competing search result against the storefront's own menu page.
+export const metadata: Metadata = { robots: { index: false, follow: false } };
 
 export default async function CheckoutPage({
   params,

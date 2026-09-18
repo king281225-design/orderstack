@@ -1,12 +1,48 @@
 import { Suspense } from "react";
+import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { getTenantBySlug } from "@/lib/data/tenants";
 import { listPublicMenu } from "@/lib/data/menu";
 import { MenuBrowser } from "@/components/storefront/menu-browser";
 import { CaptureTableParam } from "@/components/storefront/capture-table-param";
 import { InstagramIcon, FacebookIcon, GoogleIcon } from "@/components/storefront/social-icons";
+import { JsonLd } from "@/components/seo/json-ld";
+import { SITE_URL } from "@/lib/site";
 
 export const dynamic = "force-dynamic";
+
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ slug: string }>;
+}): Promise<Metadata> {
+  const { slug } = await params;
+  const tenant = await getTenantBySlug(slug);
+  if (!tenant || tenant.status === "SUSPENDED") return {};
+
+  const title = tenant.tagline ? `${tenant.name} — ${tenant.tagline}` : `${tenant.name} — Order Online`;
+  const description = `Order online from ${tenant.name}. Browse the menu, pay via UPI or cash on delivery, and track your order — no app needed.`;
+  const url = `${SITE_URL}/r/${slug}`;
+
+  return {
+    title,
+    description,
+    alternates: { canonical: url },
+    openGraph: {
+      type: "website",
+      title,
+      description,
+      url,
+      images: tenant.logoUrl ? [{ url: tenant.logoUrl }] : undefined,
+    },
+    twitter: {
+      card: "summary",
+      title,
+      description,
+      images: tenant.logoUrl ? [tenant.logoUrl] : undefined,
+    },
+  };
+}
 
 export default async function StorefrontPage({
   params,
@@ -34,8 +70,43 @@ export default async function StorefrontPage({
     subcategories: c.subcategories.map((sc) => ({ ...sc, items: toPublicItems(sc.items) })),
   }));
 
+  const restaurantJsonLd = {
+    "@context": "https://schema.org",
+    "@type": "Restaurant",
+    name: tenant.name,
+    url: `${SITE_URL}/r/${slug}`,
+    image: tenant.logoUrl ?? undefined,
+    ...(tenant.googleRating != null && tenant.googleReviewCount != null
+      ? {
+          aggregateRating: {
+            "@type": "AggregateRating",
+            ratingValue: tenant.googleRating,
+            reviewCount: tenant.googleReviewCount,
+          },
+        }
+      : {}),
+    hasMenu: {
+      "@type": "Menu",
+      hasMenuSection: categories
+        .filter((c) => c.items.length > 0)
+        .map((c) => ({
+          "@type": "MenuSection",
+          name: c.name,
+          hasMenuItem: c.items
+            .filter((i) => i.isAvailable)
+            .map((i) => ({
+              "@type": "MenuItem",
+              name: i.name,
+              description: i.description || undefined,
+              offers: { "@type": "Offer", price: (i.priceCents / 100).toFixed(2), priceCurrency: "INR" },
+            })),
+        })),
+    },
+  };
+
   return (
     <>
+      <JsonLd data={restaurantJsonLd} />
       <Suspense fallback={null}>
         <CaptureTableParam />
       </Suspense>

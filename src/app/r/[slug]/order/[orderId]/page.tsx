@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { getTenantBySlug } from "@/lib/data/tenants";
 import { getOrderForTenant } from "@/lib/data/orders";
@@ -6,6 +7,9 @@ import { formatINR } from "@/lib/money";
 import { getRazorpayKeyId } from "@/lib/payments/razorpay";
 import { OrderStatusView } from "@/components/storefront/order-status-view";
 import { RazorpayPayNowButton } from "@/components/storefront/razorpay-pay-now-button";
+
+// Order-specific data, not content — never indexed.
+export const metadata: Metadata = { robots: { index: false, follow: false } };
 
 const PAYMENT_METHOD_LABEL = {
   UPI: "UPI",

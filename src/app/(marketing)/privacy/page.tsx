@@ -1,7 +1,11 @@
 import type { Metadata } from "next";
 import { BUSINESS_NAME } from "@/lib/contact";
 
-export const metadata: Metadata = { title: "Privacy Policy · BhojSetu" };
+export const metadata: Metadata = {
+  title: "Privacy Policy",
+  description: "How BhojSetu collects, isolates, and protects restaurant and customer order data.",
+  alternates: { canonical: "/privacy" },
+};
 
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
   return (

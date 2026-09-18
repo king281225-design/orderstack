@@ -7,6 +7,7 @@ import { LandingFaq } from "@/components/landing/landing-faq";
 import { PublicPricingTable } from "@/components/marketing/public-pricing-table";
 import { TrustBadges } from "@/components/marketing/trust-badges";
 import { TestimonialsSection, TESTIMONIALS } from "@/components/marketing/testimonials-section";
+import { JsonLd } from "@/components/seo/json-ld";
 
 const FAQS = [
   {
@@ -39,6 +40,16 @@ const FAQS = [
   },
 ];
 
+const faqJsonLd = {
+  "@context": "https://schema.org",
+  "@type": "FAQPage",
+  mainEntity: FAQS.map((f) => ({
+    "@type": "Question",
+    name: f.q,
+    acceptedAnswer: { "@type": "Answer", text: f.a },
+  })),
+};
+
 export default async function Home() {
   const session = await getSession();
   if (session) {
@@ -47,6 +58,7 @@ export default async function Home() {
 
   return (
     <div className="relative min-h-screen overflow-x-hidden bg-gradient-to-br from-indigo-50 via-white to-violet-50 dark:from-[#0f0b08] dark:via-[#1a120c] dark:to-[#3d1c05]">
+      <JsonLd data={faqJsonLd} />
       <div className="absolute right-4 top-4 z-20">
         <ThemeToggle />
       </div>

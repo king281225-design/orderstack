@@ -1,7 +1,12 @@
 import type { Metadata } from "next";
 import { BUSINESS_NAME } from "@/lib/contact";
 
-export const metadata: Metadata = { title: "About Us · BhojSetu" };
+export const metadata: Metadata = {
+  title: "About Us",
+  description:
+    "BhojSetu is an ordering platform built for restaurants — menu, orders, billing, and dine-in QR ordering under one storefront link.",
+  alternates: { canonical: "/about" },
+};
 
 export default function AboutPage() {
   return (

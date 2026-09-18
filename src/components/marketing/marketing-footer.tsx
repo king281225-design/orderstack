@@ -3,8 +3,11 @@ import { WhatsAppIcon } from "@/components/marketing/whatsapp-icon";
 import { BUSINESS_NAME, PHONE_DISPLAY, PHONE_TEL, WHATSAPP_URL } from "@/lib/contact";
 
 const COMPANY_LINKS = [
+  { href: "/pricing", label: "Pricing" },
   { href: "/about", label: "About Us" },
   { href: "/contact", label: "Contact Us" },
+  { href: "/blog", label: "Blog" },
+  { href: "/compare/bhojsetu-vs-petpooja", label: "vs Petpooja" },
 ];
 
 const LEGAL_LINKS = [

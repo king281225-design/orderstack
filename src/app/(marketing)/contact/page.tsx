@@ -2,7 +2,11 @@ import type { Metadata } from "next";
 import { WhatsAppIcon } from "@/components/marketing/whatsapp-icon";
 import { BUSINESS_NAME, PHONE_DISPLAY, PHONE_TEL, WHATSAPP_URL } from "@/lib/contact";
 
-export const metadata: Metadata = { title: "Contact Us · BhojSetu" };
+export const metadata: Metadata = {
+  title: "Contact Us",
+  description: "Get in touch with BhojSetu for a demo, restaurant onboarding help, or any question about the platform.",
+  alternates: { canonical: "/contact" },
+};
 
 export default function ContactPage() {
   return (

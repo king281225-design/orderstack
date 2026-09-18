@@ -91,6 +91,14 @@ export async function getOwnerEmail(tenantId: string): Promise<string | null> {
   return owner?.email ?? null;
 }
 
+/** Public, unauthenticated — feeds sitemap.ts. Only real, crawlable storefronts. */
+export async function listActiveTenantSlugsForSitemap() {
+  return prisma.tenant.findMany({
+    where: { status: "ACTIVE" },
+    select: { slug: true, updatedAt: true },
+  });
+}
+
 export async function listTenantsWithStats() {
   const tenants = await prisma.tenant.findMany({
     orderBy: { createdAt: "desc" },

@@ -1,8 +1,15 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { getSession } from "@/lib/auth";
 import { SignupForm } from "@/components/signup-form";
 import { ThemeToggle } from "@/components/theme/theme-toggle";
+
+export const metadata: Metadata = {
+  title: "Sign Up",
+  description: "Create your restaurant's free BhojSetu storefront — menu, QR ordering, and an order dashboard in minutes.",
+  alternates: { canonical: "/signup" },
+};
 
 export default async function SignupPage() {
   const session = await getSession();

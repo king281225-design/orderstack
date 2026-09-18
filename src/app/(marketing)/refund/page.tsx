@@ -1,7 +1,11 @@
 import type { Metadata } from "next";
 import { BUSINESS_NAME } from "@/lib/contact";
 
-export const metadata: Metadata = { title: "Refund & Cancellation Policy · BhojSetu" };
+export const metadata: Metadata = {
+  title: "Refund & Cancellation Policy",
+  description: "BhojSetu's refund and cancellation policy for platform subscriptions.",
+  alternates: { canonical: "/refund" },
+};
 
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
   return (
