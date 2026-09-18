@@ -68,6 +68,38 @@ enum OrderSource {
   MANUAL
 }
 
+enum SupportCategory {
+  TECHNICAL_ISSUE
+  ORDER_PROBLEM
+  PAYMENT_BILLING
+  MENU_HELP
+  QR_TABLES
+  ACCOUNT_LOGIN
+  FEATURE_REQUEST
+  GENERAL_ENQUIRY
+}
+
+enum SupportPriority {
+  LOW
+  NORMAL
+  HIGH
+  URGENT
+}
+
+enum SupportStatus {
+  OPEN
+  IN_PROGRESS
+  WAITING_ON_CUSTOMER
+  RESOLVED
+  CLOSED
+}
+
+enum ContactMethod {
+  PHONE
+  WHATSAPP
+  EMAIL
+}
+
 enum StockMovementReason {
   PURCHASE
   ORDER
@@ -223,6 +255,7 @@ model Tenant {
   ingredients           Ingredient[]
   recipeLines           RecipeLine[]
   stockMovements        StockMovement[]
+  supportTickets        SupportTicket[]
 
   @@map("tenants")
 }
@@ -641,4 +674,42 @@ model StockMovement {
   @@index([ingredientId, createdAt])
   @@index([orderId])
   @@map("stock_movements")
+}
+
+/**
+ * A help/enquiry request a restaurant sends to the BhojSetu team from the
+ * dashboard Help page. Handled from /super-admin/support: the team sets the
+ * status and writes a reply the restaurant sees on its Help page. The
+ * screenshot, order number and user agent exist so most issues can be
+ * diagnosed without a back-and-forth.
+ */
+model SupportTicket {
+  id              String          @id @default(cuid())
+  ticketNumber    Int             @unique @default(autoincrement())
+  tenantId        String
+  tenant          Tenant          @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  createdByEmail  String
+  contactName     String
+  contactPhone    String
+  contactEmail    String
+  preferredContact ContactMethod  @default(PHONE)
+  bestTime        String?
+  category        SupportCategory
+  priority        SupportPriority @default(NORMAL)
+  area            String?
+  orderNumber     Int?
+  subject         String
+  description     String          @db.Text
+  screenshotUrl   String?         @db.Text
+  userAgent       String?
+  status          SupportStatus   @default(OPEN)
+  adminResponse   String?         @db.Text
+  respondedAt     DateTime?
+  resolvedAt      DateTime?
+  createdAt       DateTime        @default(now())
+  updatedAt       DateTime        @updatedAt
+
+  @@index([tenantId, createdAt])
+  @@index([status, createdAt])
+  @@map("support_tickets")
 }

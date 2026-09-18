@@ -48,7 +48,7 @@ export function getR2Client(): S3Client {
 
 export async function saveUpload(
   file: File,
-  folder: "logos" | "items" | "menu-docs",
+  folder: "logos" | "items" | "menu-docs" | "support",
 ): Promise<string> {
   const ext = safeExt(file.name, folder);
   const key = `${R2_PREFIX}/${folder}/${randomUUID()}${ext}`;
@@ -76,7 +76,7 @@ export async function saveUpload(
 
 // "menu-docs" additionally allows .pdf — a photographed/scanned hardcopy
 // menu (see src/app/dashboard/menu, "hardcopy menu upload"), not just images.
-function safeExt(filename: string, folder: "logos" | "items" | "menu-docs"): string {
+function safeExt(filename: string, folder: "logos" | "items" | "menu-docs" | "support"): string {
   const ext = path.extname(filename).toLowerCase();
   const images = [".png", ".jpg", ".jpeg", ".webp", ".gif"];
   if (folder === "menu-docs" && ext === ".pdf") return ext;

@@ -23,3 +23,7 @@ export const BUSINESS_NAME = "Rajat Digital Agency";
 // A dedicated, always-on demo storefront (not a real restaurant) seeded via
 // prisma/seed.ts — see that file's own comment for why.
 export const DEMO_STOREFRONT_SLUG = "demo-restaurant";
+
+// What the Help page promises customers about support turnaround. One place to
+// change if the team's real response time changes.
+export const SUPPORT_RESPONSE_TARGET = "1 hour";

@@ -1,6 +1,8 @@
 import { redirect } from "next/navigation";
 import { getSession } from "@/lib/auth";
+import Link from "next/link";
 import { logoutAction } from "@/app/logout/actions";
+import { countActiveTickets } from "@/lib/data/support";
 import { BhojSetuLogo } from "@/components/brand/logo";
 import { ThemeToggle } from "@/components/theme/theme-toggle";
 
@@ -11,6 +13,8 @@ export default async function SuperAdminLayout({ children }: { children: React.R
   if (!session || session.role !== "SUPER_ADMIN") {
     redirect("/login");
   }
+
+  const activeTickets = await countActiveTickets();
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-indigo-50/40 to-violet-50 dark:from-[#0f0b08] dark:via-[#1a120c] dark:to-[#3d1c05]">
@@ -39,6 +43,17 @@ export default async function SuperAdminLayout({ children }: { children: React.R
           </div>
         </div>
       </header>
+      <nav className="mx-auto flex max-w-5xl gap-2 px-4 pt-4 text-sm" aria-label="Super admin">
+        <Link href="/super-admin" className="rounded-full border border-gray-300 bg-white px-3 py-1 text-gray-700 hover:border-indigo-400 dark:bg-[#241d17]">
+          Restaurants
+        </Link>
+        <Link href="/super-admin/support" className="rounded-full border border-gray-300 bg-white px-3 py-1 text-gray-700 hover:border-indigo-400 dark:bg-[#241d17]">
+          Support
+          {activeTickets > 0 && (
+            <span className="ml-1.5 rounded-full bg-red-600 px-1.5 text-[11px] font-bold text-white">{activeTickets}</span>
+          )}
+        </Link>
+      </nav>
       <main className="mx-auto max-w-5xl px-4 py-6">{children}</main>
     </div>
   );

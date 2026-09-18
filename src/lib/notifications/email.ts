@@ -180,3 +180,93 @@ export async function sendLowStockEmail(
     console.error("sendLowStockEmail failed:", err);
   }
 }
+
+type TicketForEmail = {
+  ticketNumber: number;
+  subject: string;
+  description: string;
+  category: string;
+  priority: string;
+  status: string;
+  area: string | null;
+  orderNumber: number | null;
+  contactName: string;
+  contactPhone: string;
+  contactEmail: string;
+  preferredContact: string;
+  bestTime: string | null;
+  screenshotUrl: string | null;
+  adminResponse: string | null;
+};
+
+function nl2br(s: string): string {
+  return escapeHtml(s).replace(/\n/g, "<br>");
+}
+
+/** Alert to the BhojSetu team (SUPPORT_EMAIL) — same fire-and-forget contract; the super-admin queue is the source of truth. */
+export async function sendSupportTeamEmail(
+  ticket: TicketForEmail,
+  restaurantName: string,
+  origin: string | null,
+): Promise<void> {
+  const to = process.env.SUPPORT_EMAIL;
+  if (!to || !isEmailConfigured()) return;
+  try {
+    const shot = ticket.screenshotUrl && origin ? `<p>Screenshot: <a href="${origin}${ticket.screenshotUrl}">view</a></p>` : "";
+    await send(
+      to,
+      `${ticket.priority === "URGENT" ? "[URGENT] " : ""}Support #${ticket.ticketNumber} — ${restaurantName}: ${ticket.subject}`,
+      `
+        <p><strong>${escapeHtml(restaurantName)}</strong> sent a ${escapeHtml(ticket.priority)}-priority request (${escapeHtml(ticket.category)}).</p>
+        <p><strong>${escapeHtml(ticket.subject)}</strong></p>
+        <p>${nl2br(ticket.description)}</p>
+        <p>Area: ${escapeHtml(ticket.area ?? "—")} · Order #: ${ticket.orderNumber ?? "—"}</p>
+        <p>Contact: ${escapeHtml(ticket.contactName)} · ${escapeHtml(ticket.contactPhone)} · ${escapeHtml(ticket.contactEmail)}<br>
+        Prefers: ${escapeHtml(ticket.preferredContact)}${ticket.bestTime ? ` · best time: ${escapeHtml(ticket.bestTime)}` : ""}</p>
+        ${shot}
+        <p>Reply from the Super Admin → Support page.</p>
+      `,
+    );
+  } catch (err) {
+    console.error("sendSupportTeamEmail failed:", err);
+  }
+}
+
+export async function sendSupportConfirmationEmail(
+  ticket: TicketForEmail,
+  restaurantName: string,
+  responseTarget: string,
+): Promise<void> {
+  if (!isEmailConfigured()) return;
+  try {
+    await send(
+      ticket.contactEmail,
+      `We got your request — ticket #${ticket.ticketNumber}`,
+      `
+        <p>Hi ${escapeHtml(ticket.contactName)}, thanks for contacting BhojSetu support about <strong>${escapeHtml(restaurantName)}</strong>.</p>
+        <p>Your ticket number is <strong>#${ticket.ticketNumber}</strong> — "${escapeHtml(ticket.subject)}".</p>
+        <p>We aim to respond within ${escapeHtml(responseTarget)}. You can follow its status any time under Help in your dashboard.</p>
+      `,
+    );
+  } catch (err) {
+    console.error("sendSupportConfirmationEmail failed:", err);
+  }
+}
+
+export async function sendSupportUpdateEmail(ticket: TicketForEmail): Promise<void> {
+  if (!isEmailConfigured()) return;
+  try {
+    await send(
+      ticket.contactEmail,
+      `Update on your support ticket #${ticket.ticketNumber}`,
+      `
+        <p>Hi ${escapeHtml(ticket.contactName)}, there's an update on your ticket <strong>#${ticket.ticketNumber}</strong> — "${escapeHtml(ticket.subject)}".</p>
+        <p>Status: <strong>${escapeHtml(ticket.status.replace(/_/g, " "))}</strong></p>
+        ${ticket.adminResponse ? `<p>Our reply:</p><blockquote>${nl2br(ticket.adminResponse)}</blockquote>` : ""}
+        <p>You can see this and reply by opening a new request under Help in your dashboard.</p>
+      `,
+    );
+  } catch (err) {
+    console.error("sendSupportUpdateEmail failed:", err);
+  }
+}
