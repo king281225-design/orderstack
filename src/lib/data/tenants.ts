@@ -1,7 +1,7 @@
 import "server-only";
 import { prisma } from "@/lib/prisma";
 import { hashPassword } from "@/lib/auth";
-import type { BillingPeriod, PlanTier, SubscriptionStatus } from "@prisma/client";
+import type { BillingPeriod, PlanTier, SubscriptionStatus, Prisma } from "@prisma/client";
 import { PLAN_DEFINITIONS, getPlanPriceCents } from "@/lib/plans";
 import {
   createRazorpayPlan,
@@ -17,6 +17,10 @@ const SLUG_RE = /^[a-z0-9]+(-[a-z0-9]+)*$/;
 
 export function isValidSlug(slug: string): boolean {
   return SLUG_RE.test(slug) && slug.length >= 2 && slug.length <= 60;
+}
+
+export async function setTenantQrCardDesign(tenantId: string, design: Prisma.InputJsonValue) {
+  await prisma.tenant.update({ where: { id: tenantId }, data: { qrCardDesign: design } });
 }
 
 /** Live signup availability check — the submit path still re-checks (and the DB unique index is the real guard). */

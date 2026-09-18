@@ -204,6 +204,10 @@ model Tenant {
   // Default off: stock tracking never blocks or hides anything unless the
   // owner opts in, since a stale stock count shouldn't silently kill sales.
   autoHideOutOfStock      Boolean            @default(false)
+  // Saved design of the printable QR cards on /dashboard/tables (brand name,
+  // colours, custom lines, table labels) — validated/defaulted through
+  // sanitizeQrCardDesign (src/lib/qr-card.ts) on every read and write.
+  qrCardDesign            Json?
   createdAt               DateTime           @default(now())
   updatedAt               DateTime           @updatedAt
 
