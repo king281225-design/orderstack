@@ -123,7 +123,7 @@ export default async function BlogPostPage({
           href="/signup"
           className="mt-3 inline-block rounded-lg bg-indigo-600 px-5 py-2.5 font-medium text-white hover:bg-indigo-700"
         >
-          Get started free
+          Start 7-day free trial
         </Link>
       </div>
     </article>

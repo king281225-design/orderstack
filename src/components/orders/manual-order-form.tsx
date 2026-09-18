@@ -6,12 +6,12 @@ import { formatINR, rupeesToCents } from "@/lib/money";
 
 const initialState: CreateManualOrderState = { error: null };
 
-type Line = { name: string; priceRupees: string; quantity: string };
+type Line = { name: string; priceRupees: string; quantity: string; itemId?: string };
 
 const emptyLine: Line = { name: "", priceRupees: "", quantity: "1" };
 
 /** One pickable entry — a flat-priced item, or one Half/Full-style variant of one (see orders/new/page.tsx's toPickableItems). */
-export type PickableMenuItem = { name: string; priceCents: number };
+export type PickableMenuItem = { itemId: string; name: string; priceCents: number };
 
 export function ManualOrderForm({
   menuItems,
@@ -53,10 +53,10 @@ export function ManualOrderForm({
     setLines((prev) => [...prev, { ...emptyLine }]);
   }
 
-  function addMenuItem(item: { name: string; priceCents: number }) {
+  function addMenuItem(item: PickableMenuItem) {
     setLines((prev) => [
       ...prev,
-      { name: item.name, priceRupees: (item.priceCents / 100).toString(), quantity: "1" },
+      { name: item.name, priceRupees: (item.priceCents / 100).toString(), quantity: "1", itemId: item.itemId },
     ]);
   }
 
@@ -64,10 +64,10 @@ export function ManualOrderForm({
     setLines((prev) => (prev.length > 1 ? prev.filter((_, i) => i !== index) : prev));
   }
 
-  function selectSuggestion(index: number, item: { name: string; priceCents: number }) {
+  function selectSuggestion(index: number, item: PickableMenuItem) {
     setLines((prev) => {
       const next = prev.map((l, i) =>
-        i === index ? { ...l, name: item.name, priceRupees: (item.priceCents / 100).toString() } : l,
+        i === index ? { ...l, name: item.name, priceRupees: (item.priceCents / 100).toString(), itemId: item.itemId } : l,
       );
       // Picking a suggestion while typing into the very last row is the
       // common "keep adding items" flow — appending a fresh blank row right
@@ -93,6 +93,7 @@ export function ManualOrderForm({
         name: l.name.trim(),
         priceRupees: Number(l.priceRupees) || 0,
         quantity: Number(l.quantity) || 0,
+        itemId: l.itemId,
       })),
   );
 
@@ -193,7 +194,7 @@ export function ManualOrderForm({
                   placeholder="Item / service name"
                   value={line.name}
                   onChange={(e) => {
-                    updateLine(i, { name: e.target.value });
+                    updateLine(i, { name: e.target.value, itemId: undefined });
                     setSuggestFor(i);
                   }}
                   onFocus={() => setSuggestFor(i)}

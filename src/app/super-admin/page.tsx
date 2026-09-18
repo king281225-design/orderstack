@@ -78,7 +78,7 @@ export default async function SuperAdminPage() {
                   </td>
                   <td className="px-4 py-2">
                     {/* Manual override of the "has this tenant ever paid" signal — bypasses the
-                        15-minute dashboard trial gate (src/proxy.ts) without a real Razorpay
+                        7-day dashboard trial gate (src/proxy.ts) without a real Razorpay
                         payment. Useful for demo/test tenants; see setTenantSubscriptionOverride's
                         own comment for why this is kept separate from real subscription state. */}
                     <form

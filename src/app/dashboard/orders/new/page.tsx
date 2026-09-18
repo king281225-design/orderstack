@@ -15,12 +15,12 @@ function isVariantArray(v: unknown): v is MenuItemVariant[] {
  * staff with no way to actually pick Full from the "+ Add from menu" quick-
  * pick or the inline search.
  */
-function toPickableItems(items: { name: string; priceCents: number; variants: unknown }[]): PickableMenuItem[] {
+function toPickableItems(items: { id: string; name: string; priceCents: number; variants: unknown }[]): PickableMenuItem[] {
   return items.flatMap((i) => {
     if (isVariantArray(i.variants) && i.variants.length > 0) {
-      return i.variants.map((v) => ({ name: `${i.name} (${v.label})`, priceCents: v.priceCents }));
+      return i.variants.map((v) => ({ itemId: i.id, name: `${i.name} (${v.label})`, priceCents: v.priceCents }));
     }
-    return [{ name: i.name, priceCents: i.priceCents }];
+    return [{ itemId: i.id, name: i.name, priceCents: i.priceCents }];
   });
 }
 

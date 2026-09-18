@@ -4,10 +4,12 @@ import { redirect } from "next/navigation";
 import { getSession } from "@/lib/auth";
 import { SignupForm } from "@/components/signup-form";
 import { ThemeToggle } from "@/components/theme/theme-toggle";
+import { SetupSteps } from "@/components/setup-steps";
+import { TRIAL_DAYS } from "@/lib/plans";
 
 export const metadata: Metadata = {
   title: "Sign Up",
-  description: "Create your restaurant's free BhojSetu storefront — menu, QR ordering, and an order dashboard in minutes.",
+  description: "Start a 7-day free trial of BhojSetu — no credit card required. Menu, QR ordering, and an order dashboard in minutes.",
   alternates: { canonical: "/signup" },
 };
 
@@ -23,9 +25,10 @@ export default async function SignupPage() {
         <ThemeToggle />
       </div>
       <div className="w-full max-w-sm rounded-xl border border-gray-200 bg-white dark:bg-[#241d17] p-8 shadow-sm">
-        <h1 className="mb-1 text-xl font-semibold text-gray-900">Set up your restaurant</h1>
+        <SetupSteps current={1} />
+        <h1 className="mb-1 mt-5 text-xl font-semibold text-gray-900">Create your account</h1>
         <p className="mb-6 text-sm text-gray-500">
-          Create your account, then build your menu and branding before going live.
+          Start your {TRIAL_DAYS}-day free trial. Next you&apos;ll add your menu, then set your branding — then you&apos;re ready to take orders.
         </p>
         <SignupForm />
         <p className="mt-6 text-center text-sm text-gray-500">

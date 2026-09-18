@@ -21,7 +21,7 @@ const FAQS = [
   },
   {
     q: "Why can't I see Kitchen, Coupons, Analytics, or Staff?",
-    a: "Those are available on the Advanced and Business plans. Starter includes Menu, Orders & billing, QR table ordering, and UPI/COD checkout. Upgrade any time from Billing.",
+    a: "Those are available on the Advanced and Business plans. Every plan (including Starter) includes Menu, Orders & billing, QR table ordering, Inventory, KOT, and UPI/COD checkout. Upgrade any time from Billing.",
   },
   {
     q: "How do I temporarily stop taking orders?",

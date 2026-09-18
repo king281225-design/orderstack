@@ -19,6 +19,12 @@ export function isValidSlug(slug: string): boolean {
   return SLUG_RE.test(slug) && slug.length >= 2 && slug.length <= 60;
 }
 
+/** Live signup availability check — the submit path still re-checks (and the DB unique index is the real guard). */
+export async function isSlugAvailable(slug: string): Promise<boolean> {
+  const existing = await prisma.tenant.findUnique({ where: { slug }, select: { id: true } });
+  return !existing;
+}
+
 /** Public storefront lookup — the only place a raw slug from a URL becomes a tenantId. */
 export async function getTenantBySlug(slug: string) {
   return prisma.tenant.findUnique({ where: { slug } });

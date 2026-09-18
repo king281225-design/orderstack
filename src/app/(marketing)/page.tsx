@@ -28,7 +28,7 @@ const FAQS = [
   },
   {
     q: "What does it cost?",
-    a: "Plans start at ₹499/month (menu, orders & billing, QR table ordering, UPI/COD checkout), with Advanced and Business tiers adding coupons, analytics, a kitchen display, and staff logins as you grow.",
+    a: "Plans start at ₹499/month (menu, orders & billing, QR table ordering, inventory & stock tracking, KOT tickets, UPI/COD checkout), with Advanced and Business tiers adding coupons, analytics, a kitchen display, and staff logins as you grow. Every new account starts with a 7-day free trial — no credit card required.",
   },
   {
     q: "Is my restaurant's data kept separate from other restaurants?",
@@ -36,7 +36,7 @@ const FAQS = [
   },
   {
     q: "Does this work with my POS system or kitchen printer?",
-    a: "There's no separate POS terminal to buy — bills, invoices, and kitchen tickets print straight from your browser to any printer you already use, including thermal/receipt printers, right from your Orders and Billing pages. If you need a deeper integration with a specific POS system, get in touch and we'll see what's possible.",
+    a: "There's no separate POS terminal to buy — bills, invoices, and KOT (kitchen order tickets, split by station) print straight from your browser to any printer you already use, including thermal/receipt printers, right from your Orders and Billing pages. If you need a deeper integration with a specific POS system, get in touch and we'll see what's possible.",
   },
 ];
 

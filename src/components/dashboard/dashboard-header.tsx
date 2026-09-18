@@ -5,7 +5,7 @@ import { useState } from "react";
 import { ThemeToggle } from "@/components/theme/theme-toggle";
 import { NotificationBell, type PendingWaiterCall } from "@/components/dashboard/notification-bell";
 
-export type DashboardNavLink = { href: string; label: string };
+export type DashboardNavLink = { href: string; label: string; badge?: number };
 
 /**
  * The dashboard's header + nav, as one client component (not split across
@@ -102,6 +102,9 @@ export function DashboardHeader({
             className="rounded-full px-2.5 py-1 text-white/80 transition-colors hover:bg-white/15 hover:text-white"
           >
             {link.label}
+            {link.badge ? (
+              <span className="ml-1 rounded-full bg-amber-400 px-1.5 text-[11px] font-bold text-gray-900">{link.badge}</span>
+            ) : null}
           </Link>
         ))}
         <a
@@ -126,6 +129,9 @@ export function DashboardHeader({
                 className="rounded-md px-3 py-2.5 text-white/90 transition-colors hover:bg-white/10"
               >
                 {link.label}
+                {link.badge ? (
+                  <span className="ml-1 rounded-full bg-amber-400 px-1.5 text-[11px] font-bold text-gray-900">{link.badge}</span>
+                ) : null}
               </Link>
             ))}
             <a

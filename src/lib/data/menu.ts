@@ -195,7 +195,7 @@ export async function deleteItemAddOn(tenantId: string, addOnId: string) {
 export async function getItemsForOrder(tenantId: string, itemIds: string[]) {
   return prisma.item.findMany({
     where: { tenantId, id: { in: itemIds }, isAvailable: true },
-    include: { addOns: { where: { isAvailable: true } } },
+    include: { addOns: { where: { isAvailable: true } }, station: true },
   });
 }
 

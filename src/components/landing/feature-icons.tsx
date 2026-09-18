@@ -88,3 +88,23 @@ export function BarChartIcon({ className = "" }: IconProps) {
     </svg>
   );
 }
+
+export function BoxesIcon({ className = "" }: IconProps) {
+  return (
+    <svg {...base} className={className} aria-hidden="true" focusable="false">
+      <path d="M3 8.5 12 4l9 4.5-9 4.5-9-4.5Z" />
+      <path d="M3 8.5V16l9 4.5V13" />
+      <path d="M21 8.5V16l-9 4.5" />
+    </svg>
+  );
+}
+
+export function TicketIcon({ className = "" }: IconProps) {
+  return (
+    <svg {...base} className={className} aria-hidden="true" focusable="false">
+      <path d="M4 5h16v4a2 2 0 0 0 0 4v6H4v-6a2 2 0 0 0 0-4V5Z" />
+      <path d="M9 9h6" />
+      <path d="M9 13h4" />
+    </svg>
+  );
+}

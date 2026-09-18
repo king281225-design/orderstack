@@ -2,6 +2,7 @@ import "server-only";
 import { prisma } from "@/lib/prisma";
 import { getItemsForOrder } from "@/lib/data/menu";
 import { validateCoupon, tryRedeemCoupon, CouponRedemptionLimitError } from "@/lib/data/coupons";
+import { deductStockForOrder, restoreStockForOrder, notifyLowStock } from "@/lib/data/inventory";
 import type { FulfillmentType, OrderStatus, PaymentMethod, PaymentStatus } from "@prisma/client";
 
 export type CartLine = {
@@ -97,6 +98,8 @@ export async function createOrder(
       nameSnapshot,
       priceCentsSnapshot,
       quantity: l.quantity,
+      stationId: item.station?.id ?? null,
+      stationName: item.station?.name ?? null,
     };
   });
 
@@ -132,7 +135,8 @@ export async function createOrder(
   const taxCents = tenant?.gstRate && tenant.gstRate > 0 ? Math.round((taxableCents * tenant.gstRate) / 100) : 0;
   const totalCents = taxableCents + taxCents;
 
-  return prisma.order.create({
+  const { order, newlyLow } = await prisma.$transaction(async (tx) => {
+  const order = await tx.order.create({
     data: {
       tenantId,
       customerName: input.customerName,
@@ -155,9 +159,20 @@ export async function createOrder(
     },
     include: { items: true },
   });
+  const { newlyLow } = await deductStockForOrder(tx, tenantId, order.id);
+  return { order, newlyLow };
+  });
+  if (newlyLow.length) void notifyLowStock(tenantId, newlyLow);
+  return order;
 }
 
-export type ManualOrderLine = { name: string; priceCents: number; quantity: number };
+export type ManualOrderLine = {
+  name: string;
+  priceCents: number;
+  quantity: number;
+  /** Set when the line was quick-picked from the menu — enables station routing and stock deduction. Verified against the tenant below. */
+  itemId?: string | null;
+};
 
 export class EmptyManualOrderError extends Error {}
 export class InvalidManualLineError extends Error {}
@@ -208,7 +223,14 @@ export async function createManualOrder(
 
   const totalCents = taxableCents + taxCents;
 
-  return prisma.order.create({
+  const linkedIds = lines.map((l) => l.itemId).filter((id): id is string => Boolean(id));
+  const linkedItems = linkedIds.length
+    ? await prisma.item.findMany({ where: { tenantId, id: { in: linkedIds } }, include: { station: true } })
+    : [];
+  const linkedMap = new Map(linkedItems.map((i) => [i.id, i]));
+
+  const { order, newlyLow } = await prisma.$transaction(async (tx) => {
+  const order = await tx.order.create({
     data: {
       tenantId,
       customerName: input.customerName.trim(),
@@ -229,15 +251,26 @@ export async function createManualOrder(
       // through the normal status flow) rather than this silently assuming
       // payment happened.
       items: {
-        create: lines.map((l) => ({
-          nameSnapshot: l.name.trim(),
-          priceCentsSnapshot: l.priceCents,
-          quantity: l.quantity,
-        })),
+        create: lines.map((l) => {
+          const linked = l.itemId ? linkedMap.get(l.itemId) : undefined;
+          return {
+            itemId: linked?.id ?? null,
+            nameSnapshot: l.name.trim(),
+            priceCentsSnapshot: l.priceCents,
+            quantity: l.quantity,
+            stationId: linked?.station?.id ?? null,
+            stationName: linked?.station?.name ?? null,
+          };
+        }),
       },
     },
     include: { items: true },
   });
+  const { newlyLow } = await deductStockForOrder(tx, tenantId, order.id);
+  return { order, newlyLow };
+  });
+  if (newlyLow.length) void notifyLowStock(tenantId, newlyLow);
+  return order;
 }
 
 /** Tenant-scoped single-order lookup for the printable invoice page — never trust an order id alone. */
@@ -289,7 +322,11 @@ export async function advanceOrderStatus(tenantId: string, orderId: string, to: 
   if (!NEXT_STATUS[order.status].includes(to)) {
     throw new InvalidTransitionError(`Cannot move an order from ${order.status} to ${to}.`);
   }
-  return prisma.order.update({ where: { id: orderId }, data: { status: to } });
+  return prisma.$transaction(async (tx) => {
+    const updated = await tx.order.update({ where: { id: orderId }, data: { status: to } });
+    if (to === "CANCELLED") await restoreStockForOrder(tx, tenantId, orderId);
+    return updated;
+  });
 }
 
 /** Links a newly created order to the Razorpay order created for it (see src/lib/payments/razorpay.ts). */

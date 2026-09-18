@@ -71,5 +71,5 @@ export async function signupAction(_prev: SignupState, formData: FormData): Prom
     sid,
   });
 
-  redirect("/dashboard");
+  redirect("/dashboard/menu");
 }

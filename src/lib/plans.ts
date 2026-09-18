@@ -1,5 +1,9 @@
 import type { BillingPeriod, PlanTier } from "@prisma/client";
 
+/** Free dashboard trial length — measured from the tenant's createdAt (see src/proxy.ts). */
+export const TRIAL_DAYS = 7;
+export const TRIAL_MS = TRIAL_DAYS * 24 * 60 * 60 * 1000;
+
 /**
  * Pricing updated 2026-09-16 at the user's direct request: Starter ₹499/mo
  * (unchanged) + ₹4999/yr, Advanced ₹699/mo (was ₹999) + ₹7999/yr, Business
@@ -31,6 +35,8 @@ export const PLAN_DEFINITIONS: Record<
       "Menu management",
       "Order management & billing (invoices, printable bills)",
       "QR table ordering",
+      "Inventory & stock tracking with low-stock alerts",
+      "KOT (Kitchen Order Ticket) screen & printing, by kitchen station",
       "UPI QR / Cash on delivery checkout",
       "1 device logged in at a time",
     ],
@@ -73,12 +79,12 @@ export function getPlanPriceCents(tier: PlanTier, period: BillingPeriod): number
  * same day. Coupons/analytics move up to Advanced, kitchen/staff to
  * Business — matching PLAN_DEFINITIONS' feature copy above.
  */
-export type Feature = "menu" | "orders" | "tables" | "billing" | "coupons" | "analytics" | "kitchen" | "staff";
+export type Feature = "menu" | "orders" | "tables" | "billing" | "inventory" | "kot" | "coupons" | "analytics" | "kitchen" | "staff";
 
 const FEATURES_BY_TIER: Record<PlanTier, ReadonlySet<Feature>> = {
-  STARTER: new Set(["menu", "orders", "tables", "billing"]),
-  ADVANCED: new Set(["menu", "orders", "tables", "billing", "coupons", "analytics"]),
-  BUSINESS: new Set(["menu", "orders", "tables", "billing", "coupons", "analytics", "kitchen", "staff"]),
+  STARTER: new Set(["menu", "orders", "tables", "billing", "inventory", "kot"]),
+  ADVANCED: new Set(["menu", "orders", "tables", "billing", "inventory", "kot", "coupons", "analytics"]),
+  BUSINESS: new Set(["menu", "orders", "tables", "billing", "inventory", "kot", "coupons", "analytics", "kitchen", "staff"]),
 };
 
 export function tierHasFeature(tier: PlanTier, feature: Feature): boolean {

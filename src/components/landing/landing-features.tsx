@@ -2,7 +2,7 @@
 
 import type { CSSProperties, ComponentType } from "react";
 import { useScrollReveal } from "@/components/landing/use-scroll-reveal";
-import { BarChartIcon, QrCodeIcon, ReceiptIcon, ScooterIcon } from "@/components/landing/feature-icons";
+import { BarChartIcon, BoxesIcon, QrCodeIcon, ReceiptIcon, ScooterIcon, TicketIcon } from "@/components/landing/feature-icons";
 
 const FEATURES: { Icon: ComponentType<{ className?: string }>; title: string; description: string }[] = [
   {
@@ -19,6 +19,16 @@ const FEATURES: { Icon: ComponentType<{ className?: string }>; title: string; de
     Icon: ReceiptIcon,
     title: "Billing & invoices",
     description: "GST-ready invoices, manual order entry, and a full order ledger, built into every plan.",
+  },
+  {
+    Icon: BoxesIcon,
+    title: "Inventory & stock alerts",
+    description: "Track ingredients, auto-deduct stock as orders come in, and get low-stock alerts — in every plan.",
+  },
+  {
+    Icon: TicketIcon,
+    title: "KOT by kitchen station",
+    description: "Each order is split into Kitchen Order Tickets per station (grill, tandoor, bar) you can print or view live.",
   },
   {
     Icon: BarChartIcon,
@@ -39,7 +49,7 @@ export function LandingFeatures() {
 
   return (
     <section ref={ref} className="mx-auto max-w-5xl px-4 pb-16">
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
         {FEATURES.map(({ Icon, title, description }, i) => (
           <div
             key={title}

@@ -41,7 +41,7 @@ export async function createManualOrderAction(
   if (!customerName) return { error: "Customer name is required." };
   if (!customerPhone) return { error: "Customer phone is required." };
 
-  let parsedLines: { name: string; priceRupees: number; quantity: number }[];
+  let parsedLines: { name: string; priceRupees: number; quantity: number; itemId?: string }[];
   try {
     parsedLines = JSON.parse(linesRaw);
   } catch {
@@ -52,6 +52,7 @@ export async function createManualOrderAction(
     name: String(l.name ?? ""),
     priceCents: rupeesToCents(l.priceRupees),
     quantity: Number(l.quantity) || 0,
+    itemId: typeof l.itemId === "string" && l.itemId ? l.itemId : null,
   }));
 
   let order;

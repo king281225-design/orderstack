@@ -68,6 +68,14 @@ enum OrderSource {
   MANUAL
 }
 
+enum StockMovementReason {
+  PURCHASE
+  ORDER
+  ORDER_CANCEL
+  WASTE
+  ADJUSTMENT
+}
+
 enum WaiterCallStatus {
   PENDING
   ACKNOWLEDGED
@@ -191,6 +199,11 @@ model Tenant {
   // deployed to a public host and the owner points real DNS at it, but the
   // resolution logic itself is real and testable via the Host header alone.
   customDomain            String?            @unique
+  // When true, a storefront item is automatically marked unavailable once any
+  // ingredient in its recipe hits zero stock (see src/lib/data/inventory.ts).
+  // Default off: stock tracking never blocks or hides anything unless the
+  // owner opts in, since a stale stock count shouldn't silently kill sales.
+  autoHideOutOfStock      Boolean            @default(false)
   createdAt               DateTime           @default(now())
   updatedAt               DateTime           @updatedAt
 
@@ -202,6 +215,10 @@ model Tenant {
   subscriptionPurchases SubscriptionPurchase[]
   itemAddOns            ItemAddOn[]
   waiterCalls           WaiterCall[]
+  stations              Station[]
+  ingredients           Ingredient[]
+  recipeLines           RecipeLine[]
+  stockMovements        StockMovement[]
 
   @@map("tenants")
 }
@@ -387,14 +404,19 @@ model Item {
   variants    Json?
   isAvailable Boolean  @default(true)
   sortOrder   Int      @default(0)
+  // Kitchen station this item is routed to on KOT tickets (null = unassigned).
+  stationId   String?
+  station     Station? @relation(fields: [stationId], references: [id], onDelete: SetNull)
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
-  orderItems OrderItem[]
-  addOns     ItemAddOn[]
+  orderItems  OrderItem[]
+  addOns      ItemAddOn[]
+  recipeLines RecipeLine[]
 
   @@index([tenantId])
   @@index([categoryId])
+  @@index([stationId])
   @@map("items")
 }
 
@@ -497,6 +519,12 @@ model Order {
   // it's a 1:1 link and the webhook looks orders up by it.
   razorpayOrderId    String?         @unique
   razorpayPaymentId  String?
+  // Inventory bookkeeping (src/lib/data/inventory.ts): set the moment recipe
+  // ingredients are deducted for this order, and again when a cancellation
+  // restores them — each null-to-set transition happens at most once, which
+  // is what makes deduction/restore idempotent.
+  stockDeductedAt    DateTime?
+  stockRestoredAt    DateTime?
   createdAt          DateTime        @default(now())
   updatedAt          DateTime        @updatedAt
 
@@ -517,7 +545,96 @@ model OrderItem {
   nameSnapshot       String
   priceCentsSnapshot Int
   quantity           Int
+  // KOT routing, snapshotted at order time like names/prices — a later station
+  // rename/delete must not reshuffle a ticket that's already in the kitchen.
+  stationId          String?
+  stationName        String?
 
   @@index([orderId])
   @@map("order_items")
+}
+
+/**
+ * A kitchen station (Grill, Tandoor, Bar, ...). Items are assigned to one; KOT
+ * tickets are split/filtered by it. OrderItem snapshots the station's id and
+ * name at order time (see OrderItem.stationName), so this row can be renamed
+ * or deleted without touching historical tickets.
+ */
+model Station {
+  id        String   @id @default(cuid())
+  tenantId  String
+  tenant    Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  name      String
+  sortOrder Int      @default(0)
+  createdAt DateTime @default(now())
+
+  items Item[]
+
+  @@unique([tenantId, name])
+  @@index([tenantId])
+  @@map("stations")
+}
+
+/**
+ * A raw material / ingredient the restaurant tracks stock of. Quantities are
+ * in the ingredient's own unit (kg, g, l, ml, pcs) — no cross-unit
+ * conversion; a recipe must use the same unit as the ingredient.
+ * lowStockAlertedAt is set when stock first crosses the threshold and cleared
+ * on restock, so the owner is emailed once per dip, not on every order.
+ */
+model Ingredient {
+  id                String    @id @default(cuid())
+  tenantId          String
+  tenant            Tenant    @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  name              String
+  unit              String
+  currentStock      Decimal   @default(0) @db.Decimal(14, 3)
+  lowStockThreshold Decimal   @default(0) @db.Decimal(14, 3)
+  costPerUnitCents  Int?
+  lowStockAlertedAt DateTime?
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+
+  recipeLines RecipeLine[]
+  movements   StockMovement[]
+
+  @@unique([tenantId, name])
+  @@index([tenantId])
+  @@map("ingredients")
+}
+
+/** Quantity of one ingredient consumed by one serving of one menu item. */
+model RecipeLine {
+  id           String     @id @default(cuid())
+  tenantId     String
+  tenant       Tenant     @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  itemId       String
+  item         Item       @relation(fields: [itemId], references: [id], onDelete: Cascade)
+  ingredientId String
+  ingredient   Ingredient @relation(fields: [ingredientId], references: [id], onDelete: Cascade)
+  quantity     Decimal    @db.Decimal(14, 3)
+
+  @@unique([itemId, ingredientId])
+  @@index([tenantId])
+  @@index([ingredientId])
+  @@map("recipe_lines")
+}
+
+/** Append-only stock ledger: every change to Ingredient.currentStock leaves a row here. */
+model StockMovement {
+  id           String              @id @default(cuid())
+  tenantId     String
+  tenant       Tenant              @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  ingredientId String
+  ingredient   Ingredient          @relation(fields: [ingredientId], references: [id], onDelete: Cascade)
+  delta        Decimal             @db.Decimal(14, 3)
+  reason       StockMovementReason
+  note         String?
+  orderId      String?
+  createdAt    DateTime            @default(now())
+
+  @@index([tenantId])
+  @@index([ingredientId, createdAt])
+  @@index([orderId])
+  @@map("stock_movements")
 }

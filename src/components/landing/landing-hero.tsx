@@ -168,7 +168,7 @@ export function LandingHero() {
         className="hero-badge-shimmer animate-hero-badge relative z-10 overflow-hidden rounded-full bg-gradient-to-r from-indigo-600 to-violet-600 px-3 py-1 text-xs font-semibold text-white transition-transform duration-200 hover:scale-[1.03]"
         style={{ animationDelay: "0ms" }}
       >
-        Real ordering for real restaurants
+        7-day free trial · No credit card required
       </span>
 
       <h1
@@ -191,7 +191,7 @@ export function LandingHero() {
           href="/signup"
           className="rounded-md bg-gradient-to-r from-indigo-600 to-violet-600 px-5 py-2.5 text-sm font-semibold text-white shadow-md shadow-indigo-200 transition-all duration-300 ease-out hover:-translate-y-0.5 hover:scale-[1.02] hover:from-indigo-700 hover:to-violet-700 hover:shadow-[0_10px_25px_-5px_rgba(232,93,4,0.45)] active:scale-[0.98] dark:shadow-none"
         >
-          Set up your restaurant
+          Start your 7-day free trial
         </Link>
         <a
           href={buildWhatsAppUrl("Hi, I'd like to book a demo of BhojSetu for my restaurant.")}
@@ -210,7 +210,7 @@ export function LandingHero() {
       </div>
 
       <div className="animate-hero-cta relative z-10 flex flex-col items-center gap-1 text-xs text-gray-500" style={{ animationDelay: "620ms" }}>
-        <span>No card required — start free</span>
+        <span>Full dashboard free for 7 days — no card required, set up in about 10 minutes</span>
         <Link href={`/r/${DEMO_STOREFRONT_SLUG}`} target="_blank" className="font-medium text-indigo-600 hover:underline dark:text-indigo-400">
           See a live demo →
         </Link>

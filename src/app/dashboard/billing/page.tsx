@@ -40,7 +40,7 @@ export default async function BillingPage({
     <div className="flex flex-col gap-6">
       <h2 className="text-lg font-semibold text-gray-900">Billing</h2>
 
-      {/* src/proxy.ts redirects here once the free trial (15 min since the
+      {/* src/proxy.ts redirects here once the free trial (7 days since the
           tenant was created, see getTenantTrialStatus) has run out on an
           unpaid tenant. isActive is impossible while trialExpired is set
           (the proxy skips a genuinely ACTIVE tenant), but keeping the check
@@ -48,7 +48,7 @@ export default async function BillingPage({
           another tab, never sees a stale warning. */}
       {trialExpired === "1" && !isActive && (
         <div className="rounded-lg border border-amber-300 bg-amber-50 px-4 py-3 text-sm text-amber-800">
-          Your 15-minute free trial has ended. Subscribe to a plan below to keep using the dashboard.
+          Your 7-day free trial has ended. Subscribe to a plan below to keep using the dashboard.
         </div>
       )}
 

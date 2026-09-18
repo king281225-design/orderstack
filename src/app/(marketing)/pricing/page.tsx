@@ -27,7 +27,7 @@ const PRICING_FAQS = [
   },
   {
     q: "Can I try it before paying?",
-    a: "Yes — every new restaurant account gets a short free trial of the dashboard (menu setup, branding, order flow) before you need to subscribe to a plan.",
+    a: "Yes — every new restaurant account gets a 7-day free trial of the full dashboard (menu setup, branding, order flow), with no credit card required. Subscribe to a plan when you're ready to keep going.",
   },
   {
     q: "Can I cancel anytime?",
@@ -35,7 +35,7 @@ const PRICING_FAQS = [
   },
   {
     q: "What's the difference between the plans?",
-    a: "Every plan includes menu management, order management with billing/invoices, QR table ordering, and UPI/COD checkout. Advanced adds coupons and analytics; Business adds a kitchen display and staff logins.",
+    a: "Every plan includes menu management, order management with billing/invoices, QR table ordering, inventory & stock tracking, KOT (kitchen order tickets), and UPI/COD checkout. Advanced adds coupons and analytics; Business adds a kitchen display and staff logins.",
   },
   {
     q: "Is there a setup fee or contract?",

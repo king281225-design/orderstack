@@ -25,9 +25,10 @@ const ROWS: { label: string; bhojsetu: string; petpooja: string }[] = [
   { label: "Setup", bhojsetu: "Self-serve sign-up, live in minutes", petpooja: "Sales-assisted onboarding via a demo call" },
   { label: "Hardware required", bhojsetu: "None — runs in any phone/browser, owner and customer alike", petpooja: "A dedicated POS terminal (Android tablet or Windows PC) for billing" },
   { label: "Per-order commission", bhojsetu: "None — flat monthly fee regardless of order volume", petpooja: "None on its own billing, though third-party aggregator integrations are separate" },
-  { label: "Core focus", bhojsetu: "Direct customer ordering — public menu link, QR table ordering, UPI/COD checkout", petpooja: "In-house POS/billing — KOT, table management, inventory, staff, and reporting" },
+  { label: "Core focus", bhojsetu: "Direct customer ordering — public menu link, QR table ordering, UPI/COD checkout, with inventory and KOT built in", petpooja: "In-house POS/billing — KOT, table management, inventory, staff, and reporting" },
   { label: "Online ordering / QR menu", bhojsetu: "Built in, the product's main focus", petpooja: "Available as part of the broader POS suite" },
-  { label: "Inventory & payroll", bhojsetu: "Not offered — out of scope by design", petpooja: "Included — raw-material tracking, low-stock alerts, staff attendance" },
+  { label: "Inventory & KOT", bhojsetu: "Included in every plan — ingredient stock with recipe-based auto-deduction and low-stock alerts, plus KOT tickets routed by kitchen station", petpooja: "Included — KOT, raw-material tracking, low-stock alerts" },
+  { label: "Payroll & attendance", bhojsetu: "Not offered — out of scope", petpooja: "Included — staff attendance and management" },
   { label: "Best fit", bhojsetu: "Cafes and restaurants that want a direct ordering channel fast, without hardware or a sales call", petpooja: "Larger or multi-outlet restaurants that need a full in-house POS, inventory, and staff-management system" },
 ];
 
@@ -37,8 +38,8 @@ const FAQS = [
     a: `BhojSetu's pricing is published and starts at ${formatINR(PLAN_DEFINITIONS.STARTER.priceCents)}/month. Petpooja doesn't publish pricing publicly — you get a quote after a demo call, and several independent reviews report meaningful hardware and setup costs on top of the subscription. Because Petpooja's real cost depends on your specific deal, the fairest comparison is that BhojSetu's cost is transparent upfront and Petpooja's isn't.`,
   },
   {
-    q: "Does BhojSetu have inventory management like Petpooja?",
-    a: "No — BhojSetu is deliberately focused on the ordering and billing side (menu, orders, invoices, QR table ordering) rather than being a full restaurant ERP. If you need raw-material inventory tracking and staff payroll in the same system, Petpooja's broader suite covers that; BhojSetu doesn't try to.",
+    q: "Does BhojSetu have inventory management and KOT like Petpooja?",
+    a: "Yes, at the core level, in every plan: track raw-material stock, link ingredients to menu items through recipes so stock deducts automatically as orders come in, get low-stock alerts, and send Kitchen Order Tickets to each kitchen station (screen or 80mm print). BhojSetu is still not a full restaurant ERP — there is no staff payroll/attendance, purchase-order management, or multi-outlet stock transfer. If you need those, Petpooja's broader suite covers them.",
   },
   {
     q: "Do I need to buy a POS terminal to use BhojSetu?",
@@ -50,7 +51,7 @@ const FAQS = [
   },
   {
     q: "Which one should I actually pick?",
-    a: "If you mainly want a fast, affordable way for customers to order directly (dine-in QR, takeaway, delivery) without buying hardware, BhojSetu fits that directly. If you're running a larger operation that needs in-house billing hardware, inventory, and payroll all in one system, Petpooja's broader POS suite is built for that — the two aren't solving quite the same problem.",
+    a: "If you mainly want a fast, affordable way for customers to order directly (dine-in QR, takeaway, delivery) without buying hardware, BhojSetu fits that directly. If you're running a larger operation that needs in-house billing hardware, payroll, and deeper back-office tooling all in one system, Petpooja's broader POS suite is built for that — the two aren't solving quite the same problem.",
   },
 ];
 
@@ -128,14 +129,14 @@ export default function BhojSetuVsPetpoojaPage() {
             Want to see BhojSetu without booking a demo call?
           </p>
           <p className="mt-1 text-sm text-gray-600 dark:text-gray-400">
-            Sign up free and your storefront is live in minutes — see it before you decide.
+            Start a 7-day free trial (no card required) and your storefront is live in minutes — see it before you decide.
           </p>
           <div className="mt-3 flex flex-wrap items-center justify-center gap-3">
             <Link
               href="/signup"
               className="inline-block rounded-lg bg-indigo-600 px-5 py-2.5 font-medium text-white hover:bg-indigo-700"
             >
-              Get started free
+              Start 7-day free trial
             </Link>
             <Link
               href="/pricing"

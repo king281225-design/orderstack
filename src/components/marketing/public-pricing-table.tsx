@@ -25,7 +25,7 @@ export function PublicPricingTable() {
     <section ref={ref} id="pricing" className="mx-auto max-w-5xl px-4 pb-16">
       <div className={`reveal text-center ${visible ? "is-visible" : ""}`}>
         <h2 className="text-xl font-semibold text-gray-900">Simple, pocket-friendly pricing</h2>
-        <p className="mt-1 text-sm text-gray-500">No card required to get started — pick a plan once you&apos;re ready.</p>
+        <p className="mt-1 text-sm text-gray-500">Start with a 7-day free trial — no card required. Pick a plan once you&apos;re ready.</p>
         <div className="mt-4 inline-flex rounded-md border border-gray-300 p-0.5 text-xs font-medium">
           <button
             type="button"
@@ -68,7 +68,7 @@ export function PublicPricingTable() {
                 href="/signup"
                 className="mt-2 rounded-md bg-gradient-to-r from-indigo-600 to-violet-600 px-4 py-2 text-center text-sm font-semibold text-white transition-transform hover:-translate-y-0.5"
               >
-                Get started
+                Start 7-day free trial
               </Link>
             </div>
           );

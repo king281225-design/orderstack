@@ -152,3 +152,31 @@ export async function sendCustomerOrderConfirmationEmail(
     console.error("sendCustomerOrderConfirmationEmail failed:", err);
   }
 }
+
+function escapeHtml(s: string): string {
+  return s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+}
+
+/** Same fire-and-forget contract — sent once when an ingredient first dips to/below its low-stock threshold. */
+export async function sendLowStockEmail(
+  ownerEmail: string,
+  restaurantName: string,
+  ingredients: { name: string; unit: string; currentStock: number; lowStockThreshold: number }[],
+): Promise<void> {
+  if (!isEmailConfigured() || ingredients.length === 0) return;
+  try {
+    const rows = ingredients
+      .map(
+        (i) =>
+          `<li><strong>${escapeHtml(i.name)}</strong>: ${i.currentStock} ${escapeHtml(i.unit)} left (alert level ${i.lowStockThreshold} ${escapeHtml(i.unit)})</li>`,
+      )
+      .join("");
+    await send(
+      ownerEmail,
+      `Low stock alert — ${restaurantName}`,
+      `<p>These ingredients are running low at ${escapeHtml(restaurantName)}:</p><ul>${rows}</ul><p>Restock from your dashboard Inventory page.</p>`,
+    );
+  } catch (err) {
+    console.error("sendLowStockEmail failed:", err);
+  }
+}
