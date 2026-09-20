@@ -109,41 +109,177 @@ export async function listActiveTenantSlugsForSitemap() {
   });
 }
 
-export async function listTenantsWithStats() {
+export const SUPER_ADMIN_PAGE_SIZE = 25;
+
+export type TenantListQuery = {
+  q?: string;
+  status?: "ACTIVE" | "SUSPENDED";
+  plan?: PlanTier;
+  page?: number;
+};
+
+/**
+ * Super-admin only — deliberately NOT tenant-scoped (this is the one view that
+ * spans every restaurant), so callers must gate on requireRole("SUPER_ADMIN").
+ * Search matches name, slug, or any of the restaurant's login emails.
+ */
+export async function listTenantsWithStats(query: TenantListQuery = {}) {
+  const q = query.q?.trim();
+  const where: Prisma.TenantWhereInput = {
+    ...(query.status ? { status: query.status } : {}),
+    ...(query.plan ? { planTier: query.plan } : {}),
+    ...(q
+      ? {
+          OR: [
+            { name: { contains: q } },
+            { slug: { contains: q } },
+            { users: { some: { email: { contains: q } } } },
+          ],
+        }
+      : {}),
+  };
+
+  const total = await prisma.tenant.count({ where });
+  const pageCount = Math.max(1, Math.ceil(total / SUPER_ADMIN_PAGE_SIZE));
+  const page = Math.min(Math.max(1, query.page ?? 1), pageCount);
+
   const tenants = await prisma.tenant.findMany({
+    where,
     orderBy: { createdAt: "desc" },
+    skip: (page - 1) * SUPER_ADMIN_PAGE_SIZE,
+    take: SUPER_ADMIN_PAGE_SIZE,
     include: {
       _count: { select: { orders: true } },
+      users: {
+        where: { role: "OWNER" },
+        orderBy: { createdAt: "asc" },
+        take: 1,
+        select: { email: true, name: true },
+      },
     },
   });
 
-  const revenueByTenant = await prisma.order.groupBy({
-    by: ["tenantId"],
-    where: { status: { not: "CANCELLED" } },
-    _sum: { totalCents: true },
-  });
+  const ids = tenants.map((t) => t.id);
+  const [revenueByTenant, lastOrderByTenant] = await Promise.all([
+    prisma.order.groupBy({
+      by: ["tenantId"],
+      where: { tenantId: { in: ids }, status: { not: "CANCELLED" } },
+      _sum: { totalCents: true },
+    }),
+    prisma.order.groupBy({
+      by: ["tenantId"],
+      where: { tenantId: { in: ids } },
+      _max: { createdAt: true },
+    }),
+  ]);
   const revenueMap = new Map(revenueByTenant.map((r) => [r.tenantId, r._sum.totalCents ?? 0]));
+  const lastOrderMap = new Map(lastOrderByTenant.map((r) => [r.tenantId, r._max.createdAt]));
 
-  return tenants.map((t) => ({
-    ...t,
-    orderCount: t._count.orders,
-    revenueCents: revenueMap.get(t.id) ?? 0,
-  }));
+  return {
+    total,
+    page,
+    pageCount,
+    tenants: tenants.map(({ users, ...t }) => ({
+      ...t,
+      ownerEmail: users[0]?.email ?? null,
+      ownerName: users[0]?.name ?? null,
+      orderCount: t._count.orders,
+      revenueCents: revenueMap.get(t.id) ?? 0,
+      lastOrderAt: lastOrderMap.get(t.id) ?? null,
+    })),
+  };
 }
 
 export async function getPlatformStats() {
-  const [tenantCount, orderCount, revenue] = await Promise.all([
+  const dayAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
+  const weekAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
+  const [tenantCount, activeCount, newTenants, orderCount, orders24h, revenue, revenue24h] = await Promise.all([
     prisma.tenant.count(),
+    prisma.tenant.count({ where: { status: "ACTIVE" } }),
+    prisma.tenant.count({ where: { createdAt: { gte: weekAgo } } }),
     prisma.order.count(),
+    prisma.order.count({ where: { createdAt: { gte: dayAgo } } }),
     prisma.order.aggregate({
       where: { status: { not: "CANCELLED" } },
+      _sum: { totalCents: true },
+    }),
+    prisma.order.aggregate({
+      where: { status: { not: "CANCELLED" }, createdAt: { gte: dayAgo } },
       _sum: { totalCents: true },
     }),
   ]);
   return {
     tenantCount,
+    activeCount,
+    suspendedCount: tenantCount - activeCount,
+    newTenants7d: newTenants,
+    orderCount,
+    orders24h,
+    revenueCents: revenue._sum.totalCents ?? 0,
+    revenue24hCents: revenue24h._sum.totalCents ?? 0,
+  };
+}
+
+/**
+ * Everything the super-admin detail page shows for one restaurant. Same
+ * caveat as above: cross-tenant by design, super-admin callers only.
+ */
+export async function getTenantDetailForAdmin(tenantId: string) {
+  const tenant = await prisma.tenant.findUnique({
+    where: { id: tenantId },
+    include: {
+      users: {
+        orderBy: { createdAt: "asc" },
+        select: { id: true, email: true, name: true, role: true, createdAt: true },
+      },
+    },
+  });
+  if (!tenant) return null;
+
+  const [orderCount, revenue, categoryCount, itemCount, customerPhones, recentOrders, openTickets] =
+    await Promise.all([
+      prisma.order.count({ where: { tenantId } }),
+      prisma.order.aggregate({
+        where: { tenantId, status: { not: "CANCELLED" } },
+        _sum: { totalCents: true },
+      }),
+      prisma.category.count({ where: { tenantId } }),
+      prisma.item.count({ where: { tenantId } }),
+      prisma.order.findMany({ where: { tenantId }, distinct: ["customerPhone"], select: { customerPhone: true } }),
+      prisma.order.findMany({
+        where: { tenantId },
+        orderBy: { createdAt: "desc" },
+        take: 20,
+        select: {
+          id: true,
+          orderNumber: true,
+          customerName: true,
+          customerPhone: true,
+          fulfillmentType: true,
+          paymentMethod: true,
+          paymentStatus: true,
+          status: true,
+          source: true,
+          totalCents: true,
+          createdAt: true,
+        },
+      }),
+      prisma.supportTicket.findMany({
+        where: { tenantId, status: { in: ["OPEN", "IN_PROGRESS", "WAITING_ON_CUSTOMER"] } },
+        orderBy: { createdAt: "desc" },
+        select: { id: true, subject: true, priority: true, status: true, createdAt: true },
+      }),
+    ]);
+
+  return {
+    tenant,
     orderCount,
     revenueCents: revenue._sum.totalCents ?? 0,
+    categoryCount,
+    itemCount,
+    customerCount: customerPhones.length,
+    recentOrders,
+    openTickets,
   };
 }
 

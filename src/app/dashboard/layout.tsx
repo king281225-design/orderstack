@@ -4,6 +4,7 @@ import { getTenantById } from "@/lib/data/tenants";
 import { nowMs } from "@/lib/time";
 import { hasAnyMenuItems } from "@/lib/data/menu";
 import { countLowStock } from "@/lib/data/inventory";
+import { ManagingBanner } from "@/components/dashboard/managing-banner";
 import { OnboardingBanner } from "@/components/dashboard/onboarding-banner";
 import { listOrdersForTenant } from "@/lib/data/orders";
 import { listPendingWaiterCalls } from "@/lib/data/waiter-calls";
@@ -65,6 +66,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-indigo-50/40 to-violet-50 dark:from-[#0f0b08] dark:via-[#1a120c] dark:to-[#3d1c05]">
+      {session.impersonatorId && <ManagingBanner tenantName={tenant.name} />}
       <DashboardHeader
         tenantName={tenant.name}
         tenantSlug={tenant.slug}

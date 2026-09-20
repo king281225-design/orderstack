@@ -32,6 +32,13 @@ export type SessionPayload = {
   // elsewhere. Absent on tokens issued before this feature shipped, which is
   // treated the same as a mismatch (forces one re-login, then self-heals).
   sid: string;
+  // Set only on a session a SUPER_ADMIN started via "Manage this restaurant"
+  // (src/app/super-admin/actions.ts): role/tenantId are the target
+  // restaurant's owner view, sub/email stay the super-admin's own, and this
+  // holds the super-admin's user id so the session can be turned back into
+  // their real one. Signed inside the JWT like everything else here, and only
+  // ever minted after a requireRole("SUPER_ADMIN") check.
+  impersonatorId?: string;
 };
 
 /** A fresh, unguessable per-login identifier — see SessionPayload.sid. */

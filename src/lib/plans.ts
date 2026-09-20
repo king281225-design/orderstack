@@ -5,6 +5,21 @@ export const TRIAL_DAYS = 7;
 export const TRIAL_MS = TRIAL_DAYS * 24 * 60 * 60 * 1000;
 
 /**
+ * Where a tenant stands against the free trial (same rule src/proxy.ts and
+ * the owner dashboard use): a paid/overridden tenant (subscriptionStatus
+ * ACTIVE) has no trial clock; otherwise it runs TRIAL_DAYS from createdAt.
+ */
+export function trialState(
+  createdAt: Date,
+  subscriptionStatus: string,
+  now: number,
+): { kind: "full" } | { kind: "trial"; daysLeft: number } | { kind: "ended" } {
+  if (subscriptionStatus === "ACTIVE") return { kind: "full" };
+  const msLeft = createdAt.getTime() + TRIAL_MS - now;
+  return msLeft > 0 ? { kind: "trial", daysLeft: Math.ceil(msLeft / 86_400_000) } : { kind: "ended" };
+}
+
+/**
  * Pricing updated 2026-09-16 at the user's direct request: Starter ₹499/mo
  * (unchanged) + ₹4999/yr, Advanced ₹699/mo (was ₹999) + ₹7999/yr, Business
  * ₹999/mo (was ₹1999) + ₹9999/yr. This is what a restaurant pays *us* to use

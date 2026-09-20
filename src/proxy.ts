@@ -56,7 +56,10 @@ export async function proxy(request: NextRequest) {
   // itself, since a superseded session shouldn't be able to reach anything,
   // not even to pay. Clears the now-invalid cookie so the redirect doesn't
   // loop back here.
-  if (isDashboard && session && (session.role === "OWNER" || session.role === "STAFF") && session.tenantId) {
+  // A super-admin managing a restaurant (session.impersonatorId) is exempt from both this and the
+  // trial gate below — they're supporting the tenant, not using its plan — and their own sid is
+  // not the tenant owner's, so the device check would wrongly log them out.
+  if (isDashboard && session && !session.impersonatorId && (session.role === "OWNER" || session.role === "STAFF") && session.tenantId) {
     const stillActive = await isSessionStillActive(session.sub, session.sid, session.tenantId);
     if (!stillActive) {
       const response = NextResponse.redirect(new URL("/login?loggedOutElsewhere=1", request.url));
@@ -68,7 +71,7 @@ export async function proxy(request: NextRequest) {
   // Trial gate — only once we know it's a real owner/staff session, and
   // never on /dashboard/billing itself (that's the one page a
   // trial-expired tenant must still be able to reach, to actually pay).
-  if (isDashboard && session && (session.role === "OWNER" || session.role === "STAFF") && session.tenantId) {
+  if (isDashboard && session && !session.impersonatorId && (session.role === "OWNER" || session.role === "STAFF") && session.tenantId) {
     if (pathname !== BILLING_PATH && !pathname.startsWith(`${BILLING_PATH}/`)) {
       const tenant = await getTenantTrialStatus(session.tenantId);
       if (
