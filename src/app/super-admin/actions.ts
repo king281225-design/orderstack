@@ -9,6 +9,8 @@ import {
   setTenantStatus,
   setTenantPlan,
   setTenantSubscriptionOverride,
+  setTenantBilling,
+  deleteTenants,
 } from "@/lib/data/tenants";
 import type { PlanTier } from "@prisma/client";
 
@@ -112,4 +114,53 @@ export async function stopManagingTenantAction() {
     sid: generateSessionId(),
   });
   redirect("/super-admin");
+}
+
+const BILLING_PERIODS = ["MONTHLY", "ANNUAL"] as const;
+
+/** Inline monthly/annual dropdown on the restaurants list ("" clears it). */
+export async function setTenantBillingPeriodAction(tenantId: string, period: string) {
+  await requireRole("SUPER_ADMIN");
+  const billingPeriod = BILLING_PERIODS.find((p) => p === period) ?? null;
+  await prisma.tenant.update({ where: { id: tenantId }, data: { billingPeriod } });
+  revalidatePath("/super-admin");
+}
+
+/** Detail-page billing form: period plus the date the customer has paid up to. */
+export async function saveTenantBillingAction(tenantId: string, formData: FormData) {
+  await requireRole("SUPER_ADMIN");
+  const rawPeriod = String(formData.get("billingPeriod") ?? "");
+  const billingPeriod = BILLING_PERIODS.find((p) => p === rawPeriod) ?? null;
+  const rawDate = String(formData.get("paidUntil") ?? "").trim();
+  let paidUntil: Date | null = null;
+  if (rawDate) {
+    // Treat the picked calendar day as the END of that day in India, so "paid until 30 Sep" stays valid all through the 30th.
+    paidUntil = new Date(`${rawDate}T23:59:59+05:30`);
+    if (Number.isNaN(paidUntil.getTime())) throw new Error("Invalid date.");
+  }
+  await setTenantBilling(tenantId, { billingPeriod, paidUntil });
+  revalidatePath("/super-admin");
+  revalidatePath(`/super-admin/restaurants/${tenantId}`);
+}
+
+const MAX_DELETE_BATCH = 200;
+
+/**
+ * Permanent bulk delete, reached only from the /super-admin/delete confirmation
+ * page. The typed word is checked here on the server, not just in the browser.
+ */
+export async function deleteTenantsAction(formData: FormData) {
+  const session = await requireRole("SUPER_ADMIN");
+  if (String(formData.get("confirm") ?? "").trim() !== "DELETE") {
+    throw new Error('Type DELETE (capitals) to confirm.');
+  }
+  const ids = [...new Set(formData.getAll("id").map(String))].filter(Boolean);
+  if (ids.length === 0) redirect("/super-admin");
+  if (ids.length > MAX_DELETE_BATCH) throw new Error(`Too many at once (max ${MAX_DELETE_BATCH}).`);
+
+  const doomed = await prisma.tenant.findMany({ where: { id: { in: ids } }, select: { slug: true } });
+  const count = await deleteTenants(ids);
+  console.info(`[super-admin] ${session.email} DELETED ${count} restaurant(s): ${doomed.map((t) => t.slug).join(", ")}`);
+  revalidatePath("/super-admin");
+  redirect(`/super-admin?deleted=${count}`);
 }

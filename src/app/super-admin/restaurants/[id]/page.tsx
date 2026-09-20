@@ -4,9 +4,11 @@ import { getTenantDetailForAdmin } from "@/lib/data/tenants";
 import { formatINR } from "@/lib/money";
 import { PlanSelect } from "@/components/super-admin/plan-select";
 import { AccessToggle, StatusToggle, ManageButtons } from "@/components/super-admin/tenant-controls";
-import { formatDate, formatDateTime } from "@/components/super-admin/format";
+import { formatDate, formatDateTime, toDateInput, paidUntilNote } from "@/components/super-admin/format";
+import { saveTenantBillingAction } from "@/app/super-admin/actions";
 import { AutoRefresh } from "@/components/auto-refresh";
 import { nowMs } from "@/lib/time";
+import { PLAN_DEFINITIONS, getPlanPriceCents } from "@/lib/plans";
 
 export const dynamic = "force-dynamic";
 
@@ -99,6 +101,73 @@ export default async function RestaurantDetailPage({ params }: { params: Promise
         </Card>
       </section>
 
+      <Card title="Billing">
+        <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+          <dl className="grid grid-cols-[8rem_1fr] gap-x-3 gap-y-1 text-sm">
+            <Row label="Plan" value={PLAN_DEFINITIONS[t.planTier].label} />
+            <Row
+              label="Price"
+              value={
+                t.billingPeriod
+                  ? `${formatINR(getPlanPriceCents(t.planTier, t.billingPeriod))} / ${t.billingPeriod === "ANNUAL" ? "year" : "month"}`
+                  : null
+              }
+            />
+            <Row label="Billing period" value={t.billingPeriod === "ANNUAL" ? "Annual" : t.billingPeriod === "MONTHLY" ? "Monthly" : null} />
+            <Row
+              label="Paid until"
+              value={
+                t.paidUntil
+                  ? paidUntilNote(t.paidUntil, now).tone === "ok"
+                    ? formatDate(t.paidUntil)
+                    : `${formatDate(t.paidUntil)} — ${paidUntilNote(t.paidUntil, now).text}`
+                  : null
+              }
+            />
+            <Row label="Access" value={t.subscriptionStatus === "ACTIVE" ? "Full access" : t.subscriptionStatus} />
+            <Row
+              label="Paid through"
+              value={
+                t.subscriptionStatus !== "ACTIVE"
+                  ? null
+                  : t.razorpaySubscriptionId
+                    ? "Razorpay subscription"
+                    : detail.purchaseCount > 0
+                      ? "One-time payment"
+                      : "Manual (set by super admin)"
+              }
+            />
+          </dl>
+          {/* For customers who pay outside Razorpay (bank / UPI transfer) — and to correct what it recorded. */}
+          <form action={saveTenantBillingAction.bind(null, t.id)} className="flex flex-col gap-3 text-sm">
+            <label className="flex flex-col gap-1 font-medium text-gray-700">
+              Billing period
+              <select
+                name="billingPeriod"
+                defaultValue={t.billingPeriod ?? ""}
+                className="w-48 rounded-md border border-gray-300 px-2 py-1.5 focus:border-indigo-600 focus:outline-none"
+              >
+                <option value="">Not set</option>
+                <option value="MONTHLY">Monthly</option>
+                <option value="ANNUAL">Annual</option>
+              </select>
+            </label>
+            <label className="flex flex-col gap-1 font-medium text-gray-700">
+              Paid until
+              <input
+                type="date"
+                name="paidUntil"
+                defaultValue={t.paidUntil ? toDateInput(t.paidUntil) : ""}
+                className="w-48 rounded-md border border-gray-300 px-2 py-1.5 focus:border-indigo-600 focus:outline-none"
+              />
+            </label>
+            <button type="submit" className="w-fit rounded-md bg-indigo-600 px-3 py-1.5 text-sm font-semibold text-white hover:bg-indigo-700">
+              Save billing
+            </button>
+          </form>
+        </div>
+      </Card>
+
       {detail.openTickets.length > 0 && (
         <Card title="Open support tickets">
           <ul className="flex flex-col gap-1 text-sm">
@@ -163,6 +232,19 @@ export default async function RestaurantDetailPage({ params }: { params: Promise
             </tbody>
           </table>
         </div>
+      </section>
+
+      <section className="rounded-lg border border-red-200 p-4">
+        <h3 className="text-sm font-semibold text-red-700">Danger zone</h3>
+        <p className="mt-1 text-sm text-gray-600">
+          Permanently delete this restaurant and everything in it. You&apos;ll review it on the next screen first.
+        </p>
+        <Link
+          href={`/super-admin/delete?id=${t.id}`}
+          className="mt-3 inline-block rounded-md border border-red-300 px-3 py-1.5 text-sm font-medium text-red-700 hover:bg-red-50"
+        >
+          Delete restaurant…
+        </Link>
       </section>
     </div>
   );

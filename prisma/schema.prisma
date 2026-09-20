@@ -176,6 +176,18 @@ model Tenant {
   // actually confirmed (verifyAndActivateSubscription, or the webhook),
   // whichever fires first. Cleared back to null at that point.
   pendingPlanTier         PlanTier?
+  // Monthly vs annual billing for this restaurant — what the super-admin
+  // dashboard reports as "who pays monthly / annually". Set automatically
+  // when a Razorpay subscription activates (from pendingBillingPeriod, stashed
+  // at subscribe time exactly like pendingPlanTier), or by hand from the
+  // super-admin for customers who pay outside Razorpay (bank/UPI transfer).
+  // Null = not recorded; such a tenant isn't counted in revenue estimates.
+  billingPeriod           BillingPeriod?
+  pendingBillingPeriod    BillingPeriod?
+  // End of the period the tenant has paid for. Refreshed on each Razorpay
+  // activation/charge; editable by hand for manual payers. Informational —
+  // nothing gates access on it (access is subscriptionStatus + the trial).
+  paidUntil               DateTime?
   upiId                   String?
   // A photographed/scanned physical menu, offered as an alternative to
   // building the digital menu item-by-item (see "hardcopy menu upload" on

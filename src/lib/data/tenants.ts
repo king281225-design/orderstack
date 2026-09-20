@@ -2,7 +2,7 @@ import "server-only";
 import { prisma } from "@/lib/prisma";
 import { hashPassword } from "@/lib/auth";
 import type { BillingPeriod, PlanTier, SubscriptionStatus, Prisma } from "@prisma/client";
-import { PLAN_DEFINITIONS, getPlanPriceCents } from "@/lib/plans";
+import { PLAN_DEFINITIONS, getPlanPriceCents, TRIAL_MS } from "@/lib/plans";
 import {
   createRazorpayPlan,
   createRazorpaySubscription,
@@ -149,7 +149,7 @@ export async function listTenantsWithStats(query: TenantListQuery = {}) {
     skip: (page - 1) * SUPER_ADMIN_PAGE_SIZE,
     take: SUPER_ADMIN_PAGE_SIZE,
     include: {
-      _count: { select: { orders: true } },
+      _count: { select: { orders: true, subscriptionPurchases: true } },
       users: {
         where: { role: "OWNER" },
         orderBy: { createdAt: "asc" },
@@ -236,7 +236,7 @@ export async function getTenantDetailForAdmin(tenantId: string) {
   });
   if (!tenant) return null;
 
-  const [orderCount, revenue, categoryCount, itemCount, customerPhones, recentOrders, openTickets] =
+  const [orderCount, revenue, categoryCount, itemCount, customerPhones, recentOrders, openTickets, purchaseCount] =
     await Promise.all([
       prisma.order.count({ where: { tenantId } }),
       prisma.order.aggregate({
@@ -269,6 +269,7 @@ export async function getTenantDetailForAdmin(tenantId: string) {
         orderBy: { createdAt: "desc" },
         select: { id: true, subject: true, priority: true, status: true, createdAt: true },
       }),
+      prisma.subscriptionPurchase.count({ where: { tenantId } }),
     ]);
 
   return {
@@ -280,7 +281,121 @@ export async function getTenantDetailForAdmin(tenantId: string) {
     customerCount: customerPhones.length,
     recentOrders,
     openTickets,
+    purchaseCount,
   };
+}
+
+/** Super-admin manual billing record — for customers paying outside Razorpay, or to correct what it recorded. */
+export async function setTenantBilling(
+  tenantId: string,
+  input: { billingPeriod: BillingPeriod | null; paidUntil: Date | null },
+) {
+  await prisma.tenant.update({
+    where: { id: tenantId },
+    data: { billingPeriod: input.billingPeriod, paidUntil: input.paidUntil },
+  });
+}
+
+/** Everything a delete confirmation needs to show — what would be lost. */
+export async function getTenantsForDeletion(ids: string[]) {
+  const tenants = await prisma.tenant.findMany({
+    where: { id: { in: ids } },
+    orderBy: { name: "asc" },
+    include: {
+      _count: { select: { orders: true, items: true, users: true } },
+      users: { where: { role: "OWNER" }, take: 1, select: { email: true } },
+    },
+  });
+  const revenue = await prisma.order.groupBy({
+    by: ["tenantId"],
+    where: { tenantId: { in: ids }, status: { not: "CANCELLED" } },
+    _sum: { totalCents: true },
+  });
+  const revenueMap = new Map(revenue.map((r) => [r.tenantId, r._sum.totalCents ?? 0]));
+  return tenants.map(({ users, ...t }) => ({
+    ...t,
+    ownerEmail: users[0]?.email ?? null,
+    revenueCents: revenueMap.get(t.id) ?? 0,
+  }));
+}
+
+/**
+ * PERMANENTLY deletes restaurants and, through the schema's cascades, their
+ * logins, menus, orders, order history, coupons, tickets etc. Uploaded images
+ * in object storage are not touched. Super-admin only.
+ */
+export async function deleteTenants(ids: string[]): Promise<number> {
+  const res = await prisma.tenant.deleteMany({ where: { id: { in: ids } } });
+  return res.count;
+}
+
+export type BillingSummary = {
+  monthly: number;
+  annual: number;
+  periodNotSet: number;
+  onTrial: number;
+  trialEnded: number;
+  suspended: number;
+  byTier: Record<PlanTier, number>;
+  /** Monthly-equivalent recurring revenue, in cents — annual plans at 1/12. Only counts tenants with a recorded billing period. */
+  mrrCents: number;
+  paidUntilSoon: number;
+  paidUntilExpired: number;
+};
+
+/** Customers-by-plan/billing rollup for the super-admin header. Reads a few columns of every tenant — fine at this scale. */
+export async function getBillingSummary(now: number): Promise<BillingSummary> {
+  const all = await prisma.tenant.findMany({
+    select: {
+      status: true,
+      planTier: true,
+      subscriptionStatus: true,
+      billingPeriod: true,
+      paidUntil: true,
+      createdAt: true,
+    },
+  });
+  const out: BillingSummary = {
+    monthly: 0,
+    annual: 0,
+    periodNotSet: 0,
+    onTrial: 0,
+    trialEnded: 0,
+    suspended: 0,
+    byTier: { STARTER: 0, ADVANCED: 0, BUSINESS: 0 },
+    mrrCents: 0,
+    paidUntilSoon: 0,
+    paidUntilExpired: 0,
+  };
+  const week = 7 * 24 * 60 * 60 * 1000;
+  for (const t of all) {
+    if (t.status === "SUSPENDED") {
+      out.suspended++;
+      continue;
+    }
+    out.byTier[t.planTier]++;
+    if (t.subscriptionStatus === "ACTIVE") {
+      if (t.billingPeriod === "MONTHLY") {
+        out.monthly++;
+        out.mrrCents += getPlanPriceCents(t.planTier, "MONTHLY");
+      } else if (t.billingPeriod === "ANNUAL") {
+        out.annual++;
+        out.mrrCents += Math.round(getPlanPriceCents(t.planTier, "ANNUAL") / 12);
+      } else {
+        out.periodNotSet++;
+      }
+      if (t.paidUntil) {
+        const left = t.paidUntil.getTime() - now;
+        if (left < 0) out.paidUntilExpired++;
+        else if (left < week) out.paidUntilSoon++;
+      }
+    } else if (t.createdAt.getTime() + TRIAL_MS > now) {
+      out.onTrial++;
+    } else {
+      out.trialEnded++;
+    }
+  }
+  return out;
 }
 
 export class SlugTakenError extends Error {}
@@ -444,6 +559,30 @@ export async function getOrCreateRazorpayPlanId(tier: PlanTier, period: BillingP
   return plan.id;
 }
 
+/** from + one billing period (calendar month / year). */
+export function addBillingPeriod(from: Date, period: BillingPeriod): Date {
+  const d = new Date(from);
+  if (period === "ANNUAL") d.setFullYear(d.getFullYear() + 1);
+  else d.setMonth(d.getMonth() + 1);
+  return d;
+}
+
+/**
+ * The billing fields to write when a Razorpay subscription activates or is
+ * charged. paidUntil is set to now + period rather than added on top of the
+ * old value: Razorpay fires both `activated` and `charged` for the first
+ * payment, and adding would double-extend it.
+ */
+function activatedBillingFields(tenant: {
+  pendingBillingPeriod: BillingPeriod | null;
+  billingPeriod: BillingPeriod | null;
+}) {
+  const period = tenant.pendingBillingPeriod ?? tenant.billingPeriod;
+  return period
+    ? { billingPeriod: period, pendingBillingPeriod: null, paidUntil: addBillingPeriod(new Date(), period) }
+    : { pendingBillingPeriod: null };
+}
+
 /**
  * Starts a real recurring Razorpay subscription for a tier the owner chose
  * on /dashboard/billing — NOT the tenant's existing planTier, which might
@@ -471,6 +610,7 @@ export async function startTenantSubscription(tenantId: string, tier: PlanTier, 
       razorpaySubscriptionId: subscription.id,
       subscriptionStatus: "NONE",
       pendingPlanTier: tier,
+      pendingBillingPeriod: period,
     },
   });
 
@@ -497,6 +637,7 @@ export async function verifyAndActivateSubscription(
       subscriptionStatus: "ACTIVE",
       planTier: tenant.pendingPlanTier ?? tenant.planTier,
       pendingPlanTier: null,
+      ...activatedBillingFields(tenant),
     },
   });
 }
@@ -513,7 +654,12 @@ export async function setSubscriptionStatusByRazorpaySubscriptionId(
     where: { id: tenant.id },
     data:
       status === "ACTIVE"
-        ? { subscriptionStatus: status, planTier: tenant.pendingPlanTier ?? tenant.planTier, pendingPlanTier: null }
+        ? {
+            subscriptionStatus: status,
+            planTier: tenant.pendingPlanTier ?? tenant.planTier,
+            pendingPlanTier: null,
+            ...activatedBillingFields(tenant),
+          }
         : { subscriptionStatus: status },
   });
 }
@@ -524,7 +670,7 @@ export async function cancelTenantSubscription(tenantId: string): Promise<void> 
   await cancelRazorpaySubscription(tenant.razorpaySubscriptionId);
   await prisma.tenant.update({
     where: { id: tenantId },
-    data: { subscriptionStatus: "CANCELLED", pendingPlanTier: null },
+    data: { subscriptionStatus: "CANCELLED", pendingPlanTier: null, pendingBillingPeriod: null },
   });
 }
 
@@ -626,6 +772,8 @@ export async function verifyAndActivateDiscountedPlanPurchase(
         planTier: tier,
         subscriptionStatus: "ACTIVE",
         pendingPlanTier: null,
+        billingPeriod: "MONTHLY",
+        paidUntil: addBillingPeriod(new Date(), "MONTHLY"),
         welcomeCouponRedeemedAt: new Date(),
       },
     }),
