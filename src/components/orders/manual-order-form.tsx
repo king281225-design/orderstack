@@ -86,7 +86,9 @@ export function ManualOrderForm({
   // rank above the rest.
   function suggestionsFor(name: string) {
     const q = name.trim().toLowerCase();
-    if (!q) return [];
+    // Clicking into an empty box lists the whole menu, so the bar is a
+    // picker as well as a search box.
+    if (!q) return menuItems.slice(0, 40);
     const scored: { m: PickableMenuItem; score: number }[] = [];
     for (const m of menuItems) {
       const lower = m.name.toLowerCase();
@@ -96,10 +98,10 @@ export function ManualOrderForm({
       if (lower.startsWith(q)) score = 4;
       else if (initials.startsWith(q)) score = 3;
       else if (words.some((w) => w.startsWith(q))) score = 2;
-      else if (lower.includes(q)) score = 1;
+      else if (q.length > 1 && lower.includes(q)) score = 1;
       if (score > 0) scored.push({ m, score });
     }
-    return scored.sort((a, b) => b.score - a.score).slice(0, 8).map((s) => s.m);
+    return scored.sort((a, b) => b.score - a.score).slice(0, 20).map((s) => s.m);
   }
 
   const linesPayload = JSON.stringify(
@@ -207,18 +209,19 @@ export function ManualOrderForm({
             <div key={i} className="grid grid-cols-[1fr_90px_70px_auto] items-center gap-2">
               <div className="relative">
                 <input
-                  placeholder="Item / service name"
+                  placeholder={menuItems.length > 0 ? "Click to pick from menu, or type (e.g. pt)" : "Item / service name"}
                   value={line.name}
                   onChange={(e) => {
                     updateLine(i, { name: e.target.value, itemId: undefined });
                     setSuggestFor(i);
                   }}
                   onFocus={() => setSuggestFor(i)}
+                  onClick={() => setSuggestFor(i)}
                   // Enter picks the top match instead of submitting the whole bill.
                   onKeyDown={(e) => {
                     if (e.key !== "Enter") return;
                     e.preventDefault();
-                    if (suggestions.length > 0) selectSuggestion(i, suggestions[0]);
+                    if (line.name.trim() && suggestions.length > 0) selectSuggestion(i, suggestions[0]);
                   }}
                   // A plain onBlur would fire and close the dropdown before a
                   // click on a suggestion registers — closing on a short
@@ -228,12 +231,15 @@ export function ManualOrderForm({
                   className="w-full rounded-md border border-gray-300 px-2 py-1.5 text-sm focus:border-indigo-600 focus:outline-none"
                 />
                 {suggestions.length > 0 && (
-                  <ul className="absolute z-10 mt-1 w-full max-w-xs overflow-hidden rounded-md border border-gray-200 bg-white shadow-lg dark:bg-[#241d17]">
+                  <ul className="absolute z-20 mt-1 max-h-64 w-full overflow-y-auto rounded-md border border-gray-200 bg-white shadow-lg dark:bg-[#241d17]">
                     {suggestions.map((m) => (
                       <li key={`${m.itemId}-${m.name}`}>
                         <button
                           type="button"
-                          onClick={() => selectSuggestion(i, m)}
+                          onMouseDown={(e) => {
+                            e.preventDefault();
+                            selectSuggestion(i, m);
+                          }}
                           className="flex w-full items-center justify-between gap-2 px-3 py-1.5 text-left text-sm hover:bg-gray-50 dark:hover:bg-white/5"
                         >
                           <span className="truncate">{m.name}</span>
