@@ -214,6 +214,13 @@ function OrderCard({
         >
           🖨️ Print bill
         </Link>
+        <Link
+          href={`/dashboard/orders/${order.id}/kot`}
+          target="_blank"
+          className="rounded-md border border-gray-300 px-3 py-1.5 text-sm font-semibold text-gray-700 hover:bg-gray-50"
+        >
+          🍳 Print KOT
+        </Link>
         <OrderActionButtons
           orderId={order.id}
           next={next}
