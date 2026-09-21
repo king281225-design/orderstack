@@ -2,6 +2,7 @@ import Link from "next/link";
 import { requireTenantSession } from "@/lib/auth";
 import { getTenantById } from "@/lib/data/tenants";
 import { listIngredients, listRecentMovements, stockLevel } from "@/lib/data/inventory";
+import { IngredientImport } from "@/components/inventory/ingredient-import";
 import {
   AddIngredientForm,
   AutoHideToggle,
@@ -77,6 +78,10 @@ export default async function InventoryPage() {
           <section className="rounded-lg border border-gray-200 bg-white p-4 dark:bg-[#241d17]">
             <h3 className="mb-3 text-sm font-semibold text-gray-900">Add an ingredient</h3>
             <AddIngredientForm />
+          </section>
+          <section className="rounded-lg border border-gray-200 bg-white p-4 dark:bg-[#241d17]">
+            <h3 className="mb-3 text-sm font-semibold text-gray-900">Paste your stock list</h3>
+            <IngredientImport existingNames={ingredients.map((i) => i.name)} />
           </section>
           <section className="rounded-lg border border-gray-200 bg-white p-4 dark:bg-[#241d17]">
             <AutoHideToggle enabled={tenant.autoHideOutOfStock} />

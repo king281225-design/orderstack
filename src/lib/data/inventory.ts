@@ -383,3 +383,76 @@ export async function setCategoryStation(tenantId: string, categoryId: string, s
 export async function setAutoHideOutOfStock(tenantId: string, value: boolean) {
   await prisma.tenant.update({ where: { id: tenantId }, data: { autoHideOutOfStock: value } });
 }
+
+// ------------------------------------------------------------- bulk import
+
+export type ImportRowInput = {
+  name: string;
+  unit: string;
+  quantity: number;
+  lowStock: number;
+  costPerUnitCents: number | null;
+};
+
+export type ImportSummary = {
+  created: number;
+  restocked: number;
+  skipped: string[];
+  problems: string[];
+};
+
+export const MAX_IMPORT_ROWS = 300;
+
+/**
+ * Saves a pasted ingredient list. New names are created (with opening stock);
+ * a name already in the inventory is either left alone ("skip") or has the
+ * pasted quantity received on top of its stock ("add") — only when the units
+ * match, so 5 g can never be added to a stock counted in kg. Rows are handled
+ * one by one, so a single bad row is reported without losing the others.
+ */
+export async function importIngredients(
+  tenantId: string,
+  rows: ImportRowInput[],
+  mode: "skip" | "add",
+): Promise<ImportSummary> {
+  if (rows.length === 0) throw new InventoryError("Nothing to import.");
+  if (rows.length > MAX_IMPORT_ROWS) {
+    throw new InventoryError(`Import up to ${MAX_IMPORT_ROWS} ingredients at a time.`);
+  }
+
+  const existing = await listIngredients(tenantId);
+  const byName = new Map(existing.map((i) => [i.name.trim().toLowerCase(), i]));
+  const summary: ImportSummary = { created: 0, restocked: 0, skipped: [], problems: [] };
+
+  for (const row of rows) {
+    const name = row.name.trim();
+    try {
+      const found = byName.get(name.toLowerCase());
+      if (found) {
+        if (mode === "skip") {
+          summary.skipped.push(name);
+        } else if (found.unit !== row.unit) {
+          summary.problems.push(`${name}: already stocked in ${found.unit}, not ${row.unit} — left unchanged.`);
+        } else if (row.quantity > 0) {
+          await adjustStock(tenantId, found.id, row.quantity, "PURCHASE", "Bulk import");
+          summary.restocked += 1;
+        } else {
+          summary.skipped.push(name);
+        }
+        continue;
+      }
+      const created = await createIngredient(tenantId, {
+        name,
+        unit: row.unit,
+        openingStock: row.quantity,
+        lowStockThreshold: row.lowStock,
+        costPerUnitCents: row.costPerUnitCents,
+      });
+      byName.set(name.toLowerCase(), created);
+      summary.created += 1;
+    } catch (err) {
+      summary.problems.push(`${name || "(blank)"}: ${err instanceof InventoryError ? err.message : "could not be saved."}`);
+    }
+  }
+  return summary;
+}

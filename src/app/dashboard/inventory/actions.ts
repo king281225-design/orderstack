@@ -10,6 +10,8 @@ import {
   createStation,
   deleteIngredient,
   deleteStation,
+  importIngredients,
+  type ImportSummary,
   setAutoHideOutOfStock,
   setCategoryStation,
   setItemStation,
@@ -169,4 +171,50 @@ export async function setCategoryStationAction(categoryId: string, formData: For
   const stationId = String(formData.get("stationId") ?? "") || null;
   await setCategoryStation(session.tenantId, categoryId, stationId);
   revalidatePath("/dashboard/kot/stations");
+}
+
+export type ImportIngredientsState = { error: string | null; summary?: ImportSummary };
+
+/**
+ * Saves the reviewed rows from the "paste your list" box. Rows arrive as JSON
+ * and are re-validated here and again in importIngredients — the browser-side
+ * parser is a convenience, never trusted.
+ */
+export async function importIngredientsAction(
+  rowsJson: string,
+  mode: "skip" | "add",
+): Promise<ImportIngredientsState> {
+  const session = await requireOwnerSession();
+  let rows: {
+    name: string;
+    unit: string;
+    quantity: number;
+    lowStock: number;
+    costPerUnitCents: number | null;
+  }[];
+  try {
+    const parsed = JSON.parse(rowsJson);
+    if (!Array.isArray(parsed)) throw new Error("not a list");
+    rows = parsed.map((r) => {
+      const cost = r?.costPerUnit === null || r?.costPerUnit === "" || r?.costPerUnit === undefined ? null : Number(r.costPerUnit);
+      return {
+        name: String(r?.name ?? ""),
+        unit: String(r?.unit ?? ""),
+        quantity: Number(r?.quantity ?? 0),
+        lowStock: Number(r?.lowStock ?? 0),
+        costPerUnitCents: cost !== null && Number.isFinite(cost) && cost >= 0 ? rupeesToCents(String(cost)) : null,
+      };
+    });
+  } catch {
+    return { error: "Could not read the list." };
+  }
+  try {
+    const summary = await importIngredients(session.tenantId, rows, mode === "add" ? "add" : "skip");
+    revalidatePath("/dashboard/inventory");
+    revalidatePath("/dashboard/inventory/recipes");
+    return { error: null, summary };
+  } catch (err) {
+    const res = fail(err);
+    return { error: res.error };
+  }
 }
