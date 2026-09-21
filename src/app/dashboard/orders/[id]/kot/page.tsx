@@ -4,6 +4,7 @@ import { getOrderForPrint } from "@/lib/data/orders";
 import { getTenantById } from "@/lib/data/tenants";
 import { KotPrintControls } from "@/components/orders/kot-print-controls";
 import { kotCode } from "@/lib/kot";
+import { formatINR } from "@/lib/money";
 
 /**
  * Kitchen Order Ticket slip — always an 80mm thermal roll layout, one per
@@ -15,10 +16,11 @@ export default async function KotSlipPage({
   searchParams,
 }: {
   params: Promise<{ id: string }>;
-  searchParams: Promise<{ station?: string }>;
+  searchParams: Promise<{ station?: string; prices?: string }>;
 }) {
   const session = await requireTenantSession();
-  const [{ id }, { station }] = await Promise.all([params, searchParams]);
+  const [{ id }, { station, prices }] = await Promise.all([params, searchParams]);
+  const showPrices = prices !== "0";
   const [order, tenant] = await Promise.all([
     getOrderForPrint(session.tenantId, id),
     getTenantById(session.tenantId),
@@ -31,10 +33,17 @@ export default async function KotSlipPage({
   if (items.length === 0) notFound();
   const stationLabel = station ? (station === "none" ? "Unassigned" : items[0].stationName ?? "Station") : null;
 
+  const itemsSubtotal = items.reduce((sum, i) => sum + i.priceCentsSnapshot * i.quantity, 0);
+  const base = `/dashboard/orders/${id}/kot`;
+  const pricesHref = `${base}?${new URLSearchParams({
+    ...(station ? { station } : {}),
+    ...(showPrices ? { prices: "0" } : {}),
+  }).toString()}`;
+
   return (
     <div className="mx-auto" style={{ maxWidth: "74mm", fontSize: 13 }}>
       <style>{"@page { size: 80mm auto; margin: 3mm; }"}</style>
-      <KotPrintControls />
+      <KotPrintControls billHref={`/dashboard/orders/${id}/print`} pricesHref={pricesHref} showPrices={showPrices} />
       <div className="text-center">
         <p className="text-base font-bold">{tenant.name}</p>
         <p className="text-lg font-bold">KOT {kotCode(tenant.name, order.orderNumber)}</p>
@@ -54,7 +63,8 @@ export default async function KotSlipPage({
         {items.map((i) => (
           <li key={i.id} className="flex gap-2 text-sm font-semibold">
             <span className="w-8 shrink-0">{i.quantity} ×</span>
-            <span>{i.nameSnapshot}</span>
+            <span className="flex-1">{i.nameSnapshot}</span>
+            {showPrices && <span className="shrink-0">{formatINR(i.priceCentsSnapshot * i.quantity)}</span>}
           </li>
         ))}
       </ul>
@@ -62,6 +72,24 @@ export default async function KotSlipPage({
         <>
           <hr className="my-2 border-dashed border-gray-500" />
           <p className="text-sm">Note: {order.notes}</p>
+        </>
+      )}
+      {showPrices && (
+        <>
+          <hr className="my-2 border-dashed border-gray-500" />
+          {station && (
+            <p className="flex justify-between text-sm">
+              <span>Station subtotal</span>
+              <span>{formatINR(itemsSubtotal)}</span>
+            </p>
+          )}
+          <p className="flex justify-between text-sm font-bold">
+            <span>
+              Bill total
+              {order.taxCents > 0 ? " (incl. GST)" : ""}
+            </span>
+            <span>{formatINR(order.totalCents)}</span>
+          </p>
         </>
       )}
       <hr className="my-2 border-dashed border-gray-500" />

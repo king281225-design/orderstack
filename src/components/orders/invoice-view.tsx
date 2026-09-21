@@ -25,6 +25,7 @@ export function InvoiceView({
   totalCents,
   paymentMethod,
   paymentStatus,
+  kotHref,
 }: {
   tenantName: string;
   businessAddress: string | null;
@@ -46,6 +47,8 @@ export function InvoiceView({
   totalCents: number;
   paymentMethod: string;
   paymentStatus: string;
+  /** When set, the controls bar shows a "Print KOT" link to the order's kitchen ticket. */
+  kotHref?: string;
 }) {
   // A dine-in/walk-in customer is always in the same state as the
   // restaurant, so once a state is on file this is always an intra-state
@@ -71,7 +74,7 @@ export function InvoiceView({
           there. 3mm margin keeps content within the printer's actual 80mm
           print width rather than right at its edge. */}
       <style>{`@page { size: ${thermal ? "80mm auto" : "A4"}; margin: ${thermal ? "3mm" : "12mm"}; }`}</style>
-      <PrintControls onThermalChange={setThermal} />
+      <PrintControls onThermalChange={setThermal} kotHref={kotHref} />
 
       <div className="rounded-lg border border-gray-200 bg-white p-6 text-gray-900 print:rounded-none print:border-0 print:p-0">
         <header className="mb-4 flex flex-col gap-1 border-b border-gray-200 pb-4">

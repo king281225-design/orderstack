@@ -1,9 +1,16 @@
 "use client";
 
+import Link from "next/link";
 import { useState } from "react";
 
 /** print:hidden controls — never rendered on the actual printed page. */
-export function PrintControls({ onThermalChange }: { onThermalChange: (thermal: boolean) => void }) {
+export function PrintControls({
+  onThermalChange,
+  kotHref,
+}: {
+  onThermalChange: (thermal: boolean) => void;
+  kotHref?: string;
+}) {
   const [thermal, setThermal] = useState(false);
 
   return (
@@ -15,6 +22,14 @@ export function PrintControls({ onThermalChange }: { onThermalChange: (thermal: 
       >
         Print / Save as PDF
       </button>
+      {kotHref && (
+        <Link
+          href={kotHref}
+          className="rounded-md border border-gray-300 px-3 py-2 text-sm font-semibold text-gray-700 hover:bg-gray-50"
+        >
+          Print KOT
+        </Link>
+      )}
       <label className="flex items-center gap-1.5 text-sm text-gray-600">
         <input
           type="checkbox"

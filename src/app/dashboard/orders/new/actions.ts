@@ -78,5 +78,10 @@ export async function createManualOrderAction(
   revalidatePath("/dashboard");
   revalidatePath("/dashboard/customers");
   revalidatePath("/dashboard/invoices");
+  revalidatePath("/dashboard/kot");
+  // Which button was clicked: plain save, save & print the bill, or save & print the KOT.
+  const intent = String(formData.get("intent") ?? "bill");
+  if (intent === "kot") redirect(`/dashboard/orders/${order.id}/kot`);
+  if (intent === "save") redirect("/dashboard");
   redirect(`/dashboard/orders/${order.id}/print`);
 }

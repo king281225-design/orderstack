@@ -44,6 +44,7 @@ export default async function PrintInvoicePage({ params }: { params: Promise<{ i
       totalCents={order.totalCents}
       paymentMethod={PAYMENT_METHOD_LABEL[order.paymentMethod] ?? order.paymentMethod}
       paymentStatus={order.paymentStatus}
+      kotHref={`/dashboard/orders/${order.id}/kot`}
     />
   );
 }

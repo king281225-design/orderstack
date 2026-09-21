@@ -6,6 +6,7 @@ import { AutoRefresh } from "@/components/auto-refresh";
 import { KitchenAdvanceButton } from "@/components/orders/kitchen-advance-button";
 import { getTenantById } from "@/lib/data/tenants";
 import { kotCode } from "@/lib/kot";
+import { formatINR } from "@/lib/money";
 import { nowMs } from "@/lib/time";
 import type { OrderStatus } from "@prisma/client";
 
@@ -119,6 +120,7 @@ export default async function KotPage({ searchParams }: { searchParams: Promise<
                         <span className="mr-2 font-bold">{i.quantity} ×</span>
                         {i.nameSnapshot}
                       </span>
+                      <span className="shrink-0 text-sm text-gray-300">{formatINR(i.priceCentsSnapshot * i.quantity)}</span>
                       {selected === "all" && i.stationName && (
                         <span className="shrink-0 rounded bg-indigo-500/30 px-1.5 py-0.5 text-[11px] text-indigo-200">
                           {i.stationName}
@@ -127,6 +129,14 @@ export default async function KotPage({ searchParams }: { searchParams: Promise<
                     </li>
                   ))}
                 </ul>
+                <div className="flex items-baseline justify-between text-sm">
+                  <span className="text-gray-400">
+                    Bill total
+                    {order.discountCents > 0 ? " (after discount)" : ""}
+                    {order.taxCents > 0 ? " incl. GST" : ""}
+                  </span>
+                  <span className="text-lg font-bold">{formatINR(order.totalCents)}</span>
+                </div>
                 {order.notes && <p className="text-sm text-amber-300">Note: {order.notes}</p>}
                 <div className="flex items-center gap-2">
                   <Link
@@ -135,6 +145,13 @@ export default async function KotPage({ searchParams }: { searchParams: Promise<
                     className="rounded-md border border-white/30 px-3 py-2 text-sm font-medium hover:bg-white/10"
                   >
                     Print KOT
+                  </Link>
+                  <Link
+                    href={`/dashboard/orders/${order.id}/print`}
+                    target="_blank"
+                    className="rounded-md border border-white/30 px-3 py-2 text-sm font-medium hover:bg-white/10"
+                  >
+                    Print bill
                   </Link>
                   <div className="flex-1">
                     {next && <KitchenAdvanceButton orderId={order.id} to={next.to} label={next.label} />}
