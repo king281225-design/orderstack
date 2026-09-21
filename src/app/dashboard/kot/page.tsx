@@ -4,6 +4,8 @@ import { listOrdersForTenant } from "@/lib/data/orders";
 import { listStations } from "@/lib/data/inventory";
 import { AutoRefresh } from "@/components/auto-refresh";
 import { KitchenAdvanceButton } from "@/components/orders/kitchen-advance-button";
+import { getTenantById } from "@/lib/data/tenants";
+import { kotCode } from "@/lib/kot";
 import { nowMs } from "@/lib/time";
 import type { OrderStatus } from "@prisma/client";
 
@@ -24,10 +26,12 @@ const STATUS_LABEL: Partial<Record<OrderStatus, string>> = {
 export default async function KotPage({ searchParams }: { searchParams: Promise<{ station?: string }> }) {
   const session = await requireTenantSession();
   const { station } = await searchParams;
-  const [orders, stations] = await Promise.all([
+  const [orders, stations, tenant] = await Promise.all([
     listOrdersForTenant(session.tenantId, ["PENDING", "ACCEPTED", "PREPARING"]),
     listStations(session.tenantId),
+    getTenantById(session.tenantId),
   ]);
+  const tenantName = tenant?.name ?? "";
   const now = nowMs();
 
   const selected = station === "none" ? "none" : stations.find((s) => s.id === station)?.id ?? "all";
@@ -92,7 +96,7 @@ export default async function KotPage({ searchParams }: { searchParams: Promise<
               <div key={order.id} className="flex flex-col gap-3 rounded-lg bg-gray-950 p-4 text-white">
                 <div className="flex items-start justify-between gap-2">
                   <div>
-                    <p className="text-xl font-bold">KOT #{order.orderNumber}</p>
+                    <p className="text-xl font-bold">KOT {kotCode(tenantName, order.orderNumber)}</p>
                     <p className="text-sm text-gray-400">
                       {order.fulfillmentType === "DINE_IN"
                         ? `Dine-in${order.tableLabel ? ` · Table ${order.tableLabel}` : ""}`

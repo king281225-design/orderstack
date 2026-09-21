@@ -3,6 +3,7 @@ import { requireTenantSession } from "@/lib/auth";
 import { getOrderForPrint } from "@/lib/data/orders";
 import { getTenantById } from "@/lib/data/tenants";
 import { KotPrintControls } from "@/components/orders/kot-print-controls";
+import { kotCode } from "@/lib/kot";
 
 /**
  * Kitchen Order Ticket slip — always an 80mm thermal roll layout, one per
@@ -36,7 +37,7 @@ export default async function KotSlipPage({
       <KotPrintControls />
       <div className="text-center">
         <p className="text-base font-bold">{tenant.name}</p>
-        <p className="text-lg font-bold">KOT #{order.orderNumber}</p>
+        <p className="text-lg font-bold">KOT {kotCode(tenant.name, order.orderNumber)}</p>
         {stationLabel && <p className="font-semibold uppercase">Station: {stationLabel}</p>}
         <p className="text-xs">{order.createdAt.toLocaleString("en-IN")}</p>
       </div>
