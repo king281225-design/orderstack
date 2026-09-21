@@ -139,7 +139,7 @@ function OrderCard({
         <div>
           <span className="font-semibold text-gray-900">#{order.orderNumber}</span>{" "}
           <span className="text-sm text-gray-500">
-            {order.customerName} · {order.customerPhone}
+            {order.customerPhone ? `${order.customerName} · ${order.customerPhone}` : order.customerName}
           </span>
         </div>
         <span className={`rounded-full px-2 py-0.5 text-xs font-medium ${STATUS_STYLE[order.status]}`}>

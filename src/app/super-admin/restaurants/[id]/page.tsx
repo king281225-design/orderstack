@@ -212,7 +212,7 @@ export default async function RestaurantDetailPage({ params }: { params: Promise
                   <td className="whitespace-nowrap px-4 py-2 text-gray-600">{formatDateTime(o.createdAt)}</td>
                   <td className="px-4 py-2">
                     {o.customerName}
-                    <div className="text-xs text-gray-500">{o.customerPhone}</div>
+                    {o.customerPhone && <div className="text-xs text-gray-500">{o.customerPhone}</div>}
                   </td>
                   <td className="px-4 py-2 text-gray-600">{o.fulfillmentType}</td>
                   <td className="px-4 py-2 text-gray-600">

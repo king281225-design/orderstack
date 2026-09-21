@@ -38,9 +38,6 @@ export async function createManualOrderAction(
   const gstRateRaw = String(formData.get("gstRate") ?? "");
   const linesRaw = String(formData.get("lines") ?? "[]");
 
-  if (!customerName) return { error: "Customer name is required." };
-  if (!customerPhone) return { error: "Customer phone is required." };
-
   let parsedLines: { name: string; priceRupees: number; quantity: number; itemId?: string }[];
   try {
     parsedLines = JSON.parse(linesRaw);
@@ -59,7 +56,10 @@ export async function createManualOrderAction(
   try {
     order = await createManualOrder(session.tenantId, {
       lines,
-      customerName,
+      // Name and phone are optional for counter/walk-in bills. The columns
+      // are required, so a blank name becomes "Walk-in customer" and a blank
+      // phone is stored empty (empty phones are never grouped as a customer).
+      customerName: customerName || "Walk-in customer",
       customerPhone,
       customerEmail: customerEmail || null,
       fulfillmentType,

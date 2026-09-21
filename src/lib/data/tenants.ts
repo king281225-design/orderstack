@@ -245,7 +245,7 @@ export async function getTenantDetailForAdmin(tenantId: string) {
       }),
       prisma.category.count({ where: { tenantId } }),
       prisma.item.count({ where: { tenantId } }),
-      prisma.order.findMany({ where: { tenantId }, distinct: ["customerPhone"], select: { customerPhone: true } }),
+      prisma.order.findMany({ where: { tenantId, customerPhone: { not: "" } }, distinct: ["customerPhone"], select: { customerPhone: true } }),
       prisma.order.findMany({
         where: { tenantId },
         orderBy: { createdAt: "desc" },

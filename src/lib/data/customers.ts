@@ -12,7 +12,9 @@ import { prisma } from "@/lib/prisma";
  */
 export async function listCustomersForTenant(tenantId: string) {
   const orders = await prisma.order.findMany({
-    where: { tenantId, status: { not: "CANCELLED" } },
+    // Walk-in bills saved without a phone number have no identity to group
+    // by, so they are left out of the customer list.
+    where: { tenantId, status: { not: "CANCELLED" }, customerPhone: { not: "" } },
     select: {
       customerName: true,
       customerPhone: true,

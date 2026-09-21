@@ -89,7 +89,7 @@ export function InvoiceView({
           <div className="text-right">
             <p className="font-semibold">Bill to</p>
             <p>{customerName}</p>
-            <p className="text-xs text-gray-500">{customerPhone}</p>
+            {customerPhone && <p className="text-xs text-gray-500">{customerPhone}</p>}
             {customerEmail && <p className="text-xs text-gray-500">{customerEmail}</p>}
           </div>
         </div>

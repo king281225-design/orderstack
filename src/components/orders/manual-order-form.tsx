@@ -80,10 +80,26 @@ export function ManualOrderForm({
     setSuggestFor(null);
   }
 
+  // Search by initial letters first: typing "p" lists dishes with a word
+  // starting with P, "pt" finds "Paneer Tikka" by its initials, and plain
+  // substring matches come last. Dishes whose name starts with the typed text
+  // rank above the rest.
   function suggestionsFor(name: string) {
     const q = name.trim().toLowerCase();
     if (!q) return [];
-    return menuItems.filter((m) => m.name.toLowerCase().includes(q)).slice(0, 6);
+    const scored: { m: PickableMenuItem; score: number }[] = [];
+    for (const m of menuItems) {
+      const lower = m.name.toLowerCase();
+      const words = lower.split(/[^\p{L}\p{N}]+/u).filter(Boolean);
+      const initials = words.map((w) => w[0]).join("");
+      let score = 0;
+      if (lower.startsWith(q)) score = 4;
+      else if (initials.startsWith(q)) score = 3;
+      else if (words.some((w) => w.startsWith(q))) score = 2;
+      else if (lower.includes(q)) score = 1;
+      if (score > 0) scored.push({ m, score });
+    }
+    return scored.sort((a, b) => b.score - a.score).slice(0, 8).map((s) => s.m);
   }
 
   const linesPayload = JSON.stringify(
@@ -104,18 +120,18 @@ export function ManualOrderForm({
       <section className="grid grid-cols-1 gap-3 rounded-lg border border-gray-200 bg-white dark:bg-[#241d17] p-4 sm:grid-cols-2">
         <h3 className="col-span-full text-sm font-semibold text-gray-900">Customer</h3>
         <label className="flex flex-col gap-1 text-xs font-medium text-gray-600">
-          Name
+          Name (optional)
           <input
             name="customerName"
-            required
+            placeholder="Walk-in customer"
             className="rounded-md border border-gray-300 px-3 py-1.5 text-sm focus:border-indigo-600 focus:outline-none"
           />
         </label>
         <label className="flex flex-col gap-1 text-xs font-medium text-gray-600">
-          Mobile number
+          Mobile number (optional)
           <input
             name="customerPhone"
-            required
+            inputMode="tel"
             className="rounded-md border border-gray-300 px-3 py-1.5 text-sm focus:border-indigo-600 focus:outline-none"
           />
         </label>
@@ -198,6 +214,12 @@ export function ManualOrderForm({
                     setSuggestFor(i);
                   }}
                   onFocus={() => setSuggestFor(i)}
+                  // Enter picks the top match instead of submitting the whole bill.
+                  onKeyDown={(e) => {
+                    if (e.key !== "Enter") return;
+                    e.preventDefault();
+                    if (suggestions.length > 0) selectSuggestion(i, suggestions[0]);
+                  }}
                   // A plain onBlur would fire and close the dropdown before a
                   // click on a suggestion registers — closing on a short
                   // delay instead lets the suggestion's own onClick run first.
@@ -208,7 +230,7 @@ export function ManualOrderForm({
                 {suggestions.length > 0 && (
                   <ul className="absolute z-10 mt-1 w-full max-w-xs overflow-hidden rounded-md border border-gray-200 bg-white shadow-lg dark:bg-[#241d17]">
                     {suggestions.map((m) => (
-                      <li key={m.name}>
+                      <li key={`${m.itemId}-${m.name}`}>
                         <button
                           type="button"
                           onClick={() => selectSuggestion(i, m)}
