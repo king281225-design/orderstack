@@ -3,6 +3,7 @@ import { requireOwnerSession } from "@/lib/auth";
 import { listOrdersForTenant } from "@/lib/data/orders";
 import { getTenantById } from "@/lib/data/tenants";
 import { invoiceCode } from "@/lib/kot";
+import { DeleteInvoiceButton } from "@/components/orders/delete-invoice-button";
 import { formatINR } from "@/lib/money";
 
 export const dynamic = "force-dynamic";
@@ -60,7 +61,7 @@ export default async function InvoicesPage() {
                       {o.paymentStatus}
                     </span>
                   </td>
-                  <td className="px-4 py-2">
+                  <td className="flex items-center gap-3 px-4 py-2">
                     <Link
                       href={`/dashboard/orders/${o.id}/print`}
                       target="_blank"
@@ -68,6 +69,7 @@ export default async function InvoicesPage() {
                     >
                       Print / PDF ↗
                     </Link>
+                    <DeleteInvoiceButton orderId={o.id} invoiceNumber={invoiceCode(tenantName, o.orderNumber)} />
                   </td>
                 </tr>
               ))}

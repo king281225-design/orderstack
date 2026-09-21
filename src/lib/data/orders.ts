@@ -408,3 +408,19 @@ export async function setPaymentStatusByRazorpayOrderId(
     return result;
   });
 }
+
+/**
+ * Permanently deletes an order (its invoice) and its line items. Scoped to the
+ * tenant — an id from another restaurant matches nothing. Any ingredient stock
+ * the order consumed is put back first (same once-only rule as cancelling), so
+ * deleting a bill never leaves inventory short. Returns false if not found.
+ */
+export async function deleteOrder(tenantId: string, orderId: string): Promise<boolean> {
+  return prisma.$transaction(async (tx) => {
+    const order = await tx.order.findFirst({ where: { id: orderId, tenantId }, select: { id: true } });
+    if (!order) return false;
+    await restoreStockForOrder(tx, tenantId, orderId);
+    await tx.order.deleteMany({ where: { id: orderId, tenantId } });
+    return true;
+  });
+}
