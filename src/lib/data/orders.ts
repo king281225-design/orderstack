@@ -424,3 +424,30 @@ export async function deleteOrder(tenantId: string, orderId: string): Promise<bo
     return true;
   });
 }
+
+/**
+ * Figures for the Orders board's top strip: today's non-cancelled orders and
+ * revenue, plus yesterday's order count for the "vs yesterday" comparison.
+ * "Today" starts at local midnight of the server, the same convention the
+ * analytics presets use.
+ */
+export async function getTodayOrderStats(tenantId: string) {
+  const start = new Date();
+  start.setHours(0, 0, 0, 0);
+  const prevStart = new Date(start);
+  prevStart.setDate(prevStart.getDate() - 1);
+  const counted = { tenantId, status: { not: "CANCELLED" as const } };
+  const [today, yesterday] = await Promise.all([
+    prisma.order.aggregate({
+      where: { ...counted, createdAt: { gte: start } },
+      _count: { _all: true },
+      _sum: { totalCents: true },
+    }),
+    prisma.order.count({ where: { ...counted, createdAt: { gte: prevStart, lt: start } } }),
+  ]);
+  return {
+    ordersToday: today._count._all,
+    revenueTodayCents: today._sum.totalCents ?? 0,
+    ordersYesterday: yesterday,
+  };
+}

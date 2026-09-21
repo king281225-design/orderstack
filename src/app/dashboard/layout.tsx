@@ -1,4 +1,5 @@
 import { redirect } from "next/navigation";
+import { Fraunces, IBM_Plex_Mono, Public_Sans } from "next/font/google";
 import { getSession } from "@/lib/auth";
 import { getTenantById } from "@/lib/data/tenants";
 import { nowMs } from "@/lib/time";
@@ -8,10 +9,17 @@ import { ManagingBanner } from "@/components/dashboard/managing-banner";
 import { OnboardingBanner } from "@/components/dashboard/onboarding-banner";
 import { listOrdersForTenant } from "@/lib/data/orders";
 import { listPendingWaiterCalls } from "@/lib/data/waiter-calls";
-import { acknowledgeWaiterCallAction } from "@/app/dashboard/actions";
+import { acknowledgeWaiterCallAction, toggleOpenAction } from "@/app/dashboard/actions";
 import { logoutAction } from "@/app/logout/actions";
 import { tierHasFeature, TRIAL_MS } from "@/lib/plans";
-import { DashboardHeader, type DashboardNavLink } from "@/components/dashboard/dashboard-header";
+import { DashboardShell, type DashboardNavLink } from "@/components/dashboard/dashboard-shell";
+
+// Typefaces from the Orders design: Public Sans body, Fraunces headings,
+// IBM Plex Mono for order numbers and amounts. Exposed as CSS variables that
+// the .ds classes in globals.css read.
+const publicSans = Public_Sans({ subsets: ["latin"], variable: "--font-public-sans" });
+const fraunces = Fraunces({ subsets: ["latin"], weight: ["500", "600"], variable: "--font-fraunces" });
+const plexMono = IBM_Plex_Mono({ subsets: ["latin"], weight: ["500", "600"], variable: "--font-plex-mono" });
 
 export const dynamic = "force-dynamic";
 
@@ -65,24 +73,27 @@ export default async function DashboardLayout({ children }: { children: React.Re
   ];
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-indigo-50/40 to-violet-50 dark:from-[#0f0b08] dark:via-[#1a120c] dark:to-[#3d1c05]">
-      {session.impersonatorId && <ManagingBanner tenantName={tenant.name} />}
-      <DashboardHeader
+    <div className={`${publicSans.variable} ${fraunces.variable} ${plexMono.variable}`}>
+      <DashboardShell
         tenantName={tenant.name}
         tenantSlug={tenant.slug}
         isOpen={tenant.isOpen}
+        roleLabel={isOwner ? "Owner" : "Staff"}
         links={links}
         logoutAction={logoutAction}
+        setOpenAction={toggleOpenAction}
         pendingOrderCount={pendingOrders.length}
         waiterCalls={waiterCalls.map((c) => ({ id: c.id, tableLabel: c.tableLabel }))}
         acknowledgeWaiterCallAction={acknowledgeWaiterCallAction}
-      />
-      <main className="mx-auto max-w-5xl px-4 py-6">
-        {isOwner && (
-          <OnboardingBanner menuDone={menuDone} brandingDone={brandingDone} trialDaysLeft={trialDaysLeft} />
-        )}
+        banner={session.impersonatorId ? <ManagingBanner tenantName={tenant.name} /> : null}
+        notices={
+          isOwner ? (
+            <OnboardingBanner menuDone={menuDone} brandingDone={brandingDone} trialDaysLeft={trialDaysLeft} />
+          ) : null
+        }
+      >
         {children}
-      </main>
+      </DashboardShell>
     </div>
   );
 }

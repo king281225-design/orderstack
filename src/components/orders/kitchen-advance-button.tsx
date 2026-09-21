@@ -4,7 +4,7 @@ import { useTransition } from "react";
 import type { OrderStatus } from "@prisma/client";
 import { advanceOrderStatusAction } from "@/app/dashboard/actions";
 
-/** Same pending-state fix as OrderActionButtons, for the kitchen board's own copy of this button. */
+/** Same pending-state fix as the Orders board buttons, for the kitchen board's own copy of this button. */
 export function KitchenAdvanceButton({
   orderId,
   to,

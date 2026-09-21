@@ -83,10 +83,13 @@ export function NotificationBell({
   pendingOrderCount,
   waiterCalls,
   acknowledgeAction,
+  variant = "header",
 }: {
   pendingOrderCount: number;
   waiterCalls: PendingWaiterCall[];
   acknowledgeAction: (id: string) => Promise<void>;
+  /** "header" = white-on-gradient (old header); "light" = the bordered button used in the dashboard shell. */
+  variant?: "header" | "light";
 }) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
@@ -206,16 +209,30 @@ export function NotificationBell({
         onClick={() => setOpen((o) => !o)}
         aria-label="Notifications"
         aria-expanded={open}
-        className="relative grid size-8 shrink-0 place-items-center rounded-full text-white/80 transition-colors hover:bg-white/15 hover:text-white"
+        className={
+          variant === "light"
+            ? "relative grid size-[38px] shrink-0 place-items-center rounded-[10px] border border-[var(--ds-border)] bg-[var(--ds-surface)] text-[var(--ds-text-2)] transition-colors hover:bg-[var(--ds-chip)]"
+            : "relative grid size-8 shrink-0 place-items-center rounded-full text-white/80 transition-colors hover:bg-white/15 hover:text-white"
+        }
       >
-        <span aria-hidden className="text-base">
-          🔔
-        </span>
-        {badgeCount > 0 && (
-          <span className="absolute -right-0.5 -top-0.5 grid min-w-[18px] place-items-center rounded-full bg-red-500 px-1 text-[10px] font-bold leading-none text-white">
-            {badgeCount > 9 ? "9+" : badgeCount}
+        {variant === "light" ? (
+          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+            <path d="M18 8a6 6 0 00-12 0c0 7-3 9-3 9h18s-3-2-3-9" />
+            <path d="M13.73 21a2 2 0 01-3.46 0" />
+          </svg>
+        ) : (
+          <span aria-hidden className="text-base">
+            🔔
           </span>
         )}
+        {badgeCount > 0 &&
+          (variant === "light" ? (
+            <span className="absolute right-[7px] top-[7px] size-[7px] rounded-full border-[1.5px] border-[var(--ds-surface)] bg-[var(--ds-accent)]" />
+          ) : (
+            <span className="absolute -right-0.5 -top-0.5 grid min-w-[18px] place-items-center rounded-full bg-red-500 px-1 text-[10px] font-bold leading-none text-white">
+              {badgeCount > 9 ? "9+" : badgeCount}
+            </span>
+          ))}
       </button>
 
       {open && (
