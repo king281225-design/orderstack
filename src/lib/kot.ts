@@ -17,3 +17,8 @@ export function restaurantInitials(name: string): string {
 export function kotCode(tenantName: string, orderNumber: number): string {
   return `${restaurantInitials(tenantName)}-${orderNumber}`;
 }
+
+/** Bill/invoice number with the same initials, e.g. "RFF-INV-104". */
+export function invoiceCode(tenantName: string, orderNumber: number): string {
+  return `${restaurantInitials(tenantName)}-INV-${orderNumber}`;
+}

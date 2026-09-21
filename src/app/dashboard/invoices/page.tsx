@@ -1,13 +1,19 @@
 import Link from "next/link";
 import { requireOwnerSession } from "@/lib/auth";
 import { listOrdersForTenant } from "@/lib/data/orders";
+import { getTenantById } from "@/lib/data/tenants";
+import { invoiceCode } from "@/lib/kot";
 import { formatINR } from "@/lib/money";
 
 export const dynamic = "force-dynamic";
 
 export default async function InvoicesPage() {
   const session = await requireOwnerSession();
-  const orders = await listOrdersForTenant(session.tenantId);
+  const [orders, tenant] = await Promise.all([
+    listOrdersForTenant(session.tenantId),
+    getTenantById(session.tenantId),
+  ]);
+  const tenantName = tenant?.name ?? "";
 
   return (
     <div className="flex flex-col gap-4">
@@ -36,7 +42,7 @@ export default async function InvoicesPage() {
             <tbody>
               {orders.map((o) => (
                 <tr key={o.id} className="border-b border-gray-100 last:border-0">
-                  <td className="px-4 py-2 font-medium text-gray-900">INV-{o.orderNumber}</td>
+                  <td className="px-4 py-2 font-medium text-gray-900">{invoiceCode(tenantName, o.orderNumber)}</td>
                   <td className="px-4 py-2 text-gray-500">{o.createdAt.toLocaleDateString()}</td>
                   <td className="px-4 py-2 text-gray-600">{o.customerName}</td>
                   <td className="px-4 py-2 text-gray-500">{o.source === "MANUAL" ? "Manual bill" : "Storefront"}</td>

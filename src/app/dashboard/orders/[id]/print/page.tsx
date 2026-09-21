@@ -2,6 +2,7 @@ import { notFound } from "next/navigation";
 import { requireTenantSession } from "@/lib/auth";
 import { getOrderForPrint } from "@/lib/data/orders";
 import { getTenantById } from "@/lib/data/tenants";
+import { invoiceCode } from "@/lib/kot";
 import { InvoiceView } from "@/components/orders/invoice-view";
 
 const PAYMENT_METHOD_LABEL: Record<string, string> = {
@@ -29,7 +30,7 @@ export default async function PrintInvoicePage({ params }: { params: Promise<{ i
       businessAddress={tenant.businessAddress}
       businessState={tenant.businessState}
       gstin={tenant.gstin}
-      invoiceNumber={`INV-${order.orderNumber}`}
+      invoiceNumber={invoiceCode(tenant.name, order.orderNumber)}
       createdAt={order.createdAt.toLocaleString("en-IN")}
       customerName={order.customerName}
       customerPhone={order.customerPhone}
