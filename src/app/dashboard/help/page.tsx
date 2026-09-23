@@ -56,6 +56,10 @@ const FAQS = [
     q: "I forgot my password — what do I do?",
     a: "Sign out, then use \"Forgot password?\" on the sign-in page. If that email has an account, a reset link is sent to it.",
   },
+  {
+    q: "My printer won't connect / Chrome says \"Searching for printers\"",
+    a: "Printing here just uses your browser's normal Print dialog, so any printer your device already has installed will work — no extra setup in BhojSetu. If it won't connect, it's almost always one of two things: (1) the printer is USB-only and another app (e.g. an older billing/POS system) already has it locked, so this device can't also see it — a network/WiFi thermal printer (or a cheap USB-to-LAN print server adapter) fixes this, since both apps can print to it independently. (2) it needs to be added manually: on the device, go to Settings → Print and Scan → Add printer, and if auto-search doesn't find it, add it by IP address using either IPP or Socket/JetDirect on port 9100 (works with almost every thermal printer). Once it's added and set as default, hit Print on any KOT or invoice here and pick it — use the 80mm toggle to match a receipt roll.",
+  },
 ];
 
 export default async function DashboardHelpPage() {
