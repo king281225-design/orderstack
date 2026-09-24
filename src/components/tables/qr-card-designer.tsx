@@ -93,7 +93,7 @@ export function QrCardDesigner({
             [
               url,
               await QRCode.toDataURL(url, {
-                margin: 0,
+                margin: 1,
                 width: 480,
                 errorCorrectionLevel: "M",
                 color: { dark: qrColor, light: "#ffffff" },
