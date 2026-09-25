@@ -19,6 +19,7 @@ import {
 import { updateTenantMenuDocument } from "@/lib/data/tenants";
 import { rupeesToCents } from "@/lib/money";
 import { saveUpload } from "@/lib/storage";
+import { searchFoodPhotos, StockPhotoSearchError } from "@/lib/images/stock-photo";
 import { ALLOWED_TAGS, type MenuItemTag } from "@/lib/menu-wizard/constants";
 
 const ALLOWED_TAG_SET = new Set<string>(ALLOWED_TAGS);
@@ -101,7 +102,11 @@ export async function createItemAction(
   const name = String(formData.get("name") ?? "").trim();
   const description = String(formData.get("description") ?? "").trim();
   const price = String(formData.get("price") ?? "");
-  const photo = formData.get("photo");
+  // Set eagerly by the photo picker (upload or Pexels search — see
+  // uploadMenuItemPhotoAction/searchMenuItemStockPhotosAction below) via a
+  // hidden input, same convention as the inventory Product form's
+  // createStockItemAction.
+  const imageUrl = String(formData.get("imageUrl") ?? "").trim() || null;
 
   if (!categoryId || !name || !price) {
     return { error: "Name, price, and category are required." };
@@ -112,11 +117,6 @@ export async function createItemAction(
   // field above becomes a fallback for items with no variants.
   const priceCents = variants.length > 0 ? Math.min(...variants.map((v) => v.priceCents)) : rupeesToCents(price);
   if (priceCents <= 0) return { error: "Enter a valid price." };
-
-  let imageUrl: string | null = null;
-  if (photo instanceof File && photo.size > 0) {
-    imageUrl = await saveUpload(photo, "items");
-  }
 
   try {
     await createItem(session.tenantId, categoryId, {
@@ -158,7 +158,10 @@ export async function updateItemAction(
   const name = String(formData.get("name") ?? "").trim();
   const description = String(formData.get("description") ?? "").trim();
   const price = String(formData.get("price") ?? "");
-  const photo = formData.get("photo");
+  // Blank (the owner never touched the photo picker) keeps the item's
+  // current photo — same convention as the inventory Product form's
+  // updateStockItemAction.
+  const imageUrl = String(formData.get("imageUrl") ?? "").trim() || undefined;
 
   if (!categoryId || !name || !price) {
     return { error: "Name, price, and category are required." };
@@ -166,11 +169,6 @@ export async function updateItemAction(
   const variants = parseVariantsField(formData);
   const priceCents = variants.length > 0 ? Math.min(...variants.map((v) => v.priceCents)) : rupeesToCents(price);
   if (priceCents <= 0) return { error: "Enter a valid price." };
-
-  let imageUrl: string | undefined;
-  if (photo instanceof File && photo.size > 0) {
-    imageUrl = await saveUpload(photo, "items");
-  }
 
   try {
     await updateItem(session.tenantId, itemId, {
@@ -188,6 +186,44 @@ export async function updateItemAction(
 
   revalidatePath("/dashboard/menu");
   return ok;
+}
+
+export type UploadPhotoState = { error: string | null; imageUrl: string | null };
+
+/**
+ * Uploads a photo immediately (before the surrounding Add/Edit Item form is
+ * submitted) and returns its URL — used by PhotoPickerModal's "Upload" tab
+ * on the menu item forms. Same eager-upload pattern the Inventory Product
+ * form's uploadProductPhotoAction already uses (both save into the same
+ * "items" folder — a menu Item and an inventory Product are the same
+ * underlying row, see the direct-stock-inventory rebuild). Open to
+ * STAFF too (requireTenantSession, not requireOwnerSession), matching
+ * createItemAction/updateItemAction's own auth level — staff can already
+ * edit menu items, so they shouldn't lose the photo picker specifically.
+ */
+export async function uploadMenuItemPhotoAction(_prev: UploadPhotoState, formData: FormData): Promise<UploadPhotoState> {
+  await requireTenantSession();
+  const photo = formData.get("photo");
+  if (!(photo instanceof File) || photo.size === 0) return { error: "Choose a photo first.", imageUrl: null };
+  if (!photo.type.startsWith("image/")) return { error: "Only images are supported here.", imageUrl: null };
+  const imageUrl = await saveUpload(photo, "items");
+  return { error: null, imageUrl };
+}
+
+export type StockPhotoState = { error: string | null; results: Awaited<ReturnType<typeof searchFoodPhotos>> | null };
+
+/** "Search photos" tab on the menu item forms — same Pexels-backed search the Inventory Product form and AI menu-import wizard already use (src/lib/images/stock-photo.ts). */
+export async function searchMenuItemStockPhotosAction(_prev: StockPhotoState, formData: FormData): Promise<StockPhotoState> {
+  await requireTenantSession();
+  const query = String(formData.get("query") ?? "");
+  try {
+    const results = await searchFoodPhotos(query);
+    return { error: null, results };
+  } catch (err) {
+    if (err instanceof StockPhotoSearchError) return { error: err.message, results: null };
+    console.error(err);
+    return { error: "Search failed.", results: null };
+  }
 }
 
 export async function createItemAddOnAction(

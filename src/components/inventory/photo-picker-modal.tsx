@@ -1,12 +1,17 @@
 "use client";
 
 import { useActionState, useEffect, useState, useTransition } from "react";
-import {
-  searchProductStockPhotosAction,
-  uploadProductPhotoAction,
-  type StockPhotoState,
-  type UploadPhotoState,
-} from "@/app/dashboard/inventory/actions";
+import type { StockPhotoResult } from "@/lib/images/stock-photo";
+
+// Structurally identical to (but deliberately not importing) the concrete
+// UploadPhotoState/StockPhotoState types each feature's own actions.ts
+// defines (inventory's src/app/dashboard/inventory/actions.ts, menu's
+// src/app/dashboard/menu/actions.ts) — every caller's server action matches
+// this shape, so TypeScript's structural typing accepts them with no
+// cross-import between an "use server" actions file and this "use client"
+// component needed in either direction.
+export type UploadPhotoState = { error: string | null; imageUrl: string | null };
+export type StockPhotoState = { error: string | null; results: StockPhotoResult[] | null };
 
 const initialStockPhotoState: StockPhotoState = { error: null, results: null };
 const initialUploadState: UploadPhotoState = { error: null, imageUrl: null };
@@ -15,6 +20,43 @@ const MAX_BYTES = 8 * 1024 * 1024;
 const ACCEPTED_TYPES = ["image/jpeg", "image/png", "image/webp", "image/gif", "image/heic", "image/heif"];
 
 export type PhotoPick = { url: string; file?: File };
+
+/** A photo thumbnail + "Add/Change/Remove photo" trigger for PhotoPickerModal — shared layout for every Add/Edit form that has a photo field (inventory products, menu items, bill-scan new-item sheet). */
+export function PhotoPickerField({
+  imageUrl,
+  onOpen,
+  onRemove,
+  label,
+}: {
+  imageUrl: string | null;
+  onOpen: () => void;
+  onRemove: () => void;
+  label: string;
+}) {
+  return (
+    <div className="flex items-center gap-2">
+      <div className="flex h-14 w-14 shrink-0 items-center justify-center overflow-hidden rounded-md border border-dashed border-gray-300 bg-gray-50 dark:bg-white/5">
+        {imageUrl ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img src={imageUrl} alt="" className="h-full w-full object-cover" />
+        ) : (
+          <span className="text-[10px] text-gray-400">No photo</span>
+        )}
+      </div>
+      <div className="flex flex-col gap-1">
+        <button type="button" onClick={onOpen} className="text-left text-xs font-medium text-indigo-600 hover:underline">
+          {imageUrl ? "🔍 Change photo" : "🔍 Add photo"}
+        </button>
+        {imageUrl && (
+          <button type="button" onClick={onRemove} className="text-left text-xs font-medium text-red-600">
+            Remove
+          </button>
+        )}
+        {!imageUrl && <span className="text-[11px] text-gray-500">{label}</span>}
+      </div>
+    </div>
+  );
+}
 
 /**
  * A single modal for setting a product's photo, either by uploading one or
@@ -34,10 +76,16 @@ export type PhotoPick = { url: string; file?: File };
  */
 export function PhotoPickerModal({
   stockPhotoSearchEnabled,
+  uploadAction,
+  searchAction,
   onPick,
   onClose,
 }: {
   stockPhotoSearchEnabled: boolean;
+  /** e.g. uploadProductPhotoAction / uploadMenuItemPhotoAction — saves to R2/local storage under "items" and returns its URL. */
+  uploadAction: (prev: UploadPhotoState, formData: FormData) => Promise<UploadPhotoState>;
+  /** e.g. searchProductStockPhotosAction / searchMenuItemStockPhotosAction — thin wrapper around searchFoodPhotos. */
+  searchAction: (prev: StockPhotoState, formData: FormData) => Promise<StockPhotoState>;
   onPick: (pick: PhotoPick) => void;
   onClose: () => void;
 }) {
@@ -72,14 +120,24 @@ export function PhotoPickerModal({
           </div>
         )}
 
-        {tab === "upload" ? <UploadTab onPick={onPick} /> : <SearchTab onPick={onPick} />}
+        {tab === "upload" ? (
+          <UploadTab uploadAction={uploadAction} onPick={onPick} />
+        ) : (
+          <SearchTab searchAction={searchAction} onPick={onPick} />
+        )}
       </div>
     </div>
   );
 }
 
-function UploadTab({ onPick }: { onPick: (pick: PhotoPick) => void }) {
-  const [state, dispatch, pending] = useActionState(uploadProductPhotoAction, initialUploadState);
+function UploadTab({
+  uploadAction,
+  onPick,
+}: {
+  uploadAction: (prev: UploadPhotoState, formData: FormData) => Promise<UploadPhotoState>;
+  onPick: (pick: PhotoPick) => void;
+}) {
+  const [state, dispatch, pending] = useActionState(uploadAction, initialUploadState);
   const [, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
   const [pickedFile, setPickedFile] = useState<File | null>(null);
@@ -128,9 +186,15 @@ function UploadTab({ onPick }: { onPick: (pick: PhotoPick) => void }) {
   );
 }
 
-function SearchTab({ onPick }: { onPick: (pick: PhotoPick) => void }) {
+function SearchTab({
+  searchAction,
+  onPick,
+}: {
+  searchAction: (prev: StockPhotoState, formData: FormData) => Promise<StockPhotoState>;
+  onPick: (pick: PhotoPick) => void;
+}) {
   const [query, setQuery] = useState("");
-  const [state, dispatch, pending] = useActionState(searchProductStockPhotosAction, initialStockPhotoState);
+  const [state, dispatch, pending] = useActionState(searchAction, initialStockPhotoState);
   const [, startTransition] = useTransition();
 
   function runSearch() {

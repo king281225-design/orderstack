@@ -4,13 +4,15 @@ import { useActionState, useState, useTransition } from "react";
 import {
   adjustItemStockAction,
   createStockItemAction,
+  searchProductStockPhotosAction,
   setAutoHideAction,
   stopTrackingStockAction,
   suggestProductFromPhotoAction,
   updateStockItemAction,
+  uploadProductPhotoAction,
   type InventoryActionState,
 } from "@/app/dashboard/inventory/actions";
-import { PhotoPickerModal, type PhotoPick } from "@/components/inventory/photo-picker-modal";
+import { PhotoPickerField, PhotoPickerModal, type PhotoPick } from "@/components/inventory/photo-picker-modal";
 
 export function AutoHideToggle({ enabled }: { enabled: boolean }) {
   const [pending, startTransition] = useTransition();
@@ -44,43 +46,6 @@ function Msg({ state }: { state: InventoryActionState }) {
   if (state.error) return <p className="text-xs text-red-600">{state.error}</p>;
   if (state.ok) return <p className="text-xs text-green-600">Saved.</p>;
   return null;
-}
-
-/** A photo thumbnail + "Add/Change/Remove photo" trigger for PhotoPickerModal — shared layout for Add/Edit Product. */
-function PhotoPickerField({
-  imageUrl,
-  onOpen,
-  onRemove,
-  label,
-}: {
-  imageUrl: string | null;
-  onOpen: () => void;
-  onRemove: () => void;
-  label: string;
-}) {
-  return (
-    <div className="flex items-center gap-2">
-      <div className="flex h-14 w-14 shrink-0 items-center justify-center overflow-hidden rounded-md border border-dashed border-gray-300 bg-gray-50 dark:bg-white/5">
-        {imageUrl ? (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img src={imageUrl} alt="" className="h-full w-full object-cover" />
-        ) : (
-          <span className="text-[10px] text-gray-400">No photo</span>
-        )}
-      </div>
-      <div className="flex flex-col gap-1">
-        <button type="button" onClick={onOpen} className="text-left text-xs font-medium text-indigo-600 hover:underline">
-          {imageUrl ? "🔍 Change photo" : "🔍 Add photo"}
-        </button>
-        {imageUrl && (
-          <button type="button" onClick={onRemove} className="text-left text-xs font-medium text-red-600">
-            Remove
-          </button>
-        )}
-        {!imageUrl && <span className="text-[11px] text-gray-500">{label}</span>}
-      </div>
-    </div>
-  );
 }
 
 /** "chocolate-croissant_v2.jpg" -> "Chocolate Croissant V2" — a starting point the owner can still edit, not a final answer. */
@@ -157,6 +122,8 @@ export function AddStockItemForm({
       {photoModalOpen && (
         <PhotoPickerModal
           stockPhotoSearchEnabled={stockPhotoSearchEnabled}
+          uploadAction={uploadProductPhotoAction}
+          searchAction={searchProductStockPhotosAction}
           onPick={handlePhotoPick}
           onClose={() => setPhotoModalOpen(false)}
         />
@@ -279,6 +246,8 @@ export function EditStockItemForm({
       {photoModalOpen && (
         <PhotoPickerModal
           stockPhotoSearchEnabled={stockPhotoSearchEnabled}
+          uploadAction={uploadProductPhotoAction}
+          searchAction={searchProductStockPhotosAction}
           onPick={({ url }) => {
             setImageUrl(url);
             setPhotoModalOpen(false);

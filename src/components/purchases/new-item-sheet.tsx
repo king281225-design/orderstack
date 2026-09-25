@@ -3,6 +3,7 @@
 import { useState } from "react";
 import type { PurchaseLangKey } from "@/lib/purchase-scan-lang";
 import { PhotoPickerModal } from "@/components/inventory/photo-picker-modal";
+import { searchProductStockPhotosAction, uploadProductPhotoAction } from "@/app/dashboard/inventory/actions";
 
 export type CategoryOption = { id: string; name: string };
 
@@ -181,6 +182,8 @@ export function NewItemSheet({
       {photoModalOpen && (
         <PhotoPickerModal
           stockPhotoSearchEnabled={stockPhotoSearchEnabled}
+          uploadAction={uploadProductPhotoAction}
+          searchAction={searchProductStockPhotosAction}
           onPick={({ url }) => {
             setImageUrl(url);
             setPhotoModalOpen(false);

@@ -8,6 +8,7 @@ import { UploadMenuDocumentForm } from "@/components/menu/upload-menu-document-f
 import { CategoryHeader } from "@/components/menu/category-header";
 import { ItemRow } from "@/components/menu/item-row";
 import { loadSampleMenuAction } from "@/app/dashboard/menu/actions";
+import { isStockPhotoSearchConfigured } from "@/lib/images/stock-photo";
 
 export default async function MenuPage() {
   const session = await requireTenantSession();
@@ -15,6 +16,7 @@ export default async function MenuPage() {
     listMenuForTenant(session.tenantId),
     getTenantById(session.tenantId),
   ]);
+  const stockPhotoSearchEnabled = isStockPhotoSearchConfigured();
 
   // Flat list for the category pickers (manual "add item" / edit-item
   // dropdowns) — top-level categories plus one indented level of
@@ -53,7 +55,7 @@ export default async function MenuPage() {
         <AddCategoryForm />
       </section>
 
-      <AddItemForm categories={categoryOptions} />
+      <AddItemForm categories={categoryOptions} stockPhotoSearchEnabled={stockPhotoSearchEnabled} />
 
       <section className="rounded-lg border border-gray-200 bg-white dark:bg-[#241d17] p-4">
         <h3 className="mb-1 text-sm font-semibold text-gray-900">AI menu import</h3>
@@ -95,7 +97,7 @@ export default async function MenuPage() {
             ) : (
               <ul className="flex flex-col divide-y divide-gray-100">
                 {category.items.map((item) => (
-                  <ItemRow key={item.id} item={toDisplayItem(item)} categories={categoryOptions} />
+                  <ItemRow key={item.id} item={toDisplayItem(item)} categories={categoryOptions} stockPhotoSearchEnabled={stockPhotoSearchEnabled} />
                 ))}
               </ul>
             )}
@@ -108,7 +110,7 @@ export default async function MenuPage() {
                 ) : (
                   <ul className="flex flex-col divide-y divide-gray-100">
                     {sub.items.map((item) => (
-                      <ItemRow key={item.id} item={toDisplayItem(item)} categories={categoryOptions} />
+                      <ItemRow key={item.id} item={toDisplayItem(item)} categories={categoryOptions} stockPhotoSearchEnabled={stockPhotoSearchEnabled} />
                     ))}
                   </ul>
                 )}

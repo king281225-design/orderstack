@@ -1,16 +1,31 @@
 "use client";
 
 import { useActionState, useRef, useEffect, useState } from "react";
-import { createItemAction, type MenuActionState } from "@/app/dashboard/menu/actions";
+import {
+  createItemAction,
+  searchMenuItemStockPhotosAction,
+  uploadMenuItemPhotoAction,
+  type MenuActionState,
+} from "@/app/dashboard/menu/actions";
 import { ALLOWED_TAGS } from "@/lib/menu-wizard/constants";
 import { VariantRowsEditor, type VariantRow } from "@/components/menu/variant-rows-editor";
+import { PhotoPickerField, PhotoPickerModal } from "@/components/inventory/photo-picker-modal";
 
 const initialState: MenuActionState = { error: null };
 
-export function AddItemForm({ categories }: { categories: { id: string; name: string }[] }) {
+export function AddItemForm({
+  categories,
+  stockPhotoSearchEnabled,
+}: {
+  categories: { id: string; name: string }[];
+  /** Whether PEXELS_API_KEY is set — hides the "Search photos" tab in the photo picker when it isn't. */
+  stockPhotoSearchEnabled: boolean;
+}) {
   const [state, formAction, pending] = useActionState(createItemAction, initialState);
   const formRef = useRef<HTMLFormElement>(null);
   const [variantRows, setVariantRows] = useState<VariantRow[]>([]);
+  const [imageUrl, setImageUrl] = useState<string | null>(null);
+  const [photoModalOpen, setPhotoModalOpen] = useState(false);
 
   // formRef.reset() is imperative DOM work, fine inside an effect — but
   // setVariantRows is real React state, and calling it synchronously inside
@@ -25,7 +40,10 @@ export function AddItemForm({ categories }: { categories: { id: string; name: st
   const [lastSeenState, setLastSeenState] = useState(state);
   if (state !== lastSeenState) {
     setLastSeenState(state);
-    if (!state.error) setVariantRows([]);
+    if (!state.error) {
+      setVariantRows([]);
+      setImageUrl(null);
+    }
   }
 
   if (categories.length === 0) {
@@ -37,12 +55,25 @@ export function AddItemForm({ categories }: { categories: { id: string; name: st
   }
 
   return (
-    <form
-      ref={formRef}
-      action={formAction}
-      className="grid grid-cols-1 gap-3 rounded-lg border border-gray-200 bg-white dark:bg-[#241d17] p-4 sm:grid-cols-2"
-    >
-      <h3 className="col-span-full text-sm font-semibold text-gray-900">Add a menu item</h3>
+    <>
+      {photoModalOpen && (
+        <PhotoPickerModal
+          stockPhotoSearchEnabled={stockPhotoSearchEnabled}
+          uploadAction={uploadMenuItemPhotoAction}
+          searchAction={searchMenuItemStockPhotosAction}
+          onPick={({ url }) => {
+            setImageUrl(url);
+            setPhotoModalOpen(false);
+          }}
+          onClose={() => setPhotoModalOpen(false)}
+        />
+      )}
+      <form
+        ref={formRef}
+        action={formAction}
+        className="grid grid-cols-1 gap-3 rounded-lg border border-gray-200 bg-white dark:bg-[#241d17] p-4 sm:grid-cols-2"
+      >
+        <h3 className="col-span-full text-sm font-semibold text-gray-900">Add a menu item</h3>
 
       <label className="flex flex-col gap-1 text-xs font-medium text-gray-600">
         Category
@@ -80,15 +111,16 @@ export function AddItemForm({ categories }: { categories: { id: string; name: st
         />
       </label>
 
-      <label className="flex flex-col gap-1 text-xs font-medium text-gray-600">
+      <div className="flex flex-col gap-1 text-xs font-medium text-gray-600">
         Photo (optional)
-        <input
-          name="photo"
-          type="file"
-          accept="image/*"
-          className="rounded-md border border-gray-300 px-3 py-1 text-sm file:mr-2 file:rounded file:border-0 file:bg-gray-100 file:px-2 file:py-1 file:text-xs"
+        <PhotoPickerField
+          imageUrl={imageUrl}
+          onOpen={() => setPhotoModalOpen(true)}
+          onRemove={() => setImageUrl(null)}
+          label="Upload or search a stock photo"
         />
-      </label>
+        <input type="hidden" name="imageUrl" value={imageUrl ?? ""} />
+      </div>
 
       <label className="col-span-full flex flex-col gap-1 text-xs font-medium text-gray-600">
         Description (optional)
@@ -123,6 +155,7 @@ export function AddItemForm({ categories }: { categories: { id: string; name: st
       >
         {pending ? "Adding…" : "Add item"}
       </button>
-    </form>
+      </form>
+    </>
   );
 }

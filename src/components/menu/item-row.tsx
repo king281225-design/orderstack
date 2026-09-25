@@ -4,14 +4,17 @@ import Image from "next/image";
 import { useActionState, useState } from "react";
 import {
   deleteItemAction,
+  searchMenuItemStockPhotosAction,
   toggleItemAvailableAction,
   updateItemAction,
+  uploadMenuItemPhotoAction,
   type MenuActionState,
 } from "@/app/dashboard/menu/actions";
 import { formatINR } from "@/lib/money";
 import { ALLOWED_TAGS } from "@/lib/menu-wizard/constants";
 import { VariantRowsEditor, type VariantRow } from "@/components/menu/variant-rows-editor";
 import { ItemAddOnsManager } from "@/components/menu/item-addons-manager";
+import { PhotoPickerField, PhotoPickerModal } from "@/components/inventory/photo-picker-modal";
 
 const initialState: MenuActionState = { error: null };
 
@@ -38,9 +41,12 @@ function isTagArray(v: unknown): v is string[] {
 export function ItemRow({
   item,
   categories,
+  stockPhotoSearchEnabled,
 }: {
   item: Item;
   categories: { id: string; name: string }[];
+  /** Whether PEXELS_API_KEY is set — hides the "Search photos" tab in the photo picker when it isn't. */
+  stockPhotoSearchEnabled: boolean;
 }) {
   const [editing, setEditing] = useState(false);
   const boundAction = updateItemAction.bind(null, item.id);
@@ -50,6 +56,11 @@ export function ItemRow({
   const [variantRows, setVariantRows] = useState<VariantRow[]>(
     existingVariants.map((v) => ({ label: v.label, price: (v.priceCents / 100).toString() })),
   );
+  // Defaults to the item's current photo — leaving it untouched keeps that
+  // photo (see updateItemAction's "blank keeps current" convention);
+  // explicitly clicking Remove is what actually signals "clear it".
+  const [imageUrl, setImageUrl] = useState<string | null>(item.imageUrl);
+  const [photoModalOpen, setPhotoModalOpen] = useState(false);
 
   // Close the edit form automatically once a save actually succeeds. Not
   // done via useEffect (react-hooks/set-state-in-effect forbids a
@@ -105,15 +116,28 @@ export function ItemRow({
             />
           </label>
 
-          <label className="flex flex-col gap-1 text-xs font-medium text-gray-600">
-            Photo (leave blank to keep current)
-            <input
-              name="photo"
-              type="file"
-              accept="image/*"
-              className="rounded-md border border-gray-300 px-3 py-1 text-sm file:mr-2 file:rounded file:border-0 file:bg-gray-100 file:px-2 file:py-1 file:text-xs"
+          <div className="flex flex-col gap-1 text-xs font-medium text-gray-600">
+            Photo
+            <PhotoPickerField
+              imageUrl={imageUrl}
+              onOpen={() => setPhotoModalOpen(true)}
+              onRemove={() => setImageUrl(null)}
+              label="Upload or search a stock photo"
             />
-          </label>
+            <input type="hidden" name="imageUrl" value={imageUrl ?? ""} />
+          </div>
+          {photoModalOpen && (
+            <PhotoPickerModal
+              stockPhotoSearchEnabled={stockPhotoSearchEnabled}
+              uploadAction={uploadMenuItemPhotoAction}
+              searchAction={searchMenuItemStockPhotosAction}
+              onPick={({ url }) => {
+                setImageUrl(url);
+                setPhotoModalOpen(false);
+              }}
+              onClose={() => setPhotoModalOpen(false)}
+            />
+          )}
 
           <label className="col-span-full flex flex-col gap-1 text-xs font-medium text-gray-600">
             Description (optional)
