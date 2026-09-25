@@ -9,7 +9,7 @@ import { ManagingBanner } from "@/components/dashboard/managing-banner";
 import { OnboardingBanner } from "@/components/dashboard/onboarding-banner";
 import { listOrdersForTenant } from "@/lib/data/orders";
 import { listPendingWaiterCalls } from "@/lib/data/waiter-calls";
-import { acknowledgeWaiterCallAction, toggleOpenAction } from "@/app/dashboard/actions";
+import { acknowledgeWaiterCallAction, dismissOnboardingAction, toggleOpenAction } from "@/app/dashboard/actions";
 import { logoutAction } from "@/app/logout/actions";
 import { tierHasFeature, TRIAL_MS } from "@/lib/plans";
 import { DashboardShell, type DashboardNavLink } from "@/components/dashboard/dashboard-shell";
@@ -88,7 +88,13 @@ export default async function DashboardLayout({ children }: { children: React.Re
         banner={session.impersonatorId ? <ManagingBanner tenantName={tenant.name} /> : null}
         notices={
           isOwner ? (
-            <OnboardingBanner menuDone={menuDone} brandingDone={brandingDone} trialDaysLeft={trialDaysLeft} />
+            <OnboardingBanner
+              menuDone={menuDone}
+              brandingDone={brandingDone}
+              trialDaysLeft={trialDaysLeft}
+              dismissed={Boolean(tenant.onboardingDismissedAt)}
+              dismissAction={dismissOnboardingAction}
+            />
           ) : null
         }
       >

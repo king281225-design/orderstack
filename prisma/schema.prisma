@@ -198,6 +198,12 @@ model Tenant {
   colorHeaderText         String             @default("#ffffff")
   colorCardBackground     String             @default("#ffffff")
   isOpen                  Boolean            @default(true)
+  // Set when the owner clicks "Skip for now" on the getting-started
+  // checklist (src/components/dashboard/onboarding-banner.tsx) — hides it
+  // permanently even if menu/branding are still incomplete, so a restaurant
+  // that's happy without a logo/tagline isn't nagged forever. The trial
+  // countdown banner is unaffected; this only dismisses the 3-step checklist.
+  onboardingDismissedAt   DateTime?
   status                  TenantStatus       @default(ACTIVE)
   // Nominal tier — either set by the super-admin's manual override, or the
   // last tier the owner actually paid for via /dashboard/billing. Does NOT

@@ -479,6 +479,11 @@ export async function setTenantOpen(tenantId: string, isOpen: boolean) {
   return prisma.tenant.update({ where: { id: tenantId }, data: { isOpen } });
 }
 
+/** "Skip for now" on the getting-started checklist — see the schema comment on Tenant.onboardingDismissedAt. */
+export async function dismissOnboarding(tenantId: string) {
+  return prisma.tenant.update({ where: { id: tenantId }, data: { onboardingDismissedAt: new Date() } });
+}
+
 /**
  * Delivery-zone settings (src/components/delivery-zone-form.tsx) — all
  * three null together means the feature is off and checkout behaves
