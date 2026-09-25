@@ -4,7 +4,7 @@ import { getSession } from "@/lib/auth";
 import { getTenantById } from "@/lib/data/tenants";
 import { nowMs } from "@/lib/time";
 import { hasAnyMenuItems } from "@/lib/data/menu";
-import { countLowStock } from "@/lib/data/inventory";
+import { countLowStockItems } from "@/lib/data/inventory";
 import { ManagingBanner } from "@/components/dashboard/managing-banner";
 import { OnboardingBanner } from "@/components/dashboard/onboarding-banner";
 import { listOrdersForTenant } from "@/lib/data/orders";
@@ -33,7 +33,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
     getTenantById(session.tenantId),
     listOrdersForTenant(session.tenantId, ["PENDING"]),
     listPendingWaiterCalls(session.tenantId),
-    countLowStock(session.tenantId),
+    countLowStockItems(session.tenantId),
   ]);
   if (!tenant) redirect("/login");
 
@@ -64,7 +64,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
           ...(tierHasFeature(tier, "analytics") ? [{ href: "/dashboard/analytics", label: "Analytics" }] : []),
           { href: "/dashboard/branding", label: "Settings" },
           ...(tierHasFeature(tier, "coupons") ? [{ href: "/dashboard/coupons", label: "Coupons" }] : []),
-          { href: "/dashboard/tables", label: "Tables" },
+          { href: "/dashboard/tables/board", label: "Tables" },
           ...(tierHasFeature(tier, "staff") ? [{ href: "/dashboard/staff", label: "Staff" }] : []),
           { href: "/dashboard/billing", label: "Billing" },
         ]

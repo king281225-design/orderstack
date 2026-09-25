@@ -32,8 +32,10 @@ export async function createManualOrderAction(
   const customerPhone = String(formData.get("customerPhone") ?? "").trim();
   const customerEmail = String(formData.get("customerEmail") ?? "").trim();
   const fulfillmentType = String(formData.get("fulfillmentType") ?? "TAKEAWAY") as FulfillmentType;
+  const tableLabel = String(formData.get("tableLabel") ?? "").trim();
   const paymentMethod = String(formData.get("paymentMethod") ?? "COD") as PaymentMethod;
   const notes = String(formData.get("notes") ?? "").trim();
+  const discountMode = String(formData.get("discountMode") ?? "flat");
   const discountRupees = String(formData.get("discount") ?? "");
   const gstRateRaw = String(formData.get("gstRate") ?? "");
   const linesRaw = String(formData.get("lines") ?? "[]");
@@ -63,9 +65,12 @@ export async function createManualOrderAction(
       customerPhone,
       customerEmail: customerEmail || null,
       fulfillmentType,
+      tableLabel: tableLabel || null,
       paymentMethod,
       notes: notes || null,
-      discountCents: discountRupees ? rupeesToCents(discountRupees) : 0,
+      ...(discountMode === "percent"
+        ? { discountPercent: discountRupees ? Number(discountRupees) : 0 }
+        : { discountCents: discountRupees ? rupeesToCents(discountRupees) : 0 }),
       gstRatePercent: gstRateRaw ? Number(gstRateRaw) : null,
     });
   } catch (err) {
@@ -79,6 +84,7 @@ export async function createManualOrderAction(
   revalidatePath("/dashboard/customers");
   revalidatePath("/dashboard/invoices");
   revalidatePath("/dashboard/kot");
+  revalidatePath("/dashboard/tables/board");
   // Which button was clicked: plain save, save & print the bill, or save & print the KOT.
   const intent = String(formData.get("intent") ?? "bill");
   if (intent === "kot") redirect(`/dashboard/orders/${order.id}/kot`);

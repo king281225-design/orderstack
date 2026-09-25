@@ -6,7 +6,7 @@ import { formatINR } from "@/lib/money";
 import { nowMs } from "@/lib/time";
 import { AutoRefresh } from "@/components/auto-refresh";
 import { OrderCardFooter } from "@/components/orders/order-card-footer";
-import type { Order, OrderItem, OrderStatus } from "@prisma/client";
+import type { Order, OrderItem, OrderStatus, PaymentMethod } from "@prisma/client";
 
 export const dynamic = "force-dynamic";
 
@@ -24,7 +24,7 @@ const NEXT_STEP: Partial<Record<OrderStatus, { to: OrderStatus; label: string; t
 
 const CANCELLABLE: OrderStatus[] = ["PENDING", "ACCEPTED", "PREPARING", "READY"];
 
-const PAYMENT_METHOD_LABEL = { UPI: "UPI", COD: "Cash", RAZORPAY: "online" } as const;
+const PAYMENT_METHOD_LABEL: Record<PaymentMethod, string> = { UPI: "UPI", COD: "Cash", CARD: "Card", RAZORPAY: "online" };
 
 const COLUMNS = [
   { key: "new", label: "New", dot: "#c87a1e", statuses: ["PENDING", "ACCEPTED"] as OrderStatus[] },
@@ -87,7 +87,8 @@ export default async function DashboardOrdersPage({ searchParams }: { searchPara
     (!needle ||
       String(o.orderNumber).includes(needle) ||
       o.customerName.toLowerCase().includes(needle) ||
-      o.customerPhone.toLowerCase().includes(needle));
+      o.customerPhone.toLowerCase().includes(needle) ||
+      (o.tableLabel ?? "").toLowerCase() === needle);
 
   const isActive = (o: OrderWithItems) => o.status !== "COMPLETED" && o.status !== "CANCELLED";
   const activeAll = orders.filter(isActive);

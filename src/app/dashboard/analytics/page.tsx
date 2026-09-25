@@ -20,6 +20,7 @@ type Preset = (typeof PRESETS)[number]["key"];
 const PAYMENT_METHOD_LABEL: Record<string, string> = {
   UPI: "UPI",
   COD: "Cash on delivery",
+  CARD: "Card",
   RAZORPAY: "Online",
 };
 

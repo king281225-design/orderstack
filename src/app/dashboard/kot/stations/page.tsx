@@ -2,7 +2,7 @@ import Link from "next/link";
 import { requireOwnerSession } from "@/lib/auth";
 import { listMenuForTenant } from "@/lib/data/menu";
 import { listStations } from "@/lib/data/inventory";
-import { AddStationForm } from "@/components/inventory/inventory-forms";
+import { AddStationForm } from "@/components/inventory/station-forms";
 import { StationSelect } from "@/components/inventory/station-select";
 import {
   deleteStationAction,

@@ -54,14 +54,14 @@ export function getR2Client(): S3Client {
 // decoding that much image data just to paint a tiny card. menu-docs (a
 // scanned paper menu a customer reads full-size, sometimes a PDF) and
 // support screenshots (internal-only, rarely viewed) are left untouched.
-const MAX_DIMENSION: Partial<Record<"logos" | "items" | "menu-docs" | "support", number>> = {
+const MAX_DIMENSION: Partial<Record<"logos" | "items" | "menu-docs" | "support" | "purchase-scans", number>> = {
   logos: 800,
   items: 1280,
 };
 
 async function processImage(
   bytes: Buffer,
-  folder: "logos" | "items" | "menu-docs" | "support",
+  folder: "logos" | "items" | "menu-docs" | "support" | "purchase-scans",
   ext: string,
   contentType: string,
 ): Promise<{ bytes: Buffer; ext: string; contentType: string }> {
@@ -85,7 +85,7 @@ async function processImage(
 
 export async function saveUpload(
   file: File,
-  folder: "logos" | "items" | "menu-docs" | "support",
+  folder: "logos" | "items" | "menu-docs" | "support" | "purchase-scans",
 ): Promise<string> {
   const rawExt = safeExt(file.name, folder);
   const rawBytes = Buffer.from(await file.arrayBuffer());
@@ -118,7 +118,7 @@ export async function saveUpload(
 
 // "menu-docs" additionally allows .pdf — a photographed/scanned hardcopy
 // menu (see src/app/dashboard/menu, "hardcopy menu upload"), not just images.
-function safeExt(filename: string, folder: "logos" | "items" | "menu-docs" | "support"): string {
+function safeExt(filename: string, folder: "logos" | "items" | "menu-docs" | "support" | "purchase-scans"): string {
   const ext = path.extname(filename).toLowerCase();
   const images = [".png", ".jpg", ".jpeg", ".webp", ".gif"];
   if (folder === "menu-docs" && ext === ".pdf") return ext;

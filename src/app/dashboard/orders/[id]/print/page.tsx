@@ -8,6 +8,7 @@ import { InvoiceView } from "@/components/orders/invoice-view";
 const PAYMENT_METHOD_LABEL: Record<string, string> = {
   UPI: "UPI",
   COD: "Cash",
+  CARD: "Card",
   RAZORPAY: "Online",
 };
 

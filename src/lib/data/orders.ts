@@ -2,7 +2,8 @@ import "server-only";
 import { prisma } from "@/lib/prisma";
 import { getItemsForOrder } from "@/lib/data/menu";
 import { validateCoupon, tryRedeemCoupon, CouponRedemptionLimitError } from "@/lib/data/coupons";
-import { deductStockForOrder, restoreStockForOrder, notifyLowStock } from "@/lib/data/inventory";
+import { deductStockForOrder, restoreStockForOrder, notifyLowStockItems } from "@/lib/data/inventory";
+import { markTableOccupiedFromOrder } from "@/lib/data/tables";
 import type { FulfillmentType, OrderStatus, PaymentMethod, PaymentStatus } from "@prisma/client";
 
 export type CartLine = {
@@ -135,7 +136,7 @@ export async function createOrder(
   const taxCents = tenant?.gstRate && tenant.gstRate > 0 ? Math.round((taxableCents * tenant.gstRate) / 100) : 0;
   const totalCents = taxableCents + taxCents;
 
-  const { order, newlyLow } = await prisma.$transaction(async (tx) => {
+  const { order, newlyLowItems } = await prisma.$transaction(async (tx) => {
   const order = await tx.order.create({
     data: {
       tenantId,
@@ -159,10 +160,11 @@ export async function createOrder(
     },
     include: { items: true },
   });
-  const { newlyLow } = await deductStockForOrder(tx, tenantId, order.id);
-  return { order, newlyLow };
+  const { newlyLowItems } = await deductStockForOrder(tx, tenantId, order.id);
+  if (order.fulfillmentType === "DINE_IN") await markTableOccupiedFromOrder(tx, tenantId, order.tableLabel);
+  return { order, newlyLowItems };
   });
-  if (newlyLow.length) void notifyLowStock(tenantId, newlyLow);
+  if (newlyLowItems.length) void notifyLowStockItems(tenantId, newlyLowItems);
   return order;
 }
 
@@ -197,7 +199,11 @@ export async function createManualOrder(
     customerPhone: string;
     customerEmail?: string | null;
     fulfillmentType: FulfillmentType;
+    /** Only meaningful for DINE_IN — matched against the status board's Table.label by value (see src/lib/data/tables.ts). */
+    tableLabel?: string | null;
     discountCents?: number;
+    /** 0-100; when set and > 0, takes precedence over discountCents. Always computed here from the server's own subtotal — never trusted from the client's live preview. */
+    discountPercent?: number | null;
     gstRatePercent?: number | null;
     paymentMethod: PaymentMethod;
     notes?: string | null;
@@ -213,8 +219,10 @@ export async function createManualOrder(
 
   const subtotalCents = lines.reduce((sum, l) => sum + l.priceCents * l.quantity, 0);
 
-  const rawDiscount = input.discountCents ?? 0;
-  const discountCents = Math.min(Math.max(0, Math.round(rawDiscount)), subtotalCents);
+  const discountCents =
+    input.discountPercent && input.discountPercent > 0
+      ? Math.round((subtotalCents * Math.min(100, Math.max(0, input.discountPercent))) / 100)
+      : Math.min(Math.max(0, Math.round(input.discountCents ?? 0)), subtotalCents);
 
   const tenant = await prisma.tenant.findUnique({ where: { id: tenantId }, select: { gstRate: true } });
   const gstRate = input.gstRatePercent ?? tenant?.gstRate ?? null;
@@ -229,7 +237,7 @@ export async function createManualOrder(
     : [];
   const linkedMap = new Map(linkedItems.map((i) => [i.id, i]));
 
-  const { order, newlyLow } = await prisma.$transaction(async (tx) => {
+  const { order, newlyLowItems } = await prisma.$transaction(async (tx) => {
   const order = await tx.order.create({
     data: {
       tenantId,
@@ -237,6 +245,7 @@ export async function createManualOrder(
       customerPhone: input.customerPhone.trim(),
       customerEmail: input.customerEmail?.trim() || null,
       fulfillmentType: input.fulfillmentType,
+      tableLabel: input.fulfillmentType === "DINE_IN" ? input.tableLabel?.trim() || null : null,
       paymentMethod: input.paymentMethod,
       notes: input.notes ?? null,
       source: "MANUAL",
@@ -266,10 +275,11 @@ export async function createManualOrder(
     },
     include: { items: true },
   });
-  const { newlyLow } = await deductStockForOrder(tx, tenantId, order.id);
-  return { order, newlyLow };
+  const { newlyLowItems } = await deductStockForOrder(tx, tenantId, order.id);
+  if (order.fulfillmentType === "DINE_IN") await markTableOccupiedFromOrder(tx, tenantId, order.tableLabel);
+  return { order, newlyLowItems };
   });
-  if (newlyLow.length) void notifyLowStock(tenantId, newlyLow);
+  if (newlyLowItems.length) void notifyLowStockItems(tenantId, newlyLowItems);
   return order;
 }
 

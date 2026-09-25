@@ -35,6 +35,10 @@ enum FulfillmentType {
 enum PaymentMethod {
   UPI
   COD
+  // In-person card payment at the counter — manually reconciled exactly like
+  // COD (no gateway involved), added for the dashboard's New Bill screen
+  // only. Deliberately not offered on the storefront checkout.
+  CARD
   RAZORPAY
 }
 
@@ -106,6 +110,39 @@ enum StockMovementReason {
   ORDER_CANCEL
   WASTE
   ADJUSTMENT
+  // Reverses a PURCHASE movement made by a bill-scan purchase that the owner
+  // undid within the 10-minute window (see src/lib/data/purchases.ts
+  // undoPurchase) — kept distinct from the generic ADJUSTMENT reason so the
+  // ledger reads unambiguously ("this dip was an undo," not "someone
+  // corrected a miscount").
+  PURCHASE_UNDO
+}
+
+// "Bill Photo se Stock": an owner photographs a supplier bill, an AI vision
+// model reads it, and — only after the owner confirms — the parsed lines
+// become a Purchase that adds stock. See src/lib/ai/purchase-scan.ts and
+// src/lib/data/purchases.ts.
+enum PurchaseScanStatus {
+  PROCESSING
+  READY
+  FAILED
+}
+
+// Live dine-in table status board (src/lib/data/tables.ts). AVAILABLE and
+// RESERVED are "not currently seated"; OCCUPIED and BILLING are "seated" —
+// the split exists so the board can show at a glance which occupied tables
+// are ready to be paid out and closed vs. still actively ordering.
+enum TableStatus {
+  AVAILABLE
+  OCCUPIED
+  RESERVED
+  BILLING
+}
+
+enum PurchaseLineConfidence {
+  HIGH
+  MEDIUM
+  LOW
 }
 
 enum WaiterCallStatus {
@@ -243,10 +280,10 @@ model Tenant {
   // deployed to a public host and the owner points real DNS at it, but the
   // resolution logic itself is real and testable via the Host header alone.
   customDomain            String?            @unique
-  // When true, a storefront item is automatically marked unavailable once any
-  // ingredient in its recipe hits zero stock (see src/lib/data/inventory.ts).
-  // Default off: stock tracking never blocks or hides anything unless the
-  // owner opts in, since a stale stock count shouldn't silently kill sales.
+  // When true, a storefront item is automatically marked unavailable once its
+  // own tracked stock hits zero (see src/lib/data/inventory.ts). Default off:
+  // stock tracking never blocks or hides anything unless the owner opts in,
+  // since a stale stock count shouldn't silently kill sales.
   autoHideOutOfStock      Boolean            @default(false)
   // Saved design of the printable QR cards on /dashboard/tables (brand name,
   // colours, custom lines, table labels) — validated/defaulted through
@@ -264,10 +301,13 @@ model Tenant {
   itemAddOns            ItemAddOn[]
   waiterCalls           WaiterCall[]
   stations              Station[]
-  ingredients           Ingredient[]
-  recipeLines           RecipeLine[]
-  stockMovements        StockMovement[]
+  itemStockMovements    ItemStockMovement[]
   supportTickets        SupportTicket[]
+  suppliers             Supplier[]
+  purchaseScans         PurchaseScan[]
+  purchases             Purchase[]
+  purchaseLines         PurchaseLine[]
+  tables                Table[]
 
   @@map("tenants")
 }
@@ -456,17 +496,62 @@ model Item {
   // Kitchen station this item is routed to on KOT tickets (null = unassigned).
   stationId   String?
   station     Station? @relation(fields: [stationId], references: [id], onDelete: SetNull)
+  // --- Direct stock tracking — see src/lib/data/inventory.ts. Opt-in per
+  // item via trackStock: BhojSetu's only stock system (the earlier separate
+  // raw-material/recipe system was removed — every stocked thing is now a
+  // real, sellable Item).
+  sku                String?   @db.VarChar(64)
+  purchasePriceCents Int?
+  trackStock         Boolean   @default(false)
+  stockQty           Decimal?  @db.Decimal(14, 3)
+  lowStockThreshold  Decimal?  @db.Decimal(14, 3)
+  lowStockAlertedAt  DateTime?
+  // Other names a supplier bill might use for this product (e.g. a brand
+  // name) — learned automatically the first time the owner confirms a
+  // bill-scan match against this item under a different name on the bill
+  // (see src/lib/data/purchases.ts), sent back to the AI extraction prompt
+  // next time so matching improves without any manual setup. string[] | null.
+  aliases            Json?
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
-  orderItems  OrderItem[]
-  addOns      ItemAddOn[]
-  recipeLines RecipeLine[]
+  orderItems     OrderItem[]
+  addOns         ItemAddOn[]
+  stockMovements ItemStockMovement[]
+  purchaseLines  PurchaseLine[]
 
+  @@unique([tenantId, sku])
   @@index([tenantId])
   @@index([categoryId])
   @@index([stationId])
   @@map("items")
+}
+
+/**
+ * Append-only stock ledger for direct-stock menu Items (Item.trackStock) —
+ * every stock change (a sale, a bill-scan purchase, a manual correction)
+ * leaves a row here.
+ */
+model ItemStockMovement {
+  id        String              @id @default(cuid())
+  tenantId  String
+  tenant    Tenant              @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  itemId    String
+  item      Item                @relation(fields: [itemId], references: [id], onDelete: Cascade)
+  delta     Decimal             @db.Decimal(14, 3)
+  reason    StockMovementReason
+  note      String?
+  orderId   String?
+  // Set when this movement came from a confirmed bill-scan Purchase (reason
+  // PURCHASE) — lets undoPurchase find and reverse exactly this movement.
+  purchaseId String?
+  createdAt DateTime            @default(now())
+
+  @@index([tenantId])
+  @@index([itemId, createdAt])
+  @@index([orderId])
+  @@index([purchaseId])
+  @@map("item_stock_movements")
 }
 
 /**
@@ -568,10 +653,10 @@ model Order {
   // it's a 1:1 link and the webhook looks orders up by it.
   razorpayOrderId    String?         @unique
   razorpayPaymentId  String?
-  // Inventory bookkeeping (src/lib/data/inventory.ts): set the moment recipe
-  // ingredients are deducted for this order, and again when a cancellation
-  // restores them — each null-to-set transition happens at most once, which
-  // is what makes deduction/restore idempotent.
+  // Inventory bookkeeping (src/lib/data/inventory.ts): set the moment any
+  // ordered item's own tracked stock is deducted for this order, and again
+  // when a cancellation restores it — each null-to-set transition happens at
+  // most once, which is what makes deduction/restore idempotent.
   stockDeductedAt    DateTime?
   stockRestoredAt    DateTime?
   createdAt          DateTime        @default(now())
@@ -625,70 +710,6 @@ model Station {
 }
 
 /**
- * A raw material / ingredient the restaurant tracks stock of. Quantities are
- * in the ingredient's own unit (kg, g, l, ml, pcs) — no cross-unit
- * conversion; a recipe must use the same unit as the ingredient.
- * lowStockAlertedAt is set when stock first crosses the threshold and cleared
- * on restock, so the owner is emailed once per dip, not on every order.
- */
-model Ingredient {
-  id                String    @id @default(cuid())
-  tenantId          String
-  tenant            Tenant    @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  name              String
-  unit              String
-  currentStock      Decimal   @default(0) @db.Decimal(14, 3)
-  lowStockThreshold Decimal   @default(0) @db.Decimal(14, 3)
-  costPerUnitCents  Int?
-  lowStockAlertedAt DateTime?
-  createdAt         DateTime  @default(now())
-  updatedAt         DateTime  @updatedAt
-
-  recipeLines RecipeLine[]
-  movements   StockMovement[]
-
-  @@unique([tenantId, name])
-  @@index([tenantId])
-  @@map("ingredients")
-}
-
-/** Quantity of one ingredient consumed by one serving of one menu item. */
-model RecipeLine {
-  id           String     @id @default(cuid())
-  tenantId     String
-  tenant       Tenant     @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  itemId       String
-  item         Item       @relation(fields: [itemId], references: [id], onDelete: Cascade)
-  ingredientId String
-  ingredient   Ingredient @relation(fields: [ingredientId], references: [id], onDelete: Cascade)
-  quantity     Decimal    @db.Decimal(14, 3)
-
-  @@unique([itemId, ingredientId])
-  @@index([tenantId])
-  @@index([ingredientId])
-  @@map("recipe_lines")
-}
-
-/** Append-only stock ledger: every change to Ingredient.currentStock leaves a row here. */
-model StockMovement {
-  id           String              @id @default(cuid())
-  tenantId     String
-  tenant       Tenant              @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  ingredientId String
-  ingredient   Ingredient          @relation(fields: [ingredientId], references: [id], onDelete: Cascade)
-  delta        Decimal             @db.Decimal(14, 3)
-  reason       StockMovementReason
-  note         String?
-  orderId      String?
-  createdAt    DateTime            @default(now())
-
-  @@index([tenantId])
-  @@index([ingredientId, createdAt])
-  @@index([orderId])
-  @@map("stock_movements")
-}
-
-/**
  * A help/enquiry request a restaurant sends to the BhojSetu team from the
  * dashboard Help page. Handled from /super-admin/support: the team sets the
  * status and writes a reply the restaurant sees on its Help page. The
@@ -724,4 +745,156 @@ model SupportTicket {
   @@index([tenantId, createdAt])
   @@index([status, createdAt])
   @@map("support_tickets")
+}
+
+/** A supplier a tenant buys stock from — just a name/phone, matched loosely by name on each new bill scan (see findOrCreateSupplier). */
+model Supplier {
+  id        String   @id @default(cuid())
+  tenantId  String
+  tenant    Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  name      String
+  phone     String?
+  createdAt DateTime @default(now())
+
+  purchases Purchase[]
+
+  @@unique([tenantId, name])
+  @@index([tenantId])
+  @@map("suppliers")
+}
+
+/**
+ * One "photo of a supplier bill -> AI read" attempt. imageUrls holds every
+ * page (up to 3, see confirmPurchaseAction's cap). rawModelOutput is the
+ * AI's raw structured response, kept for debugging/prompt-improvement (see
+ * CLAUDE.md's "cost and performance" note in the original brief) — never
+ * read back as authoritative; every number in it is re-validated server-side
+ * (src/lib/ai/purchase-scan.ts) before it can reach a Purchase. A scan that
+ * becomes a real Purchase is linked via Purchase.scanId; one that's
+ * abandoned or fails just sits here as a record of the attempt.
+ */
+model PurchaseScan {
+  id             String             @id @default(cuid())
+  tenantId       String
+  tenant         Tenant             @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  imageUrls      Json
+  status         PurchaseScanStatus @default(PROCESSING)
+  rawModelOutput Json?
+  modelName      String?
+  errorMessage   String?
+  createdAt      DateTime           @default(now())
+
+  purchase Purchase?
+
+  @@index([tenantId, createdAt])
+  @@map("purchase_scans")
+}
+
+/**
+ * A confirmed stock purchase — created only when the owner taps "Sahi hai,
+ * Save karo" on the confirm screen (see confirmPurchaseAction). Stock only
+ * ever changes at that moment, never during scanning/extraction.
+ * subtotalCents/grandTotalCents and every PurchaseLine's numbers are
+ * recomputed server-side from the confirmed lines, never trusted from the
+ * client or from the AI's raw output. undoneAt marks a purchase reversed
+ * within the 10-minute undo window (src/lib/data/purchases.ts
+ * undoPurchase) — the row and its lines are kept (append-only, same
+ * philosophy as StockMovement/ItemStockMovement) rather than deleted.
+ */
+model Purchase {
+  id                String        @id @default(cuid())
+  // MySQL requires an AUTO_INCREMENT column to be indexed — same reason
+  // Order.orderNumber and SupportTicket.ticketNumber are @unique.
+  purchaseNumber    Int           @unique @default(autoincrement())
+  tenantId          String
+  tenant            Tenant        @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  supplierId        String?
+  supplier          Supplier?     @relation(fields: [supplierId], references: [id], onDelete: SetNull)
+  // Copied from Supplier.name at confirm time so a purchase's printed/shown
+  // supplier name never shifts if the Supplier row is later renamed — same
+  // snapshot pattern Order uses for coupon/price fields.
+  supplierNameSnapshot String?
+  billNumber        String?
+  billDate           DateTime?
+  subtotalCents      Int
+  extraChargesCents  Int           @default(0)
+  // [{ label: string; amountCents: number }] | null — e.g. transport/loading
+  // charges the bill lists separately from item lines.
+  extraCharges       Json?
+  grandTotalCents    Int
+  scanId             String?       @unique
+  scan               PurchaseScan? @relation(fields: [scanId], references: [id], onDelete: SetNull)
+  createdByUserId    String
+  createdAt          DateTime      @default(now())
+  // Set when undone within the 10-minute window — see undoPurchase. Null =
+  // still in effect.
+  undoneAt            DateTime?
+
+  lines PurchaseLine[]
+
+  @@index([tenantId, createdAt])
+  @@index([tenantId, supplierId, billNumber, billDate])
+  @@map("purchases")
+}
+
+/**
+ * One line item from a confirmed Purchase. matchedItemId records which
+ * direct-stock Product this line restocked — null means the owner chose
+ * "skip this line" (nameOnBill/quantity/rate are still kept for the record,
+ * but no stock movement was written for it). Only ever matches a Product
+ * (Item.trackStock) — BhojSetu has no separate raw-material stock system.
+ */
+model PurchaseLine {
+  id             String                 @id @default(cuid())
+  purchaseId     String
+  purchase       Purchase               @relation(fields: [purchaseId], references: [id], onDelete: Cascade)
+  tenantId       String
+  tenant         Tenant                 @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  nameOnBill     String
+  matchedItemId  String?
+  matchedItem    Item?                  @relation(fields: [matchedItemId], references: [id], onDelete: SetNull)
+  quantity       Decimal                @db.Decimal(14, 3)
+  unit           String
+  rateCents      Int
+  lineTotalCents Int
+  confidence     PurchaseLineConfidence @default(MEDIUM)
+  note           String?
+  // True once the owner has touched this row on the confirm screen (edited
+  // qty/rate/match) — kept for prompt-improvement analysis (which AI
+  // extractions needed a human fix), no functional effect today.
+  editedByUser   Boolean                @default(false)
+  createdAt      DateTime               @default(now())
+
+  @@index([purchaseId])
+  @@index([tenantId])
+  @@index([matchedItemId])
+  @@map("purchase_lines")
+}
+
+/**
+ * A real, persisted dine-in table for the live status board
+ * (/dashboard/tables/board) — separate from the QR-code generator on
+ * /dashboard/tables, which only ever encodes a plain label into a link
+ * (/r/<slug>?table=<label>) and needs no Table row to exist. `label` is
+ * meant to match whatever a table's printed QR code encodes, but nothing
+ * enforces that at the database level — the QR designer and this board are
+ * deliberately decoupled so neither can break the other. No FK from Order:
+ * Order.tableLabel is (and stays) a free string, matched by value here, so
+ * a transfer is just reassigning that string on the relevant orders rather
+ * than juggling relations.
+ */
+model Table {
+  id        String      @id @default(cuid())
+  tenantId  String
+  tenant    Tenant      @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  label     String
+  seats     Int?
+  status    TableStatus @default(AVAILABLE)
+  notes     String?
+  createdAt DateTime    @default(now())
+  updatedAt DateTime    @updatedAt
+
+  @@unique([tenantId, label])
+  @@index([tenantId])
+  @@map("tables")
 }

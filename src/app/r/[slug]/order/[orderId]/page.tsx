@@ -14,6 +14,10 @@ export const metadata: Metadata = { robots: { index: false, follow: false } };
 const PAYMENT_METHOD_LABEL = {
   UPI: "UPI",
   COD: "Cash on delivery",
+  // CARD is a dashboard/counter-only payment method (see New Bill) — a
+  // customer only ever sees this if they open a manually-created order's
+  // status link, which storefront checkout itself never produces.
+  CARD: "Card",
   RAZORPAY: "Paid online",
 } as const;
 

@@ -4,10 +4,9 @@ import type { StockMovementReason } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { getOwnerEmail } from "@/lib/data/tenants";
 import { sendLowStockEmail } from "@/lib/notifications/email";
+import { createCategory } from "@/lib/data/menu";
 
 const D = (v: Prisma.Decimal.Value) => new Prisma.Decimal(v);
-
-export const INGREDIENT_UNITS = ["g", "kg", "ml", "l", "pcs"] as const;
 
 export class InventoryError extends Error {}
 
@@ -18,23 +17,41 @@ export function stockLevel(stock: Prisma.Decimal, threshold: Prisma.Decimal): "O
   return "OK";
 }
 
-// ---------------------------------------------------------------- ingredients
-
-export async function listIngredients(tenantId: string) {
-  return prisma.ingredient.findMany({ where: { tenantId }, orderBy: { name: "asc" } });
+/** Same rule as stockLevel, for a direct-stock Item — null qty/threshold (not yet tracking) default to 0. */
+export function itemStockLevel(item: { stockQty: Prisma.Decimal | null; lowStockThreshold: Prisma.Decimal | null }) {
+  return stockLevel(item.stockQty ?? D(0), item.lowStockThreshold ?? D(0));
 }
 
-export async function countLowStock(tenantId: string): Promise<number> {
-  const all = await listIngredients(tenantId);
-  return all.filter((i) => stockLevel(i.currentStock, i.lowStockThreshold) !== "OK").length;
+// --------------------------------------------------- direct-stock items (Products)
+//
+// BhojSetu's only stock system: direct-stock tracking lives on the menu Item
+// model itself (Item.trackStock/stockQty/...) — a sellable, stocked product
+// (SKU, image, purchase/selling price). An earlier separate raw-material/
+// recipe system (Ingredient/RecipeLine/StockMovement) was removed; every
+// stocked thing is now a real, sellable Item.
+
+export type StockItem = Prisma.ItemGetPayload<{ include: { category: true } }>;
+
+export async function listStockItems(tenantId: string): Promise<StockItem[]> {
+  return prisma.item.findMany({
+    where: { tenantId, trackStock: true },
+    include: { category: true },
+    orderBy: { name: "asc" },
+  });
 }
 
-function validateIngredientInput(input: { name: string; unit: string; lowStockThreshold: number }) {
+export async function countLowStockItems(tenantId: string): Promise<number> {
+  const items = await listStockItems(tenantId);
+  return items.filter((i) => itemStockLevel(i) !== "OK").length;
+}
+
+function validateStockItemInput(input: { name: string; categoryId: string; sellingPriceCents: number; lowStockThreshold: number }) {
   const name = input.name.trim();
-  if (!name) throw new InventoryError("Ingredient name is required.");
-  if (name.length > 100) throw new InventoryError("Ingredient name is too long.");
-  if (!(INGREDIENT_UNITS as readonly string[]).includes(input.unit)) {
-    throw new InventoryError("Pick a valid unit.");
+  if (!name) throw new InventoryError("Product name is required.");
+  if (name.length > 100) throw new InventoryError("Product name is too long.");
+  if (!input.categoryId) throw new InventoryError("Pick a category.");
+  if (!Number.isFinite(input.sellingPriceCents) || input.sellingPriceCents <= 0) {
+    throw new InventoryError("Enter a valid selling price.");
   }
   if (!Number.isFinite(input.lowStockThreshold) || input.lowStockThreshold < 0) {
     throw new InventoryError("Low-stock level can't be negative.");
@@ -42,167 +59,167 @@ function validateIngredientInput(input: { name: string; unit: string; lowStockTh
   return name;
 }
 
-export async function createIngredient(
+async function assertSkuAvailable(tenantId: string, sku: string | null, excludeItemId?: string) {
+  if (!sku) return;
+  const clash = await prisma.item.findFirst({
+    where: { tenantId, sku, ...(excludeItemId ? { NOT: { id: excludeItemId } } : {}) },
+  });
+  if (clash) throw new InventoryError(`SKU "${sku}" is already used by "${clash.name}".`);
+}
+
+export async function createStockItem(
   tenantId: string,
   input: {
     name: string;
-    unit: string;
-    openingStock: number;
+    categoryId: string;
+    sku?: string | null;
+    imageUrl?: string | null;
+    purchasePriceCents?: number | null;
+    sellingPriceCents: number;
+    openingStockQty: number;
     lowStockThreshold: number;
-    costPerUnitCents?: number | null;
   },
 ) {
-  const name = validateIngredientInput(input);
-  if (!Number.isFinite(input.openingStock) || input.openingStock < 0) {
+  const name = validateStockItemInput(input);
+  const category = await prisma.category.findFirst({ where: { id: input.categoryId, tenantId } });
+  if (!category) throw new InventoryError("Category not found.");
+  const sku = input.sku?.trim() || null;
+  await assertSkuAvailable(tenantId, sku);
+  if (!Number.isFinite(input.openingStockQty) || input.openingStockQty < 0) {
     throw new InventoryError("Opening stock can't be negative.");
   }
-  const existing = await prisma.ingredient.findUnique({ where: { tenantId_name: { tenantId, name } } });
-  if (existing) throw new InventoryError(`"${name}" is already in your inventory.`);
 
   return prisma.$transaction(async (tx) => {
-    const ing = await tx.ingredient.create({
+    const last = await tx.item.findFirst({ where: { tenantId, categoryId: input.categoryId }, orderBy: { sortOrder: "desc" } });
+    const item = await tx.item.create({
       data: {
         tenantId,
+        categoryId: input.categoryId,
         name,
-        unit: input.unit,
-        currentStock: D(input.openingStock),
+        priceCents: input.sellingPriceCents,
+        purchasePriceCents: input.purchasePriceCents ?? null,
+        imageUrl: input.imageUrl ?? null,
+        sku,
+        trackStock: true,
+        stockQty: D(input.openingStockQty),
         lowStockThreshold: D(input.lowStockThreshold),
-        costPerUnitCents: input.costPerUnitCents ?? null,
+        sortOrder: (last?.sortOrder ?? -1) + 1,
       },
     });
-    if (input.openingStock > 0) {
-      await tx.stockMovement.create({
-        data: { tenantId, ingredientId: ing.id, delta: D(input.openingStock), reason: "PURCHASE", note: "Opening stock" },
+    if (input.openingStockQty > 0) {
+      await tx.itemStockMovement.create({
+        data: { tenantId, itemId: item.id, delta: D(input.openingStockQty), reason: "PURCHASE", note: "Opening stock" },
       });
     }
-    return ing;
+    return item;
   });
 }
 
-export async function updateIngredient(
+export async function updateStockItem(
   tenantId: string,
-  id: string,
-  input: { name: string; unit: string; lowStockThreshold: number; costPerUnitCents?: number | null },
+  itemId: string,
+  input: Partial<{
+    name: string;
+    categoryId: string;
+    sku: string | null;
+    imageUrl: string | null;
+    purchasePriceCents: number | null;
+    sellingPriceCents: number;
+    lowStockThreshold: number;
+    /** Lets the owner opt an item back out of stock-tracking without deleting the menu item itself. */
+    trackStock: boolean;
+  }>,
 ) {
-  const name = validateIngredientInput(input);
-  const clash = await prisma.ingredient.findFirst({ where: { tenantId, name, NOT: { id } } });
-  if (clash) throw new InventoryError(`"${name}" is already in your inventory.`);
-  const result = await prisma.ingredient.updateMany({
-    where: { id, tenantId },
+  if (input.sku !== undefined) await assertSkuAvailable(tenantId, input.sku?.trim() || null, itemId);
+  if (input.categoryId) {
+    const category = await prisma.category.findFirst({ where: { id: input.categoryId, tenantId } });
+    if (!category) throw new InventoryError("Category not found.");
+  }
+  const result = await prisma.item.updateMany({
+    where: { id: itemId, tenantId },
     data: {
-      name,
-      unit: input.unit,
-      lowStockThreshold: D(input.lowStockThreshold),
-      costPerUnitCents: input.costPerUnitCents ?? null,
+      ...(input.name !== undefined ? { name: input.name.trim() } : {}),
+      ...(input.categoryId !== undefined ? { categoryId: input.categoryId } : {}),
+      ...(input.sku !== undefined ? { sku: input.sku?.trim() || null } : {}),
+      ...(input.imageUrl !== undefined ? { imageUrl: input.imageUrl } : {}),
+      ...(input.purchasePriceCents !== undefined ? { purchasePriceCents: input.purchasePriceCents } : {}),
+      ...(input.sellingPriceCents !== undefined ? { priceCents: input.sellingPriceCents } : {}),
+      ...(input.lowStockThreshold !== undefined ? { lowStockThreshold: D(input.lowStockThreshold) } : {}),
+      ...(input.trackStock !== undefined ? { trackStock: input.trackStock } : {}),
     },
   });
-  if (result.count === 0) throw new InventoryError("Ingredient not found.");
+  if (result.count === 0) throw new InventoryError("Product not found.");
 }
 
-export async function deleteIngredient(tenantId: string, id: string) {
-  await prisma.ingredient.deleteMany({ where: { id, tenantId } });
-}
-
-/**
- * Manual stock change (receive stock, wastage, count correction). `delta` is
- * signed. Restocking above the threshold clears the low-stock flag so the
- * next dip alerts again.
- */
-export async function adjustStock(
+/** Manual stock change for a direct-stock Item (receive stock, wastage, count correction). */
+export async function adjustItemStock(
   tenantId: string,
-  ingredientId: string,
+  itemId: string,
   delta: number,
   reason: Extract<StockMovementReason, "PURCHASE" | "WASTE" | "ADJUSTMENT">,
   note?: string | null,
 ) {
   if (!Number.isFinite(delta) || delta === 0) throw new InventoryError("Enter a non-zero quantity.");
 
-  const { ingredient, low } = await prisma.$transaction(async (tx) => {
-    const updated = await tx.ingredient.updateMany({
-      where: { id: ingredientId, tenantId },
-      data: { currentStock: { increment: D(delta) } },
+  const { item, low } = await prisma.$transaction(async (tx) => {
+    const updated = await tx.item.updateMany({
+      where: { id: itemId, tenantId, trackStock: true },
+      data: { stockQty: { increment: D(delta) } },
     });
-    if (updated.count === 0) throw new InventoryError("Ingredient not found.");
-    await tx.stockMovement.create({
-      data: { tenantId, ingredientId, delta: D(delta), reason, note: note?.trim() || null },
+    if (updated.count === 0) throw new InventoryError("Product not found.");
+    await tx.itemStockMovement.create({
+      data: { tenantId, itemId, delta: D(delta), reason, note: note?.trim() || null },
     });
-    const ingredient = await tx.ingredient.findFirstOrThrow({ where: { id: ingredientId, tenantId } });
-    const level = stockLevel(ingredient.currentStock, ingredient.lowStockThreshold);
-    if (level === "OK" && ingredient.lowStockAlertedAt) {
-      await tx.ingredient.update({ where: { id: ingredientId }, data: { lowStockAlertedAt: null } });
+    const item = await tx.item.findFirstOrThrow({ where: { id: itemId, tenantId } });
+    const level = itemStockLevel(item);
+    if (level === "OK" && item.lowStockAlertedAt) {
+      await tx.item.update({ where: { id: itemId }, data: { lowStockAlertedAt: null } });
     }
-    const low = level !== "OK" && !ingredient.lowStockAlertedAt ? [ingredient] : [];
+    const low = level !== "OK" && !item.lowStockAlertedAt ? [item] : [];
     if (low.length) {
-      await tx.ingredient.update({ where: { id: ingredientId }, data: { lowStockAlertedAt: new Date() } });
+      await tx.item.update({ where: { id: itemId }, data: { lowStockAlertedAt: new Date() } });
     }
-    return { ingredient, low };
+    return { item, low };
   });
 
-  if (low.length) await notifyLowStock(tenantId, low);
-  return ingredient;
+  if (low.length) await notifyLowStockItems(tenantId, low);
+  return item;
 }
 
-export async function listRecentMovements(tenantId: string, take = 300) {
-  return prisma.stockMovement.findMany({ where: { tenantId }, orderBy: { createdAt: "desc" }, take });
+export async function listItemStockMovements(tenantId: string, itemId: string, take = 30) {
+  return prisma.itemStockMovement.findMany({ where: { tenantId, itemId }, orderBy: { createdAt: "desc" }, take });
 }
 
-export async function listMovements(tenantId: string, ingredientId: string, take = 30) {
-  return prisma.stockMovement.findMany({
-    where: { tenantId, ingredientId },
-    orderBy: { createdAt: "desc" },
-    take,
-  });
+/** Every direct-stock item's recent movements for the tenant, newest first. */
+export async function listRecentItemMovements(tenantId: string, take = 300) {
+  return prisma.itemStockMovement.findMany({ where: { tenantId }, orderBy: { createdAt: "desc" }, take });
 }
 
-// -------------------------------------------------------------------- recipes
-
-export async function getRecipeForItem(tenantId: string, itemId: string) {
-  return prisma.recipeLine.findMany({
-    where: { tenantId, itemId },
-    include: { ingredient: true },
-    orderBy: { ingredient: { name: "asc" } },
-  });
-}
-
-/** Every recipe line for the tenant — feeds the menu page's per-item recipe editors. */
-export async function listRecipeLinesForTenant(tenantId: string) {
-  return prisma.recipeLine.findMany({ where: { tenantId }, include: { ingredient: true } });
-}
-
-export async function setRecipeForItem(
+/** Fire-and-forget email to the owner — unit hardcoded "pcs" since direct-stock items are always counted, not weighed/measured. */
+export async function notifyLowStockItems(
   tenantId: string,
-  itemId: string,
-  lines: { ingredientId: string; quantity: number }[],
+  items: { name: string; stockQty: Prisma.Decimal | null; lowStockThreshold: Prisma.Decimal | null }[],
 ) {
-  const item = await prisma.item.findFirst({ where: { id: itemId, tenantId }, select: { id: true } });
-  if (!item) throw new InventoryError("Item not found.");
-
-  const merged = new Map<string, number>();
-  for (const l of lines) {
-    if (!Number.isFinite(l.quantity) || l.quantity <= 0) continue;
-    merged.set(l.ingredientId, (merged.get(l.ingredientId) ?? 0) + l.quantity);
+  if (items.length === 0) return;
+  try {
+    const [tenant, ownerEmail] = await Promise.all([
+      prisma.tenant.findUnique({ where: { id: tenantId }, select: { name: true } }),
+      getOwnerEmail(tenantId),
+    ]);
+    if (!tenant || !ownerEmail) return;
+    await sendLowStockEmail(
+      ownerEmail,
+      tenant.name,
+      items.map((i) => ({
+        name: i.name,
+        unit: "pcs",
+        currentStock: Number(i.stockQty ?? 0),
+        lowStockThreshold: Number(i.lowStockThreshold ?? 0),
+      })),
+    );
+  } catch (err) {
+    console.error("notifyLowStockItems failed:", err);
   }
-  const ingredientIds = [...merged.keys()];
-  if (ingredientIds.length > 0) {
-    const owned = await prisma.ingredient.count({ where: { tenantId, id: { in: ingredientIds } } });
-    if (owned !== ingredientIds.length) throw new InventoryError("Unknown ingredient in recipe.");
-  }
-
-  await prisma.$transaction([
-    prisma.recipeLine.deleteMany({ where: { tenantId, itemId } }),
-    ...(ingredientIds.length
-      ? [
-          prisma.recipeLine.createMany({
-            data: ingredientIds.map((ingredientId) => ({
-              tenantId,
-              itemId,
-              ingredientId,
-              quantity: D(merged.get(ingredientId)!),
-            })),
-          }),
-        ]
-      : []),
-  ]);
 }
 
 // ------------------------------------------------------------ order integration
@@ -210,17 +227,17 @@ export async function setRecipeForItem(
 type Tx = Prisma.TransactionClient;
 
 /**
- * Deducts each ordered menu item's recipe ingredients, inside the caller's
- * transaction (so the order and its stock movement commit or roll back
- * together). Idempotent: Order.stockDeductedAt is claimed with a conditional
- * UPDATE, so a second call for the same order is a no-op. Never blocks an
- * order — stock is allowed to go negative (that just reads as "Out").
- * Returns ingredients that newly crossed into low/out, for notifyLowStock to
- * email about once the transaction has committed.
+ * Deducts any ordered item's own direct stock (Item.trackStock), inside the
+ * caller's transaction (so the order and its stock movements commit or roll
+ * back together). Idempotent: Order.stockDeductedAt is claimed with a
+ * conditional UPDATE, so a second call for the same order is a no-op. Never
+ * blocks an order — stock is allowed to go negative (that just reads as
+ * "Out"). Returns items that newly crossed into low/out, for
+ * notifyLowStockItems to email about once the transaction has committed.
  */
 export async function deductStockForOrder(tx: Tx, tenantId: string, orderId: string) {
-  type Ing = Prisma.IngredientGetPayload<object>;
-  const none = { newlyLow: [] as Ing[] };
+  type Itm = Prisma.ItemGetPayload<object>;
+  const none = { newlyLowItems: [] as Itm[] };
 
   const claimed = await tx.order.updateMany({
     where: { id: orderId, tenantId, stockDeductedAt: null },
@@ -238,49 +255,42 @@ export async function deductStockForOrder(tx: Tx, tenantId: string, orderId: str
   }
   if (qtyByItem.size === 0) return none;
 
-  const recipe = await tx.recipeLine.findMany({
-    where: { tenantId, itemId: { in: [...qtyByItem.keys()] } },
+  const trackedItems = await tx.item.findMany({
+    where: { tenantId, id: { in: [...qtyByItem.keys()] }, trackStock: true },
   });
-  const usage = new Map<string, Prisma.Decimal>();
-  for (const line of recipe) {
-    const need = line.quantity.mul(qtyByItem.get(line.itemId) ?? 0);
-    usage.set(line.ingredientId, (usage.get(line.ingredientId) ?? D(0)).plus(need));
-  }
-  if (usage.size === 0) return none;
-
-  for (const [ingredientId, total] of usage) {
-    await tx.ingredient.updateMany({
-      where: { id: ingredientId, tenantId },
-      data: { currentStock: { decrement: total } },
-    });
-    await tx.stockMovement.create({
-      data: { tenantId, ingredientId, delta: total.neg(), reason: "ORDER", orderId },
-    });
-  }
-
-  const after = await tx.ingredient.findMany({ where: { tenantId, id: { in: [...usage.keys()] } } });
-  const newlyLow = after.filter(
-    (i) => stockLevel(i.currentStock, i.lowStockThreshold) !== "OK" && !i.lowStockAlertedAt,
-  );
-  if (newlyLow.length) {
-    await tx.ingredient.updateMany({
-      where: { tenantId, id: { in: newlyLow.map((i) => i.id) } },
-      data: { lowStockAlertedAt: new Date() },
-    });
-  }
-
-  const tenant = await tx.tenant.findUnique({ where: { id: tenantId }, select: { autoHideOutOfStock: true } });
-  if (tenant?.autoHideOutOfStock) {
-    const outIds = after.filter((i) => i.currentStock.lte(0)).map((i) => i.id);
-    if (outIds.length) {
+  let newlyLowItems: Itm[] = [];
+  if (trackedItems.length > 0) {
+    for (const item of trackedItems) {
+      const qty = qtyByItem.get(item.id) ?? 0;
+      if (qty <= 0) continue;
       await tx.item.updateMany({
-        where: { tenantId, recipeLines: { some: { ingredientId: { in: outIds } } } },
-        data: { isAvailable: false },
+        where: { id: item.id, tenantId },
+        data: { stockQty: { decrement: D(qty) } },
       });
+      await tx.itemStockMovement.create({
+        data: { tenantId, itemId: item.id, delta: D(-qty), reason: "ORDER", orderId },
+      });
+    }
+
+    const after = await tx.item.findMany({ where: { tenantId, id: { in: trackedItems.map((i) => i.id) } } });
+    newlyLowItems = after.filter((i) => itemStockLevel(i) !== "OK" && !i.lowStockAlertedAt);
+    if (newlyLowItems.length) {
+      await tx.item.updateMany({
+        where: { tenantId, id: { in: newlyLowItems.map((i) => i.id) } },
+        data: { lowStockAlertedAt: new Date() },
+      });
+    }
+
+    const tenant = await tx.tenant.findUnique({ where: { id: tenantId }, select: { autoHideOutOfStock: true } });
+    if (tenant?.autoHideOutOfStock) {
+      const outIds = after.filter((i) => i.stockQty != null && i.stockQty.lte(0)).map((i) => i.id);
+      if (outIds.length) {
+        await tx.item.updateMany({ where: { tenantId, id: { in: outIds } }, data: { isAvailable: false } });
+      }
     }
   }
 
-  return { newlyLow };
+  return { newlyLowItems };
 }
 
 /** Reverses deductStockForOrder for a cancelled order — at most once, via Order.stockRestoredAt. */
@@ -291,53 +301,26 @@ export async function restoreStockForOrder(tx: Tx, tenantId: string, orderId: st
   });
   if (claimed.count === 0) return;
 
-  const movements = await tx.stockMovement.findMany({ where: { tenantId, orderId, reason: "ORDER" } });
-  for (const m of movements) {
-    await tx.ingredient.updateMany({
-      where: { id: m.ingredientId, tenantId },
-      data: { currentStock: { increment: m.delta.neg() } },
+  const itemMovements = await tx.itemStockMovement.findMany({ where: { tenantId, orderId, reason: "ORDER" } });
+  for (const m of itemMovements) {
+    await tx.item.updateMany({
+      where: { id: m.itemId, tenantId },
+      data: { stockQty: { increment: m.delta.neg() } },
     });
-    await tx.stockMovement.create({
-      data: { tenantId, ingredientId: m.ingredientId, delta: m.delta.neg(), reason: "ORDER_CANCEL", orderId },
+    await tx.itemStockMovement.create({
+      data: { tenantId, itemId: m.itemId, delta: m.delta.neg(), reason: "ORDER_CANCEL", orderId },
     });
   }
 
-  const touched = await tx.ingredient.findMany({
-    where: { tenantId, id: { in: movements.map((m) => m.ingredientId) }, lowStockAlertedAt: { not: null } },
+  const touchedItems = await tx.item.findMany({
+    where: { tenantId, id: { in: itemMovements.map((m) => m.itemId) }, lowStockAlertedAt: { not: null } },
   });
-  const recovered = touched.filter((i) => stockLevel(i.currentStock, i.lowStockThreshold) === "OK");
-  if (recovered.length) {
-    await tx.ingredient.updateMany({
-      where: { tenantId, id: { in: recovered.map((i) => i.id) } },
+  const recoveredItems = touchedItems.filter((i) => itemStockLevel(i) === "OK");
+  if (recoveredItems.length) {
+    await tx.item.updateMany({
+      where: { tenantId, id: { in: recoveredItems.map((i) => i.id) } },
       data: { lowStockAlertedAt: null },
     });
-  }
-}
-
-/** Fire-and-forget email to the owner — call after the order transaction has committed. */
-export async function notifyLowStock(
-  tenantId: string,
-  ingredients: { name: string; unit: string; currentStock: Prisma.Decimal; lowStockThreshold: Prisma.Decimal }[],
-) {
-  if (ingredients.length === 0) return;
-  try {
-    const [tenant, ownerEmail] = await Promise.all([
-      prisma.tenant.findUnique({ where: { id: tenantId }, select: { name: true } }),
-      getOwnerEmail(tenantId),
-    ]);
-    if (!tenant || !ownerEmail) return;
-    await sendLowStockEmail(
-      ownerEmail,
-      tenant.name,
-      ingredients.map((i) => ({
-        name: i.name,
-        unit: i.unit,
-        currentStock: Number(i.currentStock),
-        lowStockThreshold: Number(i.lowStockThreshold),
-      })),
-    );
-  } catch (err) {
-    console.error("notifyLowStock failed:", err);
   }
 }
 
@@ -384,71 +367,101 @@ export async function setAutoHideOutOfStock(tenantId: string, value: boolean) {
   await prisma.tenant.update({ where: { id: tenantId }, data: { autoHideOutOfStock: value } });
 }
 
-// ------------------------------------------------------------- bulk import
+// ---------------------------------------------------- product bulk import (CSV)
 
-export type ImportRowInput = {
+export type ProductImportRowInput = {
   name: string;
-  unit: string;
-  quantity: number;
-  lowStock: number;
-  costPerUnitCents: number | null;
+  sku: string | null;
+  categoryName: string | null;
+  purchasePriceCents: number | null;
+  sellingPriceCents: number;
+  stockQty: number;
+  lowStockThreshold: number;
 };
 
-export type ImportSummary = {
+export type ProductImportSummary = {
   created: number;
-  restocked: number;
+  updated: number;
   skipped: string[];
   problems: string[];
 };
 
-export const MAX_IMPORT_ROWS = 300;
+export const MAX_PRODUCT_IMPORT_ROWS = 300;
 
 /**
- * Saves a pasted ingredient list. New names are created (with opening stock);
- * a name already in the inventory is either left alone ("skip") or has the
- * pasted quantity received on top of its stock ("add") — only when the units
- * match, so 5 g can never be added to a stock counted in kg. Rows are handled
- * one by one, so a single bad row is reported without losing the others.
+ * Saves reviewed CSV rows (see src/lib/product-csv-import.ts for parsing).
+ * Matches an existing direct-stock product by SKU first (if given), else by
+ * name (case-insensitive) — a match updates its price/category/threshold and
+ * receives the row's quantity as new stock, rather than creating a
+ * duplicate. categoryName is matched case-insensitively against existing
+ * categories; an unmatched name creates a new top-level Category (mirrors
+ * how the AI menu-import wizard already creates categories on the fly).
+ * Rows are handled one at a time so a single bad row is reported without
+ * losing the rest.
  */
-export async function importIngredients(
-  tenantId: string,
-  rows: ImportRowInput[],
-  mode: "skip" | "add",
-): Promise<ImportSummary> {
+export async function importStockItems(tenantId: string, rows: ProductImportRowInput[]): Promise<ProductImportSummary> {
   if (rows.length === 0) throw new InventoryError("Nothing to import.");
-  if (rows.length > MAX_IMPORT_ROWS) {
-    throw new InventoryError(`Import up to ${MAX_IMPORT_ROWS} ingredients at a time.`);
+  if (rows.length > MAX_PRODUCT_IMPORT_ROWS) {
+    throw new InventoryError(`Import up to ${MAX_PRODUCT_IMPORT_ROWS} products at a time.`);
   }
 
-  const existing = await listIngredients(tenantId);
-  const byName = new Map(existing.map((i) => [i.name.trim().toLowerCase(), i]));
-  const summary: ImportSummary = { created: 0, restocked: 0, skipped: [], problems: [] };
+  const [existingItems, existingCategories] = await Promise.all([
+    listStockItems(tenantId),
+    prisma.category.findMany({ where: { tenantId } }),
+  ]);
+  const bySku = new Map<string, { id: string }>();
+  const byName = new Map<string, { id: string }>();
+  for (const i of existingItems) {
+    if (i.sku) bySku.set(i.sku.toLowerCase(), { id: i.id });
+    byName.set(i.name.trim().toLowerCase(), { id: i.id });
+  }
+  const categoryByName = new Map(existingCategories.map((c) => [c.name.trim().toLowerCase(), c]));
+
+  const summary: ProductImportSummary = { created: 0, updated: 0, skipped: [], problems: [] };
 
   for (const row of rows) {
     const name = row.name.trim();
     try {
-      const found = byName.get(name.toLowerCase());
+      if (!name) throw new InventoryError("Missing product name.");
+      if (!Number.isFinite(row.sellingPriceCents) || row.sellingPriceCents <= 0) {
+        throw new InventoryError(`${name}: missing or invalid selling price.`);
+      }
+
+      const categoryName = row.categoryName?.trim() || "Uncategorised";
+      let category = categoryByName.get(categoryName.toLowerCase());
+      if (!category) {
+        category = await createCategory(tenantId, categoryName);
+        categoryByName.set(categoryName.toLowerCase(), category);
+      }
+
+      const found = (row.sku && bySku.get(row.sku.trim().toLowerCase())) || byName.get(name.toLowerCase());
       if (found) {
-        if (mode === "skip") {
-          summary.skipped.push(name);
-        } else if (found.unit !== row.unit) {
-          summary.problems.push(`${name}: already stocked in ${found.unit}, not ${row.unit} — left unchanged.`);
-        } else if (row.quantity > 0) {
-          await adjustStock(tenantId, found.id, row.quantity, "PURCHASE", "Bulk import");
-          summary.restocked += 1;
-        } else {
-          summary.skipped.push(name);
+        await updateStockItem(tenantId, found.id, {
+          categoryId: category.id,
+          ...(row.sku ? { sku: row.sku.trim() } : {}),
+          purchasePriceCents: row.purchasePriceCents,
+          sellingPriceCents: row.sellingPriceCents,
+          lowStockThreshold: row.lowStockThreshold,
+          trackStock: true,
+        });
+        if (row.stockQty > 0) {
+          await adjustItemStock(tenantId, found.id, row.stockQty, "PURCHASE", "Bulk import");
         }
+        summary.updated += 1;
         continue;
       }
-      const created = await createIngredient(tenantId, {
+
+      const created = await createStockItem(tenantId, {
         name,
-        unit: row.unit,
-        openingStock: row.quantity,
-        lowStockThreshold: row.lowStock,
-        costPerUnitCents: row.costPerUnitCents,
+        categoryId: category.id,
+        sku: row.sku,
+        purchasePriceCents: row.purchasePriceCents,
+        sellingPriceCents: row.sellingPriceCents,
+        openingStockQty: Math.max(0, row.stockQty),
+        lowStockThreshold: row.lowStockThreshold,
       });
-      byName.set(name.toLowerCase(), created);
+      byName.set(name.toLowerCase(), { id: created.id });
+      if (created.sku) bySku.set(created.sku.toLowerCase(), { id: created.id });
       summary.created += 1;
     } catch (err) {
       summary.problems.push(`${name || "(blank)"}: ${err instanceof InventoryError ? err.message : "could not be saved."}`);

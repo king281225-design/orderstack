@@ -25,6 +25,27 @@ export default async function MenuPage() {
     ...c.subcategories.map((sc) => ({ id: sc.id, name: `— ${sc.name}` })),
   ]);
 
+  // ItemRow is a Client Component and only needs this narrow shape — Item
+  // now also carries stockQty/lowStockThreshold (Prisma.Decimal, added for
+  // direct-stock tracking), which React can't serialize across the
+  // server->client boundary. Map to a plain, explicit shape here rather than
+  // passing the raw Prisma row through, so a future Decimal-typed column
+  // can't silently reintroduce this crash.
+  function toDisplayItem(item: (typeof categories)[number]["items"][number]) {
+    return {
+      id: item.id,
+      name: item.name,
+      description: item.description,
+      priceCents: item.priceCents,
+      imageUrl: item.imageUrl,
+      isAvailable: item.isAvailable,
+      categoryId: item.categoryId,
+      variants: item.variants,
+      tags: item.tags,
+      addOns: item.addOns,
+    };
+  }
+
   return (
     <div className="flex flex-col gap-8">
       <section className="rounded-lg border border-gray-200 bg-white dark:bg-[#241d17] p-4">
@@ -74,7 +95,7 @@ export default async function MenuPage() {
             ) : (
               <ul className="flex flex-col divide-y divide-gray-100">
                 {category.items.map((item) => (
-                  <ItemRow key={item.id} item={item} categories={categoryOptions} />
+                  <ItemRow key={item.id} item={toDisplayItem(item)} categories={categoryOptions} />
                 ))}
               </ul>
             )}
@@ -87,7 +108,7 @@ export default async function MenuPage() {
                 ) : (
                   <ul className="flex flex-col divide-y divide-gray-100">
                     {sub.items.map((item) => (
-                      <ItemRow key={item.id} item={item} categories={categoryOptions} />
+                      <ItemRow key={item.id} item={toDisplayItem(item)} categories={categoryOptions} />
                     ))}
                   </ul>
                 )}
