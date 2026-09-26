@@ -371,7 +371,25 @@ export function DashboardShell({
       </aside>
 
       {/* RIGHT COLUMN */}
-      <div className={`flex min-w-0 flex-1 flex-col ${isOrdersHome ? "md:h-screen" : ""} print:h-auto`}>
+      {/*
+       * The orders-home fixed-height shell (below) only pins the viewport
+       * at "xl" — matching the exact breakpoint page.tsx uses to switch
+       * "Recent history" from a below-the-board block to a pinned sidebar
+       * (its own `xl:hidden` / `xl:flex` pair). Below xl, history renders
+       * as a normal-flow block under the board with no bound on its own
+       * height (it only grows with order-history count) — if the shell
+       * were height-locked at that width too (this used to say "md:"), the
+       * flex-1 board row and that unbounded history block would compete
+       * for the SAME fixed budget: on a short viewport with enough history
+       * to fill it, the board row's flex-basis-0 computation loses out and
+       * collapses toward min-h-0's floor of 0, while its (still-rendered,
+       * overflow-visible) cards keep painting past that 0-height box —
+       * visually overlapping "Recent history" starting right under it.
+       * Reproduced locally at 1024×768 with a few active + cancelled
+       * orders (the exact combination a real, short/compact POS screen —
+       * e.g. a Posiflex terminal — hits once it has real order history).
+       */}
+      <div className={`flex min-w-0 flex-1 flex-col ${isOrdersHome ? "xl:h-screen" : ""} print:h-auto`}>
         {banner}
 
         {/* DESKTOP TOP BAR */}

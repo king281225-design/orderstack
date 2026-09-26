@@ -207,6 +207,8 @@ export async function createManualOrder(
     gstRatePercent?: number | null;
     paymentMethod: PaymentMethod;
     notes?: string | null;
+    /** Owner ticked "Mark as paid" while creating the bill — settles it immediately instead of the usual after-the-fact reconciliation (see markOrderPaid). */
+    markAsPaid?: boolean;
   },
 ) {
   const lines = input.lines.filter((l) => l.quantity > 0 && l.name.trim());
@@ -254,11 +256,12 @@ export async function createManualOrder(
       taxCents,
       gstRatePercent: taxCents > 0 ? gstRate : null,
       totalCents,
-      // Manual bills are typically settled on the spot — a manually-created
-      // order still starts PENDING/UNPAID like any other, the owner marks it
-      // paid via the same "Mark as paid" reconciliation flow (or accepts
-      // through the normal status flow) rather than this silently assuming
-      // payment happened.
+      // Manual bills are typically settled on the spot — defaults to
+      // PENDING/UNPAID like any other order, unless the owner explicitly
+      // ticked "Mark as paid" while creating this bill (otherwise it's
+      // settled after the fact via the same reconciliation flow, or through
+      // the normal status flow).
+      paymentStatus: input.markAsPaid ? "PAID" : "PENDING",
       items: {
         create: lines.map((l) => {
           const linked = l.itemId ? linkedMap.get(l.itemId) : undefined;
@@ -278,6 +281,110 @@ export async function createManualOrder(
   const { newlyLowItems } = await deductStockForOrder(tx, tenantId, order.id);
   if (order.fulfillmentType === "DINE_IN") await markTableOccupiedFromOrder(tx, tenantId, order.tableLabel);
   return { order, newlyLowItems };
+  });
+  if (newlyLowItems.length) void notifyLowStockItems(tenantId, newlyLowItems);
+  return order;
+}
+
+export class OrderNotEditableError extends Error {}
+
+/**
+ * Adds/removes/adjusts line items on an ALREADY-CREATED order — the "same
+ * customer ordered more (or wants something taken off) a few minutes later"
+ * case, so the table/counter ends up with one running bill instead of a
+ * second, separate one. Works for either order source (storefront or manual
+ * bill). Only allowed while the order is still open: not yet
+ * completed/cancelled, and not yet marked paid (editing a settled invoice
+ * would silently change a total the customer already paid against — the
+ * owner cancels and re-bills instead in that case).
+ *
+ * Every number is recomputed from scratch here exactly like createManualOrder
+ * does — the client's live total preview is never trusted. The existing
+ * discount is preserved as an absolute amount (re-clamped to the new
+ * subtotal) unless the caller passes a new one; gstRatePercent likewise
+ * falls back to whatever was already on the order.
+ *
+ * Stock: this order's own prior deduction is fully reversed
+ * (restoreStockForOrder, the same "undo" path `deleteOrder`/cancelling
+ * already use) and then re-deducted fresh against the new line list, so an
+ * added item is deducted, a removed one is put back, and an unchanged one
+ * nets to the same stock level it already had — never double-counted.
+ */
+export async function updateOrderItems(
+  tenantId: string,
+  orderId: string,
+  input: {
+    lines: ManualOrderLine[];
+    discountCents?: number;
+    discountPercent?: number | null;
+    gstRatePercent?: number | null;
+  },
+) {
+  const existing = await prisma.order.findFirst({ where: { id: orderId, tenantId } });
+  if (!existing) throw new Error("Order not found for this restaurant.");
+  if (existing.status === "COMPLETED" || existing.status === "CANCELLED") {
+    throw new OrderNotEditableError("This order is already completed or cancelled — it can no longer be edited.");
+  }
+  if (existing.paymentStatus === "PAID") {
+    throw new OrderNotEditableError("This order is already marked paid — edits are disabled so the invoice stays accurate.");
+  }
+
+  const lines = input.lines.filter((l) => l.quantity > 0 && l.name.trim());
+  if (lines.length === 0) throw new EmptyManualOrderError("A bill needs at least one item — cancel it instead of removing everything.");
+  for (const l of lines) {
+    if (!Number.isFinite(l.priceCents) || l.priceCents < 0 || !Number.isInteger(l.quantity) || l.quantity < 1) {
+      throw new InvalidManualLineError(`Invalid line: "${l.name}".`);
+    }
+  }
+
+  const subtotalCents = lines.reduce((sum, l) => sum + l.priceCents * l.quantity, 0);
+  const discountCents =
+    input.discountPercent && input.discountPercent > 0
+      ? Math.round((subtotalCents * Math.min(100, Math.max(0, input.discountPercent))) / 100)
+      : Math.min(Math.max(0, Math.round(input.discountCents ?? existing.discountCents)), subtotalCents);
+  const gstRate = input.gstRatePercent ?? existing.gstRatePercent ?? null;
+  const taxableCents = subtotalCents - discountCents;
+  const taxCents = gstRate && gstRate > 0 ? Math.round((taxableCents * gstRate) / 100) : 0;
+  const totalCents = taxableCents + taxCents;
+
+  const linkedIds = lines.map((l) => l.itemId).filter((id): id is string => Boolean(id));
+  const linkedItems = linkedIds.length
+    ? await prisma.item.findMany({ where: { tenantId, id: { in: linkedIds } }, include: { station: true } })
+    : [];
+  const linkedMap = new Map(linkedItems.map((i) => [i.id, i]));
+
+  const { order, newlyLowItems } = await prisma.$transaction(async (tx) => {
+    await restoreStockForOrder(tx, tenantId, orderId);
+    // restoreStockForOrder only flips stockRestoredAt — reset both flags so
+    // the fresh deductStockForOrder call below isn't skipped as a no-op.
+    await tx.order.update({ where: { id: orderId }, data: { stockDeductedAt: null, stockRestoredAt: null } });
+    await tx.orderItem.deleteMany({ where: { orderId } });
+    const order = await tx.order.update({
+      where: { id: orderId },
+      data: {
+        subtotalCents,
+        discountCents,
+        taxCents,
+        gstRatePercent: taxCents > 0 ? gstRate : null,
+        totalCents,
+        items: {
+          create: lines.map((l) => {
+            const linked = l.itemId ? linkedMap.get(l.itemId) : undefined;
+            return {
+              itemId: linked?.id ?? null,
+              nameSnapshot: l.name.trim(),
+              priceCentsSnapshot: l.priceCents,
+              quantity: l.quantity,
+              stationId: linked?.station?.id ?? null,
+              stationName: linked?.station?.name ?? null,
+            };
+          }),
+        },
+      },
+      include: { items: true },
+    });
+    const { newlyLowItems } = await deductStockForOrder(tx, tenantId, orderId);
+    return { order, newlyLowItems };
   });
   if (newlyLowItems.length) void notifyLowStockItems(tenantId, newlyLowItems);
   return order;

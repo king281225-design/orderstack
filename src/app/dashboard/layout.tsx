@@ -7,6 +7,7 @@ import { hasAnyMenuItems } from "@/lib/data/menu";
 import { countLowStockItems } from "@/lib/data/inventory";
 import { ManagingBanner } from "@/components/dashboard/managing-banner";
 import { OnboardingBanner } from "@/components/dashboard/onboarding-banner";
+import { WhatsNewModal } from "@/components/dashboard/whats-new-modal";
 import { listOrdersForTenant } from "@/lib/data/orders";
 import { listPendingWaiterCalls } from "@/lib/data/waiter-calls";
 import { acknowledgeWaiterCallAction, dismissOnboardingAction, toggleOpenAction } from "@/app/dashboard/actions";
@@ -74,6 +75,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
 
   return (
     <div className={`${publicSans.variable} ${fraunces.variable} ${plexMono.variable}`}>
+      <WhatsNewModal />
       <DashboardShell
         tenantName={tenant.name}
         tenantSlug={tenant.slug}

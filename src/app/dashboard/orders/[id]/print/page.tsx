@@ -12,6 +12,12 @@ const PAYMENT_METHOD_LABEL: Record<string, string> = {
   RAZORPAY: "Online",
 };
 
+const PAYMENT_STATUS_LABEL: Record<string, string> = {
+  PAID: "Payment successful",
+  PENDING: "Payment pending",
+  FAILED: "Payment failed",
+};
+
 export default async function PrintInvoicePage({ params }: { params: Promise<{ id: string }> }) {
   const session = await requireTenantSession();
   const { id } = await params;
@@ -44,7 +50,7 @@ export default async function PrintInvoicePage({ params }: { params: Promise<{ i
       gstRatePercent={order.gstRatePercent}
       totalCents={order.totalCents}
       paymentMethod={PAYMENT_METHOD_LABEL[order.paymentMethod] ?? order.paymentMethod}
-      paymentStatus={order.paymentStatus}
+      paymentStatus={PAYMENT_STATUS_LABEL[order.paymentStatus] ?? order.paymentStatus}
       kotHref={`/dashboard/orders/${order.id}/kot`}
     />
   );

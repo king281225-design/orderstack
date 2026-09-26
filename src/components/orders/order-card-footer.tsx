@@ -19,6 +19,7 @@ export function OrderCardFooter({
   tone,
   cancellable,
   paymentPending,
+  editable,
 }: {
   orderId: string;
   totalText: string;
@@ -26,6 +27,8 @@ export function OrderCardFooter({
   tone: "accent" | "dark" | "green";
   cancellable: boolean;
   paymentPending: boolean;
+  /** Whether this order can still have items added/removed — see updateOrderItems's own guard (not completed/cancelled, not yet paid). */
+  editable: boolean;
 }) {
   const [pending, startTransition] = useTransition();
 
@@ -54,6 +57,14 @@ export function OrderCardFooter({
             >
               Mark paid
             </button>
+          )}
+          {editable && (
+            <Link href={`/dashboard/orders/${orderId}/edit`} aria-label="Add or remove items" title="Add or remove items" className={iconBtn}>
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+                <path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7" />
+                <path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z" />
+              </svg>
+            </Link>
           )}
           <Link href={`/dashboard/orders/${orderId}/print`} target="_blank" aria-label="Print bill" title="Print bill" className={iconBtn}>
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden>

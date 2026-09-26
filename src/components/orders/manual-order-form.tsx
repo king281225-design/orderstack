@@ -2,11 +2,28 @@
 
 import { useActionState, useMemo, useRef, useState } from "react";
 import { createManualOrderAction, type CreateManualOrderState } from "@/app/dashboard/orders/new/actions";
+import { updateOrderItemsAction } from "@/app/dashboard/orders/[id]/edit/actions";
 import { formatINR, rupeesToCents } from "@/lib/money";
 
 const initialState: CreateManualOrderState = { error: null };
 
 type Line = { name: string; priceRupees: string; quantity: string; itemId?: string };
+
+/**
+ * Passed only on /dashboard/orders/[id]/edit — the "same customer ordered
+ * more (or wants something taken off) a few minutes later" flow, so it edits
+ * the existing bill's items instead of starting a second, separate one.
+ * Customer/fulfillment/payment method aren't editable here (see `summary`,
+ * shown read-only instead) — this only ever touches items/discount/tax.
+ */
+export type EditableOrder = {
+  id: string;
+  lines: Line[];
+  discountMode: "flat" | "percent";
+  discount: string;
+  gstRate: string;
+  summary: string;
+};
 
 const emptyLine: Line = { name: "", priceRupees: "", quantity: "1" };
 
@@ -34,21 +51,26 @@ export function ManualOrderForm({
   customers,
   defaultGstRate,
   tables,
+  editOrder,
 }: {
   menuItems: PickableMenuItem[];
   menuCategories: MenuCategoryOption[];
   customers: CustomerOption[];
   defaultGstRate: number | null;
   tables: TableOption[];
+  editOrder?: EditableOrder;
 }) {
-  const [state, formAction, pending] = useActionState(createManualOrderAction, initialState);
+  const [state, formAction, pending] = useActionState(
+    editOrder ? updateOrderItemsAction : createManualOrderAction,
+    initialState,
+  );
   const formRef = useRef<HTMLFormElement>(null);
-  const [lines, setLines] = useState<Line[]>([{ ...emptyLine }]);
+  const [lines, setLines] = useState<Line[]>(editOrder ? editOrder.lines : [{ ...emptyLine }]);
   const [fulfillmentType, setFulfillmentType] = useState<"TAKEAWAY" | "DELIVERY" | "DINE_IN">("TAKEAWAY");
   const [tableLabel, setTableLabel] = useState("");
-  const [discountMode, setDiscountMode] = useState<"flat" | "percent">("flat");
-  const [discount, setDiscount] = useState("");
-  const [gstRate, setGstRate] = useState(defaultGstRate != null ? String(defaultGstRate) : "");
+  const [discountMode, setDiscountMode] = useState<"flat" | "percent">(editOrder?.discountMode ?? "flat");
+  const [discount, setDiscount] = useState(editOrder?.discount ?? "");
+  const [gstRate, setGstRate] = useState(editOrder?.gstRate ?? (defaultGstRate != null ? String(defaultGstRate) : ""));
   const [customerName, setCustomerName] = useState("");
   const [customerPhone, setCustomerPhone] = useState("");
   const [customerEmail, setCustomerEmail] = useState("");
@@ -180,8 +202,21 @@ export function ManualOrderForm({
     <form ref={formRef} action={formAction} className="flex flex-col gap-6">
       <input type="hidden" name="lines" value={linesPayload} />
       <input type="hidden" name="discountMode" value={discountMode} />
+      {editOrder && <input type="hidden" name="orderId" value={editOrder.id} />}
 
-      <section className="grid grid-cols-1 gap-3 rounded-lg border border-gray-200 bg-white dark:bg-[#241d17] p-4 sm:grid-cols-2">
+      {editOrder && (
+        <section className="rounded-lg border border-gray-200 bg-white dark:bg-[#241d17] p-4">
+          <h3 className="text-sm font-semibold text-gray-900">Editing this bill</h3>
+          <p className="mt-1 text-sm text-gray-600">{editOrder.summary}</p>
+          <p className="mt-1 text-xs text-gray-500">
+            Add or remove items below, then save — this updates the same bill instead of creating a new one.
+          </p>
+        </section>
+      )}
+
+      <section
+        className={`grid grid-cols-1 gap-3 rounded-lg border border-gray-200 bg-white dark:bg-[#241d17] p-4 sm:grid-cols-2 ${editOrder ? "hidden" : ""}`}
+      >
         <h3 className="col-span-full text-sm font-semibold text-gray-900">Customer</h3>
         <div className="relative col-span-full sm:col-span-1">
           <label className="flex flex-col gap-1 text-xs font-medium text-gray-600">
@@ -294,6 +329,14 @@ export function ManualOrderForm({
             <option value="CARD">Card</option>
             <option value="UPI">UPI</option>
           </select>
+        </label>
+        <label className="flex items-center gap-2 self-end pb-1.5 text-xs font-medium text-gray-600">
+          <input
+            type="checkbox"
+            name="markAsPaid"
+            className="h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-600"
+          />
+          Mark as paid
         </label>
         <label className="col-span-full flex flex-col gap-1 text-xs font-medium text-gray-600">
           Notes (optional)
@@ -533,7 +576,7 @@ export function ManualOrderForm({
           disabled={pending}
           className="rounded-md bg-indigo-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-indigo-700 disabled:opacity-50"
         >
-          {pending ? "Saving…" : "Save & print bill"}
+          {pending ? "Saving…" : editOrder ? "Save changes & print bill" : "Save & print bill"}
         </button>
         <button
           type="submit"
@@ -542,7 +585,7 @@ export function ManualOrderForm({
           disabled={pending}
           className="rounded-md border border-indigo-600 px-4 py-2.5 text-sm font-semibold text-indigo-700 hover:bg-indigo-50 disabled:opacity-50"
         >
-          Save & print KOT
+          {editOrder ? "Save changes & print KOT" : "Save & print KOT"}
         </button>
         <button
           type="submit"
@@ -551,7 +594,7 @@ export function ManualOrderForm({
           disabled={pending}
           className="rounded-md border border-gray-300 px-4 py-2.5 text-sm font-semibold text-gray-700 hover:bg-gray-50 disabled:opacity-50"
         >
-          Save only
+          {editOrder ? "Save changes" : "Save only"}
         </button>
       </div>
     </form>

@@ -473,6 +473,7 @@ function OrderCard({
         tone={next?.tone ?? "accent"}
         cancellable={CANCELLABLE.includes(order.status)}
         paymentPending={order.paymentStatus === "PENDING"}
+        editable={CANCELLABLE.includes(order.status) && order.paymentStatus !== "PAID"}
       />
     </article>
   );

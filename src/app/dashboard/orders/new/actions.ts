@@ -34,6 +34,7 @@ export async function createManualOrderAction(
   const fulfillmentType = String(formData.get("fulfillmentType") ?? "TAKEAWAY") as FulfillmentType;
   const tableLabel = String(formData.get("tableLabel") ?? "").trim();
   const paymentMethod = String(formData.get("paymentMethod") ?? "COD") as PaymentMethod;
+  const markAsPaid = formData.get("markAsPaid") === "on";
   const notes = String(formData.get("notes") ?? "").trim();
   const discountMode = String(formData.get("discountMode") ?? "flat");
   const discountRupees = String(formData.get("discount") ?? "");
@@ -67,6 +68,7 @@ export async function createManualOrderAction(
       fulfillmentType,
       tableLabel: tableLabel || null,
       paymentMethod,
+      markAsPaid,
       notes: notes || null,
       ...(discountMode === "percent"
         ? { discountPercent: discountRupees ? Number(discountRupees) : 0 }
