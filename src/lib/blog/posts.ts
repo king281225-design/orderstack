@@ -182,6 +182,102 @@ export const BLOG_POSTS: BlogPost[] = [
       },
     ],
   },
+  {
+    slug: "restaurant-billing-ordering-software-india-buyers-guide",
+    title: "Restaurant Billing & Ordering Software in India: A Practical Buyer's Guide (2026)",
+    description:
+      "What actually matters when comparing restaurant billing and ordering software in India — pricing models, GST invoicing, KOT, inventory, and a checklist to run before you sign up for anything.",
+    publishedAt: "2026-09-28",
+    intro: [
+      "Search for \"restaurant software\" or \"restaurant billing software India\" and you'll get a long list of vendors, most of them claiming to be the best fit for every restaurant everywhere. That's not a useful way to compare anything — a 20-table dine-in restaurant, a delivery-only cloud kitchen, and a bakery counter need genuinely different things.",
+      "This guide skips the marketing language and lays out what to actually check before picking anything: what a real restaurant needs the software to cover, which pricing details tend to hide the real cost, and a practical checklist to run through before you commit.",
+    ],
+    sections: [
+      {
+        heading: "What \"restaurant software\" actually needs to cover",
+        paragraphs: [
+          "The phrase gets used for a lot of different things — a QR menu maker, a POS terminal, an inventory tool, an aggregator's own restaurant dashboard. A genuinely complete platform for a restaurant taking real orders day to day covers all of the following, not just one of them:",
+        ],
+        list: [
+          "A public ordering menu customers can actually order from — not just a PDF or photo of the menu",
+          "Dine-in table ordering (usually via a QR code) alongside takeaway and delivery",
+          "Billing and invoicing that's GST-ready, not just a total at the bottom of a receipt",
+          "Kitchen order tickets (KOT) so the kitchen sees exactly what was ordered, not a verbal relay",
+          "Basic inventory/stock tracking, so a sold-out item doesn't get ordered anyway",
+          "A way for customers to actually pay — UPI and cash on delivery, at minimum",
+        ],
+      },
+      {
+        heading: "Pricing models — the detail that's easy to miss",
+        paragraphs: [
+          "Two restaurants can pay wildly different real costs for what looks like the same software, and it usually comes down to three things buried below the headline price:",
+        ],
+        list: [
+          "Per-device or per-login limits — some plans charge extra the moment a second staff member needs to log in at the same time, which matters a lot once you have both a counter and a kitchen screen running",
+          "Setup or onboarding fees charged separately from the monthly price",
+          "A payment gateway commission on top of the software's own fee — a UPI QR code or cash payment has no such cut, but a card/online-payment gateway usually does",
+        ],
+      },
+      {
+        heading: "GST billing and invoicing — non-negotiable, not a nice-to-have",
+        paragraphs: [
+          "A restaurant is a real, taxable business, and \"we'll add GST later\" is a common gap in cheaper or newer tools. Before signing up, check that the platform can actually generate a proper invoice — your business name, address and GSTIN on it, the tax rate applied correctly, and a real invoice number you could hand to a tax auditor without embarrassment. A tool that only prints a plain total isn't billing software, it's a receipt printer.",
+        ],
+      },
+      {
+        heading: "Inventory and KOT — where a lot of \"order management\" tools stop short",
+        paragraphs: [
+          "Plenty of ordering tools handle the customer-facing menu well and stop there. Two things worth checking specifically, because they're the difference between \"an ordering page\" and \"something that runs your kitchen\":",
+        ],
+        list: [
+          "Kitchen Order Tickets (KOT) — does the kitchen get a clear, printed or on-screen ticket per order (ideally split by station — grill, bar, dessert), or does someone have to relay the order verbally?",
+          "Stock tracking — does selling an item actually reduce its stock count, and does the system warn you (or hide the item) once it's genuinely out, or is \"sold out\" still something a staff member has to remember and mention?",
+        ],
+      },
+      {
+        heading: "A practical checklist before you sign up",
+        paragraphs: [
+          "Run through this list against any platform you're evaluating, including BhojSetu, before committing:",
+        ],
+        list: [
+          "Can I see a real, working demo storefront — not just screenshots?",
+          "Does the printed invoice actually show GST correctly, with my business details?",
+          "Is there a genuine free trial, or do I have to pay before I can properly test it?",
+          "What exactly changes if I add a second staff login or a second device?",
+          "Can customers pay via UPI or cash without an extra payment-gateway cut?",
+          "Does dine-in table ordering exist, or only takeaway/delivery?",
+        ],
+      },
+      {
+        heading: "Where BhojSetu fits against this checklist",
+        paragraphs: [
+          "BhojSetu covers every item on that list directly: a real digital menu with QR table ordering for dine-in, GST-ready printable invoices with your business details on them, kitchen order tickets split by station, inventory and stock tracking with low-stock alerts, and UPI QR / Cash on Delivery checkout with no per-order commission. Plans start at ₹499/month with a 7-day free trial — no credit card required to try it. That's one honest data point for this checklist, not a claim that it's the only option worth considering.",
+        ],
+      },
+    ],
+    faqs: [
+      {
+        q: "What's the actual difference between a QR menu tool and full restaurant software?",
+        a: "A QR menu tool typically just shows a digital menu — it doesn't take real orders, generate GST invoices, print kitchen tickets, or track stock. Full restaurant software covers ordering, billing, KOT, and inventory together, not just the menu display.",
+      },
+      {
+        q: "Is GST billing mandatory for restaurants in India?",
+        a: "GST registration and invoicing requirements depend on your turnover and state rules — this isn't legal advice, and a restaurant should confirm its own obligations with a tax professional. What's true regardless: if you are required to charge GST, your billing software needs to generate a correct, compliant invoice, not just a plain total.",
+      },
+      {
+        q: "Do I need separate POS hardware to use restaurant billing software?",
+        a: "No, not necessarily — modern browser-based platforms print bills, invoices, and kitchen tickets straight from a laptop, tablet, or phone to any printer you already have (including thermal/receipt printers), with no dedicated POS terminal required.",
+      },
+      {
+        q: "Can one platform really handle both online ordering and in-person billing?",
+        a: "Yes — that's the actual point of a combined platform rather than stitching together a separate ordering tool and a separate billing tool. Both a customer's online order and a walk-in counter sale should land in the same order dashboard and the same invoice/reporting system.",
+      },
+      {
+        q: "How much does restaurant billing software cost in India?",
+        a: "It varies by vendor and plan, but as a real reference point, BhojSetu's plans start at ₹499/month for menu, ordering, billing/invoicing, and QR table ordering, with a 7-day free trial to test it before paying anything.",
+      },
+    ],
+  },
 ];
 
 export function getBlogPost(slug: string): BlogPost | undefined {
