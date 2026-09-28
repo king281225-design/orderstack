@@ -97,26 +97,47 @@ export function InvoiceView({
           </div>
         </div>
 
-        <table className="mb-4 w-full text-sm">
-          <thead>
-            <tr className="border-b border-gray-300 text-left text-xs uppercase tracking-wide text-gray-500">
-              <th className="py-1.5">Item</th>
-              <th className="py-1.5 text-right">Qty</th>
-              <th className="py-1.5 text-right">Rate</th>
-              <th className="py-1.5 text-right">Amount</th>
-            </tr>
-          </thead>
-          <tbody>
+        {thermal ? (
+          // A 74mm-wide receipt has no room for 4 side-by-side columns
+          // (Item/Qty/Rate/Amount) without their text overlapping — the same
+          // two-line-per-item layout real thermal receipts use instead: item
+          // name + line total on one line, "qty × rate" on a smaller line
+          // below, so nothing has to squeeze into a narrow fixed column.
+          <div className="mb-4 flex flex-col text-sm">
             {lines.map((l) => (
-              <tr key={l.id} className="border-b border-gray-100">
-                <td className="py-1.5">{l.nameSnapshot}</td>
-                <td className="py-1.5 text-right">{l.quantity}</td>
-                <td className="py-1.5 text-right">{formatINR(l.priceCentsSnapshot)}</td>
-                <td className="py-1.5 text-right">{formatINR(l.priceCentsSnapshot * l.quantity)}</td>
-              </tr>
+              <div key={l.id} className="border-b border-gray-100 py-1.5">
+                <div className="flex items-baseline justify-between gap-2">
+                  <span>{l.nameSnapshot}</span>
+                  <span className="shrink-0">{formatINR(l.priceCentsSnapshot * l.quantity)}</span>
+                </div>
+                <p className="text-xs text-gray-500">
+                  {l.quantity} × {formatINR(l.priceCentsSnapshot)}
+                </p>
+              </div>
             ))}
-          </tbody>
-        </table>
+          </div>
+        ) : (
+          <table className="mb-4 w-full table-fixed text-sm">
+            <thead>
+              <tr className="border-b border-gray-300 text-left text-xs uppercase tracking-wide text-gray-500">
+                <th className="w-1/2 py-1.5">Item</th>
+                <th className="w-[15%] py-1.5 text-right">Qty</th>
+                <th className="w-[17.5%] py-1.5 text-right">Rate</th>
+                <th className="w-[17.5%] py-1.5 text-right">Amount</th>
+              </tr>
+            </thead>
+            <tbody>
+              {lines.map((l) => (
+                <tr key={l.id} className="border-b border-gray-100">
+                  <td className="py-1.5">{l.nameSnapshot}</td>
+                  <td className="py-1.5 text-right">{l.quantity}</td>
+                  <td className="py-1.5 text-right">{formatINR(l.priceCentsSnapshot)}</td>
+                  <td className="py-1.5 text-right">{formatINR(l.priceCentsSnapshot * l.quantity)}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        )}
 
         <div className="ml-auto flex w-full max-w-xs flex-col gap-1 text-sm">
           <Row label="Subtotal" value={formatINR(subtotalCents)} />
@@ -136,7 +157,7 @@ export function InvoiceView({
         </div>
 
         <p className="mt-6 border-t border-gray-200 pt-4 text-center text-xs text-gray-400">
-          Thank you for your business!
+          Thank you for visiting {tenantName}.
         </p>
       </div>
     </div>
