@@ -292,7 +292,9 @@ export async function setTenantBilling(
 ) {
   await prisma.tenant.update({
     where: { id: tenantId },
-    data: { billingPeriod: input.billingPeriod, paidUntil: input.paidUntil },
+    // renewalReminderSentAt resets so a freshly-(re)set paidUntil gets its
+    // own reminder cycle instead of being silently skipped as "already sent".
+    data: { billingPeriod: input.billingPeriod, paidUntil: input.paidUntil, renewalReminderSentAt: null },
   });
 }
 
@@ -584,7 +586,12 @@ function activatedBillingFields(tenant: {
 }) {
   const period = tenant.pendingBillingPeriod ?? tenant.billingPeriod;
   return period
-    ? { billingPeriod: period, pendingBillingPeriod: null, paidUntil: addBillingPeriod(new Date(), period) }
+    ? {
+        billingPeriod: period,
+        pendingBillingPeriod: null,
+        paidUntil: addBillingPeriod(new Date(), period),
+        renewalReminderSentAt: null,
+      }
     : { pendingBillingPeriod: null };
 }
 
@@ -779,6 +786,7 @@ export async function verifyAndActivateDiscountedPlanPurchase(
         pendingPlanTier: null,
         billingPeriod: "MONTHLY",
         paidUntil: addBillingPeriod(new Date(), "MONTHLY"),
+        renewalReminderSentAt: null,
         welcomeCouponRedeemedAt: new Date(),
       },
     }),
@@ -795,6 +803,46 @@ export async function verifyAndActivateDiscountedPlanPurchase(
       },
     }),
   ]);
+}
+
+// ---------------------------------------------------------------------------
+// Subscription renewal reminders (added 2026-09-29). paidUntil doesn't gate
+// access by itself (see its own schema comment) — a tenant that paid once,
+// manually or via WELCOME100's one-time purchase above, and never set up a
+// real recurring Razorpay Subscription just keeps full access for free past
+// paidUntil with nothing prompting them to pay again. This sends the owner
+// one email in a short window before that date. Excludes tenants with a live
+// ACTIVE razorpaySubscriptionId — Razorpay itself auto-charges and notifies
+// those, so reminding them too would be redundant. Driven by
+// /api/cron/subscription-reminders (Vercel Cron, daily) — dormant like every
+// other integration here until CRON_SECRET and real email credentials both
+// exist in production.
+export const RENEWAL_REMINDER_WINDOW_DAYS = 3;
+
+export async function getTenantsNeedingRenewalReminder() {
+  const now = new Date();
+  const windowEnd = new Date(now.getTime() + RENEWAL_REMINDER_WINDOW_DAYS * 86_400_000);
+  const candidates = await prisma.tenant.findMany({
+    where: {
+      status: "ACTIVE",
+      subscriptionStatus: "ACTIVE",
+      paidUntil: { gte: now, lte: windowEnd },
+      renewalReminderSentAt: null,
+    },
+    select: {
+      id: true,
+      name: true,
+      planTier: true,
+      paidUntil: true,
+      razorpaySubscriptionId: true,
+      welcomeCouponRedeemedAt: true,
+    },
+  });
+  return candidates.filter((t) => !t.razorpaySubscriptionId);
+}
+
+export async function markRenewalReminderSent(tenantId: string): Promise<void> {
+  await prisma.tenant.update({ where: { id: tenantId }, data: { renewalReminderSentAt: new Date() } });
 }
 
 export async function updateTenantMenuDocument(

@@ -2,7 +2,8 @@ import "server-only";
 import { Resend } from "resend";
 import nodemailer, { type Transporter } from "nodemailer";
 import { formatINR } from "@/lib/money";
-import type { Order, OrderItem } from "@prisma/client";
+import { PLAN_DEFINITIONS } from "@/lib/plans";
+import type { Order, OrderItem, PlanTier } from "@prisma/client";
 
 /**
  * Email sending — two interchangeable backends, both dormant until real
@@ -250,6 +251,45 @@ export async function sendSupportConfirmationEmail(
     );
   } catch (err) {
     console.error("sendSupportConfirmationEmail failed:", err);
+  }
+}
+
+/**
+ * Fire-and-forget, same contract as the rest of this file — see
+ * getTenantsNeedingRenewalReminder (src/lib/data/tenants.ts) for who
+ * receives this and why (only tenants without a live auto-pay mandate).
+ * Always quotes the plan's MONTHLY price, even for a tenant nudged toward
+ * annual elsewhere, because it's pushing them to the recurring Subscribe
+ * flow generically — the billing page itself shows both options.
+ */
+export async function sendSubscriptionRenewalReminderEmail(
+  ownerEmail: string,
+  restaurantName: string,
+  tier: PlanTier,
+  paidUntil: Date,
+  usedWelcomeCoupon: boolean,
+  billingUrl: string,
+): Promise<void> {
+  if (!isEmailConfigured()) return;
+  try {
+    const plan = PLAN_DEFINITIONS[tier];
+    const dateStr = paidUntil.toLocaleDateString("en-IN", { day: "numeric", month: "long", year: "numeric" });
+    await send(
+      ownerEmail,
+      `Your BhojSetu subscription ends ${dateStr} — ${restaurantName}`,
+      `
+        <p>Hi, this is a reminder that <strong>${escapeHtml(restaurantName)}</strong>'s BhojSetu subscription is paid up until <strong>${dateStr}</strong>.</p>
+        ${
+          usedWelcomeCoupon
+            ? `<p>Your first payment used the <strong>WELCOME100</strong> introductory discount — that's a one-time offer and won't apply again.</p>`
+            : ""
+        }
+        <p>To keep your dashboard, menu, and orders working without interruption, renew before ${dateStr}. The ${escapeHtml(plan.label)} plan is <strong>${formatINR(plan.priceCents)}/month</strong>.</p>
+        <p><a href="${billingUrl}">Set up auto-pay on your Billing page</a> and you won't need to renew by hand again — it debits automatically every month until you cancel.</p>
+      `,
+    );
+  } catch (err) {
+    console.error("sendSubscriptionRenewalReminderEmail failed:", err);
   }
 }
 
