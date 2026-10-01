@@ -19,6 +19,10 @@ const PAYMENT_METHOD_LABEL = {
   // status link, which storefront checkout itself never produces.
   CARD: "Card",
   RAZORPAY: "Paid online",
+  // A customer never reaches this page for an aggregator order in practice
+  // (Zomato/Swiggy/Magicpin orders are tracked on the platform's own app,
+  // not this storefront) — included only so the lookup below is exhaustive.
+  AGGREGATOR: "Paid via delivery app",
 } as const;
 
 export const dynamic = "force-dynamic";

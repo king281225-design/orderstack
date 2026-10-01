@@ -67,6 +67,9 @@ export default async function DashboardLayout({ children }: { children: React.Re
           ...(tierHasFeature(tier, "coupons") ? [{ href: "/dashboard/coupons", label: "Coupons" }] : []),
           { href: "/dashboard/tables/board", label: "Tables" },
           ...(tierHasFeature(tier, "staff") ? [{ href: "/dashboard/staff", label: "Staff" }] : []),
+          ...(tierHasFeature(tier, "deliveryAggregator")
+            ? [{ href: "/dashboard/integrations", label: "Integrations" }]
+            : []),
           { href: "/dashboard/billing", label: "Billing" },
         ]
       : []),

@@ -40,6 +40,12 @@ enum PaymentMethod {
   // only. Deliberately not offered on the storefront checkout.
   CARD
   RAZORPAY
+  // A Zomato/Swiggy/Magicpin order received via an aggregator connection
+  // (see AggregatorConnection below). Always created with paymentStatus PAID
+  // — the platform collects payment from the customer and settles the
+  // restaurant on its own payout cycle, so there's nothing here to manually
+  // reconcile the way COD/UPI orders are.
+  AGGREGATOR
 }
 
 enum PaymentStatus {
@@ -67,9 +73,26 @@ enum DiscountType {
 // /dashboard/orders/new for a walk-in / phone-in customer — same Order
 // model, same status/payment machinery, just a different entry point and
 // its own printable invoice. See CLAUDE.md's billing-module note.
+// ZOMATO/SWIGGY/MAGICPIN = received via the tenant's AggregatorConnection
+// webhook (see that model below) — same Order model again, just a third
+// entry point with no session/customer-facing checkout involved at all.
 enum OrderSource {
   STOREFRONT
   MANUAL
+  ZOMATO
+  SWIGGY
+  MAGICPIN
+}
+
+// Which delivery platform an aggregator-sourced Order actually came from —
+// kept distinct from OrderSource's ZOMATO/SWIGGY/MAGICPIN values themselves
+// only because a nullable field reads more naturally than checking three
+// enum variants everywhere a platform badge/filter is needed (see
+// Order.platform below). Always in sync with the order's own OrderSource.
+enum DeliveryPlatform {
+  ZOMATO
+  SWIGGY
+  MAGICPIN
 }
 
 enum SupportCategory {
@@ -321,6 +344,7 @@ model Tenant {
   purchases             Purchase[]
   purchaseLines         PurchaseLine[]
   tables                Table[]
+  dynoRestaurantLinks   DynoRestaurantLink[]
 
   @@map("tenants")
 }
@@ -628,6 +652,41 @@ model Order {
   // the dashboard's "manual bill" badge and lets Customers/Analytics tell
   // the two apart without changing how either is computed.
   source             OrderSource     @default(STOREFRONT)
+  // Set only for ZOMATO/SWIGGY/MAGICPIN-source orders — redundant with source
+  // itself but avoids checking three enum variants everywhere a platform
+  // badge/filter needs to know which platform an order came from. Null for
+  // STOREFRONT/MANUAL orders.
+  platform           DeliveryPlatform?
+  // The platform/aggregator's own order id (Dyno's "orderId") — unique so
+  // the POST /api/dyno/orders handler that creates this order is naturally
+  // idempotent: a retried delivery of the same event looks this up first
+  // instead of creating a duplicate order. Null for STOREFRONT/MANUAL
+  // orders, which have no external id to speak of.
+  externalOrderId    String?         @unique
+  // The exact, untouched "data" object Dyno sent for this order (POST
+  // /api/dyno/orders) — Dyno's own docs leave this field's inner shape
+  // undocumented (it varies by vendor/Swiggy vs Zomato), so parsing it into
+  // real line items is necessarily best-effort (see parseDynoOrderData in
+  // src/lib/aggregator/dyno.ts). Kept verbatim, same "never read back as
+  // authoritative, just for debugging/refining the parser" spirit as
+  // PurchaseScan.rawModelOutput — lets a wrong/incomplete parse be fixed by
+  // hand from the real payload instead of losing the order's real detail.
+  // Null for every non-aggregator order.
+  aggregatorRawPayload Json?
+  // Dyno's local client (the "dapis" app — see CLAUDE.md's aggregation note)
+  // polls GET /api/dyno/[restaurantId]/orders/status and, for each order it
+  // sees with the right action code, actually calls Swiggy/Zomato's real
+  // accept/mark-ready/reject API on this restaurant's behalf — confirmed by
+  // reading the shipped app's own source (resources/app/utils.js). Each is
+  // a one-time action: once requested, the GET route stops reporting that
+  // order for that action (these three timestamps are the "already asked,
+  // don't ask again" markers), since dapis would otherwise retry the same
+  // accept/ready/reject call against the live platform on every ~30s poll
+  // forever. dynoRejectRequestedAt only ever applies to ZOMATO orders — the
+  // real client has no reject code path for Swiggy.
+  dynoAcceptRequestedAt DateTime?
+  dynoReadyRequestedAt  DateTime?
+  dynoRejectRequestedAt DateTime?
   // totalCents is what's actually charged (subtotal - discountCents + taxCents).
   // subtotalCents is the pre-discount, pre-tax sum of order items, kept so
   // history shows both — never recomputed from current item prices, and the
@@ -911,3 +970,32 @@ model Table {
   @@index([tenantId])
   @@map("tables")
 }
+
+/**
+ * One (tenant, platform) connection to Dyno (DynoAPIs — see CLAUDE.md's
+ * aggregation note). A restaurant's id on Zomato is NOT the same id it has
+ * on Swiggy (confirmed by reading the real Dyno client's own shipped
+ * source, resources/app/utils.js: its local config stores `sid`/`zid`
+ * separately), so this is deliberately one row per platform rather than a
+ * single id on Tenant — an earlier version of this feature assumed one
+ * shared id, which would have silently broken the moment a second platform
+ * was connected. externalId is globally unique because it's the *only*
+ * thing an inbound call from Dyno can be looked up by (there's no session
+ * on a webhook-style request) — see getTenantByDynoRestaurantId in
+ * src/lib/data/dyno-connections.ts. Dyno polls per restaurant id, not per
+ * tenant, so every /api/dyno/[restaurantId]/* route resolves straight to
+ * whichever platform's link matches.
+ */
+model DynoRestaurantLink {
+  id         String           @id @default(cuid())
+  tenantId   String
+  tenant     Tenant           @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  platform   DeliveryPlatform
+  externalId String           @unique
+  createdAt  DateTime         @default(now())
+
+  @@unique([tenantId, platform])
+  @@index([tenantId])
+  @@map("dyno_restaurant_links")
+}
+

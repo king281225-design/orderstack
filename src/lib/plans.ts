@@ -76,6 +76,7 @@ export const PLAN_DEFINITIONS: Record<
       "Kitchen display system",
       "Staff logins",
       "Multiple outlet access — log in from as many devices as you need",
+      "Zomato / Swiggy order integration",
     ],
   },
 };
@@ -94,12 +95,35 @@ export function getPlanPriceCents(tier: PlanTier, period: BillingPeriod): number
  * same day. Coupons/analytics move up to Advanced, kitchen/staff to
  * Business — matching PLAN_DEFINITIONS' feature copy above.
  */
-export type Feature = "menu" | "orders" | "tables" | "billing" | "inventory" | "kot" | "coupons" | "analytics" | "kitchen" | "staff";
+export type Feature =
+  | "menu"
+  | "orders"
+  | "tables"
+  | "billing"
+  | "inventory"
+  | "kot"
+  | "coupons"
+  | "analytics"
+  | "kitchen"
+  | "staff"
+  | "deliveryAggregator";
 
 const FEATURES_BY_TIER: Record<PlanTier, ReadonlySet<Feature>> = {
   STARTER: new Set(["menu", "orders", "tables", "billing", "inventory", "kot"]),
   ADVANCED: new Set(["menu", "orders", "tables", "billing", "inventory", "kot", "coupons", "analytics"]),
-  BUSINESS: new Set(["menu", "orders", "tables", "billing", "inventory", "kot", "coupons", "analytics", "kitchen", "staff"]),
+  BUSINESS: new Set([
+    "menu",
+    "orders",
+    "tables",
+    "billing",
+    "inventory",
+    "kot",
+    "coupons",
+    "analytics",
+    "kitchen",
+    "staff",
+    "deliveryAggregator",
+  ]),
 };
 
 export function tierHasFeature(tier: PlanTier, feature: Feature): boolean {

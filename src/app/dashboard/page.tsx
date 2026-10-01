@@ -6,7 +6,7 @@ import { formatINR } from "@/lib/money";
 import { nowMs } from "@/lib/time";
 import { AutoRefresh } from "@/components/auto-refresh";
 import { OrderCardFooter } from "@/components/orders/order-card-footer";
-import type { Order, OrderItem, OrderStatus, PaymentMethod } from "@prisma/client";
+import type { DeliveryPlatform, Order, OrderItem, OrderStatus, PaymentMethod } from "@prisma/client";
 
 export const dynamic = "force-dynamic";
 
@@ -24,7 +24,20 @@ const NEXT_STEP: Partial<Record<OrderStatus, { to: OrderStatus; label: string; t
 
 const CANCELLABLE: OrderStatus[] = ["PENDING", "ACCEPTED", "PREPARING", "READY"];
 
-const PAYMENT_METHOD_LABEL: Record<PaymentMethod, string> = { UPI: "UPI", COD: "Cash", CARD: "Card", RAZORPAY: "online" };
+const PAYMENT_METHOD_LABEL: Record<PaymentMethod, string> = {
+  UPI: "UPI",
+  COD: "Cash",
+  CARD: "Card",
+  RAZORPAY: "online",
+  AGGREGATOR: "platform",
+};
+
+/** Platform badge for aggregator-sourced orders (Order.platform) — see the "Manual bill" chip below for the pattern this mirrors. */
+const PLATFORM_BADGE: Record<DeliveryPlatform, { text: string; cls: string }> = {
+  ZOMATO: { text: "Zomato", cls: "bg-[#fde7e9] text-[#cb202d]" },
+  SWIGGY: { text: "Swiggy", cls: "bg-[#fdece0] text-[#fc8019]" },
+  MAGICPIN: { text: "Magicpin", cls: "bg-[#fbe7f5] text-[#e6007e]" },
+};
 
 const COLUMNS = [
   { key: "new", label: "New", dot: "#c87a1e", statuses: ["PENDING", "ACCEPTED"] as OrderStatus[] },
@@ -442,6 +455,9 @@ function OrderCard({
         <span className={`${chip} ${payment.cls}`}>{payment.text}</span>
         {order.status === "ACCEPTED" && <span className={`${chip} bg-[#eaf1fe] text-[#2f6fed]`}>Accepted</span>}
         {order.source === "MANUAL" && <span className={`${chip} bg-[var(--ds-chip)] text-[var(--ds-chip-text)]`}>Manual bill</span>}
+        {order.platform && (
+          <span className={`${chip} ${PLATFORM_BADGE[order.platform].cls}`}>{PLATFORM_BADGE[order.platform].text}</span>
+        )}
         {order.discountCents > 0 && (
           <span className={`${chip} bg-[#eaf6ec] text-[#1e7a4c]`}>
             {order.couponCode ? `${order.couponCode} ` : "Discount "}−{formatINR(order.discountCents)}

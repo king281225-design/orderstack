@@ -4,7 +4,8 @@ import { getItemsForOrder } from "@/lib/data/menu";
 import { validateCoupon, tryRedeemCoupon, CouponRedemptionLimitError } from "@/lib/data/coupons";
 import { deductStockForOrder, restoreStockForOrder, notifyLowStockItems } from "@/lib/data/inventory";
 import { markTableOccupiedFromOrder } from "@/lib/data/tables";
-import type { FulfillmentType, OrderStatus, PaymentMethod, PaymentStatus } from "@prisma/client";
+import { DYNO_ACTION } from "@/lib/aggregator/dyno";
+import type { DeliveryPlatform, FulfillmentType, OrderStatus, PaymentMethod, PaymentStatus, Prisma } from "@prisma/client";
 
 export type CartLine = {
   itemId: string;
@@ -390,6 +391,152 @@ export async function updateOrderItems(
   return order;
 }
 
+export type AggregatorOrderLine = {
+  name: string;
+  priceCents: number;
+  quantity: number;
+};
+
+/**
+ * Creates an Order from a Dyno-pushed order (POST /api/dyno/orders — see
+ * CLAUDE.md's aggregation note and src/lib/aggregator/dyno.ts, which parses
+ * Dyno's opaque per-order "data" blob into customerName/lines/etc. before
+ * calling this). No session/customer checkout is involved here: tenantId is
+ * resolved by the caller from Order's dynoRestaurantId (getTenantByDynoRestaurantId),
+ * and line items are whatever the parser extracted rather than re-read from
+ * this tenant's own Item table — a Zomato/Swiggy menu listing doesn't
+ * necessarily map 1:1 to a BhojSetu Item row, so lines are free-form
+ * snapshots exactly like createManualOrder's, just with no itemId at all
+ * (v1 doesn't attempt to match aggregator menu lines back to real Items —
+ * see CLAUDE.md's "known v1 limits" pattern elsewhere in this codebase).
+ * Always created already PAID (see PaymentMethod.AGGREGATOR's schema
+ * comment — the platform collects payment and settles the restaurant
+ * separately). rawPayload is stored verbatim on the order
+ * (Order.aggregatorRawPayload) regardless of how well it parsed, so a wrong
+ * or incomplete parse never loses the real order detail.
+ *
+ * Idempotent on externalOrderId: Dyno delivered the same order twice (a real
+ * possibility any such integration has to tolerate) returns the
+ * already-created order instead of creating a duplicate.
+ */
+export async function createAggregatorOrder(
+  tenantId: string,
+  platform: DeliveryPlatform,
+  externalOrderId: string,
+  input: {
+    customerName: string;
+    customerPhone: string;
+    fulfillmentType: FulfillmentType;
+    deliveryAddress?: string | null;
+    lines: AggregatorOrderLine[];
+    notes?: string | null;
+    rawPayload: Prisma.InputJsonValue;
+  },
+) {
+  const existing = await prisma.order.findUnique({ where: { externalOrderId }, include: { items: true } });
+  if (existing) return existing;
+
+  const lines = input.lines.filter((l) => l.quantity > 0 && l.name.trim());
+  if (lines.length === 0) {
+    lines.push({ name: "Unparsed order — see raw payload", priceCents: 0, quantity: 1 });
+  }
+  for (const l of lines) {
+    if (!Number.isFinite(l.priceCents) || l.priceCents < 0 || !Number.isInteger(l.quantity) || l.quantity < 1) {
+      throw new InvalidManualLineError(`Invalid aggregator line: "${l.name}".`);
+    }
+  }
+
+  const subtotalCents = lines.reduce((sum, l) => sum + l.priceCents * l.quantity, 0);
+
+  const { order, newlyLowItems } = await prisma.$transaction(async (tx) => {
+    const order = await tx.order.create({
+      data: {
+        tenantId,
+        customerName: input.customerName.trim() || "Customer",
+        customerPhone: input.customerPhone.trim() || "N/A",
+        fulfillmentType: input.fulfillmentType,
+        deliveryAddress: input.deliveryAddress ?? null,
+        notes: input.notes ?? null,
+        source: platform,
+        platform,
+        externalOrderId,
+        aggregatorRawPayload: input.rawPayload,
+        paymentMethod: "AGGREGATOR",
+        paymentStatus: "PAID",
+        subtotalCents,
+        totalCents: subtotalCents,
+        items: {
+          create: lines.map((l) => ({
+            nameSnapshot: l.name.trim(),
+            priceCentsSnapshot: l.priceCents,
+            quantity: l.quantity,
+          })),
+        },
+      },
+      include: { items: true },
+    });
+    const { newlyLowItems } = await deductStockForOrder(tx, tenantId, order.id);
+    return { order, newlyLowItems };
+  });
+  if (newlyLowItems.length) void notifyLowStockItems(tenantId, newlyLowItems);
+  return order;
+}
+
+/**
+ * Webhook path only (src/app/api/dyno/orders/[orderId]/status) — no
+ * tenantId available at that call site (Dyno's path there carries only the
+ * order id, not a restaurant id), so this resolves by externalOrderId alone,
+ * same session-less convention as setPaymentStatusByRazorpayOrderId.
+ */
+export async function getOrderByExternalOrderId(externalOrderId: string) {
+  return prisma.order.findFirst({ where: { externalOrderId } });
+}
+
+export type DynoPendingAction = { externalOrderId: string; actionCode: number };
+
+/**
+ * What GET /api/dyno/[restaurantId]/orders/status actually reports — see
+ * src/lib/aggregator/dyno.ts's header comment: this is a one-time action
+ * queue, not a status display, confirmed against the real Dyno client's own
+ * source. An order appears here exactly once per action (accept/ready/
+ * reject), claimed atomically via an updateMany with a null-check (same
+ * idempotent-claim pattern as deductStockForOrder) so a concurrent or
+ * retried poll can't double-claim it. Reject only ever applies to ZOMATO
+ * orders — the real Dyno client has no reject code path for Swiggy.
+ */
+export async function listPendingDynoActions(tenantId: string): Promise<DynoPendingAction[]> {
+  const candidates = await prisma.order.findMany({
+    where: {
+      tenantId,
+      externalOrderId: { not: null },
+      OR: [
+        { status: "ACCEPTED", dynoAcceptRequestedAt: null },
+        { status: "READY", dynoReadyRequestedAt: null },
+        { status: "CANCELLED", platform: "ZOMATO", dynoRejectRequestedAt: null },
+      ],
+    },
+  });
+
+  const actions: DynoPendingAction[] = [];
+  for (const order of candidates) {
+    const field =
+      order.status === "ACCEPTED"
+        ? ("dynoAcceptRequestedAt" as const)
+        : order.status === "READY"
+          ? ("dynoReadyRequestedAt" as const)
+          : ("dynoRejectRequestedAt" as const);
+    const actionCode =
+      order.status === "ACCEPTED" ? DYNO_ACTION.ACCEPT : order.status === "READY" ? DYNO_ACTION.READY : DYNO_ACTION.REJECT;
+
+    const claimed = await prisma.order.updateMany({
+      where: { id: order.id, [field]: null },
+      data: { [field]: new Date() },
+    });
+    if (claimed.count > 0) actions.push({ externalOrderId: order.externalOrderId!, actionCode });
+  }
+  return actions;
+}
+
 /** Tenant-scoped single-order lookup for the printable invoice page — never trust an order id alone. */
 export async function getOrderForPrint(tenantId: string, orderId: string) {
   return prisma.order.findFirst({
@@ -439,6 +586,11 @@ export async function advanceOrderStatus(tenantId: string, orderId: string, to: 
   if (!NEXT_STATUS[order.status].includes(to)) {
     throw new InvalidTransitionError(`Cannot move an order from ${order.status} to ${to}.`);
   }
+  // Note: an aggregator (Dyno) order's status is never pushed out from here —
+  // Dyno polls GET /api/dyno/[restaurantId]/orders/status for current status
+  // instead of this app calling out to anything (see CLAUDE.md's aggregation
+  // note) — so advancing status is a plain local update for every order
+  // source, aggregator included.
   return prisma.$transaction(async (tx) => {
     const updated = await tx.order.update({ where: { id: orderId }, data: { status: to } });
     if (to === "CANCELLED") await restoreStockForOrder(tx, tenantId, orderId);
