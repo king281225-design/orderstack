@@ -1,7 +1,7 @@
 import { requireOwnerSession } from "@/lib/auth";
 import { getTenantById } from "@/lib/data/tenants";
 import { isRazorpayConfigured, getRazorpayKeyId } from "@/lib/payments/razorpay";
-import { PLAN_DEFINITIONS } from "@/lib/plans";
+import { PLAN_DEFINITIONS, getAnnualPricing } from "@/lib/plans";
 import { formatINR } from "@/lib/money";
 import { PlanCards } from "@/components/billing/plan-cards";
 import { cancelSubscriptionAction } from "@/app/dashboard/billing/actions";
@@ -55,7 +55,11 @@ export default async function BillingPage({
       <section className="rounded-lg border border-gray-200 bg-white dark:bg-[#241d17] p-4">
         <p className="text-sm text-gray-500">Current plan</p>
         <p className="mt-1 text-xl font-semibold text-gray-900">{plan.label}</p>
-        <p className="text-sm text-gray-600">{formatINR(plan.priceCents)} / month</p>
+        <p className="text-sm text-gray-600">
+          {tenant.billingPeriod === "ANNUAL"
+            ? `${formatINR(getAnnualPricing(tenant.planTier).renewalCents)} / year (renews${tenant.paidUntil ? ` ${tenant.paidUntil.toLocaleDateString("en-IN")}` : ""})`
+            : `${formatINR(plan.priceCents)} / month`}
+        </p>
         {/* isActive means this tenant actually paid for this tier via the flow below (or the webhook
             confirmed it) — anything else is just the unpaid STARTER default or a platform override,
             never implied to be a paid entitlement. */}
@@ -96,7 +100,12 @@ export default async function BillingPage({
       </section>
 
       {razorpayReady && !isActive && keyId && (
-        <PlanCards keyId={keyId} restaurantName={tenant.name} welcomeCouponEligible={welcomeCouponEligible} />
+        <PlanCards
+          keyId={keyId}
+          restaurantName={tenant.name}
+          welcomeCouponEligible={welcomeCouponEligible}
+          firstYearDiscountUsed={Boolean(tenant.firstYearDiscountAppliedAt)}
+        />
       )}
     </div>
   );

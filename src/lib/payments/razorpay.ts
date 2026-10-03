@@ -126,6 +126,24 @@ export async function createRazorpaySubscription(planId: string, totalCount: num
   });
 }
 
+/** The plan id a subscription is currently on (server-to-server fact, never client-supplied). */
+export async function fetchRazorpaySubscriptionPlanId(subscriptionId: string): Promise<string> {
+  const client = getClient();
+  const sub = await client.subscriptions.fetch(subscriptionId);
+  return sub.plan_id;
+}
+
+/**
+ * Moves an existing subscription onto another plan once its current billing
+ * cycle ends (Razorpay "Update a Subscription", schedule_change_at
+ * "cycle_end"). Used to put a store on the full-price annual plan after its
+ * discounted first year.
+ */
+export async function scheduleRazorpaySubscriptionPlanChange(subscriptionId: string, planId: string) {
+  const client = getClient();
+  return client.subscriptions.update(subscriptionId, { plan_id: planId, schedule_change_at: "cycle_end" });
+}
+
 export async function cancelRazorpaySubscription(subscriptionId: string, cancelAtCycleEnd = false) {
   const client = getClient();
   return client.subscriptions.cancel(subscriptionId, cancelAtCycleEnd);

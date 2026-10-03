@@ -13,6 +13,9 @@ import { listPendingWaiterCalls } from "@/lib/data/waiter-calls";
 import { acknowledgeWaiterCallAction, dismissOnboardingAction, toggleOpenAction } from "@/app/dashboard/actions";
 import { logoutAction } from "@/app/logout/actions";
 import { tierHasFeature, TRIAL_MS } from "@/lib/plans";
+import { listAccessibleStores } from "@/lib/data/business";
+import { switchStoreAction } from "@/app/dashboard/business/actions";
+import { StoreSwitcher } from "@/components/business/store-switcher";
 import { DashboardShell, type DashboardNavLink } from "@/components/dashboard/dashboard-shell";
 
 // Typefaces from the Orders design: Public Sans body, Fraunces headings,
@@ -51,6 +54,12 @@ export default async function DashboardLayout({ children }: { children: React.Re
   // it's a Business-tier feature regardless of who's asking.
   const tier = tenant.planTier;
 
+  const isOwnerSelf = isOwner && !session.impersonatorId;
+  const { business, stores } = isOwnerSelf
+    ? await listAccessibleStores(session.sub, session.tenantId)
+    : { business: null, stores: [] };
+  const showBusinessNav = isOwnerSelf && (tierHasFeature(tenant.planTier, "multiStore") || Boolean(business));
+
   const links: DashboardNavLink[] = [
     { href: "/dashboard", label: "Orders" },
     { href: "/dashboard/orders/new", label: "New bill" },
@@ -61,6 +70,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
     ...(tierHasFeature(tier, "kitchen") ? [{ href: "/dashboard/kitchen", label: "Kitchen" }] : []),
     ...(isOwner
       ? [
+          ...(showBusinessNav ? [{ href: "/dashboard/business", label: "Business" }] : []),
           { href: "/dashboard/invoices", label: "Invoices" },
           ...(tierHasFeature(tier, "analytics") ? [{ href: "/dashboard/analytics", label: "Analytics" }] : []),
           { href: "/dashboard/branding", label: "Settings" },
@@ -90,6 +100,15 @@ export default async function DashboardLayout({ children }: { children: React.Re
         pendingOrderCount={pendingOrders.length}
         waiterCalls={waiterCalls.map((c) => ({ id: c.id, tableLabel: c.tableLabel }))}
         acknowledgeWaiterCallAction={acknowledgeWaiterCallAction}
+        storeSwitcher={
+          business && stores.length > 1 ? (
+            <StoreSwitcher
+              stores={stores.map((x) => ({ id: x.id, name: x.name, status: x.status }))}
+              activeId={session.tenantId}
+              switchAction={switchStoreAction}
+            />
+          ) : null
+        }
         banner={session.impersonatorId ? <ManagingBanner tenantName={tenant.name} /> : null}
         notices={
           isOwner ? (

@@ -1,8 +1,9 @@
 "use client";
 
 import Link from "next/link";
-import { useTransition } from "react";
+import { useState, useTransition } from "react";
 import type { OrderStatus } from "@prisma/client";
+import { PAYMENT_SOURCES } from "@/lib/payment-sources";
 import { advanceOrderStatusAction, markOrderPaidAction } from "@/app/dashboard/actions";
 
 /**
@@ -31,6 +32,10 @@ export function OrderCardFooter({
   editable: boolean;
 }) {
   const [pending, startTransition] = useTransition();
+  const [paying, setPaying] = useState(false);
+  const [source, setSource] = useState<string>("UPI");
+  const [label, setLabel] = useState("");
+  const [reference, setReference] = useState("");
 
   const toneCls =
     tone === "green"
@@ -51,8 +56,8 @@ export function OrderCardFooter({
             <button
               type="button"
               disabled={pending}
-              onClick={() => startTransition(() => markOrderPaidAction(orderId))}
-              title="Mark this order as paid (manual reconciliation)"
+              onClick={() => setPaying((v) => !v)}
+              title="Confirm you received this payment and record where it came from"
               className="mr-1 rounded-lg border border-[var(--ds-border)] px-2 py-1 text-[11px] font-semibold text-[var(--ds-chip-text)] hover:bg-[var(--ds-chip)] disabled:opacity-50"
             >
               Mark paid
@@ -98,6 +103,40 @@ export function OrderCardFooter({
           )}
         </div>
       </div>
+      {paymentPending && paying && (
+        <div className="space-y-2 rounded-lg border border-[var(--ds-border)] p-2 text-xs" data-testid="mark-paid-panel">
+          <p className="text-[var(--ds-chip-text)]">Confirm only after the money has reached you. Where did it come from?</p>
+          <select
+            value={source}
+            onChange={(e) => setSource(e.target.value)}
+            aria-label="Payment source"
+            className="w-full rounded-md border border-[var(--ds-border)] bg-[var(--ds-surface)] px-2 py-1.5"
+          >
+            {PAYMENT_SOURCES.map((s) => (
+              <option key={s.value} value={s.value}>
+                {s.label}
+              </option>
+            ))}
+          </select>
+          {source === "OTHER" && (
+            <input value={label} onChange={(e) => setLabel(e.target.value)} placeholder="Source name" maxLength={60} className="w-full rounded-md border border-[var(--ds-border)] bg-[var(--ds-surface)] px-2 py-1.5" />
+          )}
+          <input value={reference} onChange={(e) => setReference(e.target.value)} placeholder="UTR / reference (optional)" maxLength={80} className="w-full rounded-md border border-[var(--ds-border)] bg-[var(--ds-surface)] px-2 py-1.5" />
+          <button
+            type="button"
+            disabled={pending}
+            onClick={() =>
+              startTransition(async () => {
+                await markOrderPaidAction(orderId, { source, label, reference });
+                setPaying(false);
+              })
+            }
+            className="w-full rounded-md bg-[#1e7a4c] px-2 py-1.5 font-semibold text-white disabled:opacity-50"
+          >
+            {pending ? "Saving…" : "Confirm payment received"}
+          </button>
+        </div>
+      )}
       {next && (
         <button
           type="button"

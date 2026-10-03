@@ -114,6 +114,32 @@ export function BrandingForm({ tenant }: { tenant: Tenant }) {
           className="rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-indigo-600 focus:outline-none"
         />
       </label>
+      <div className="grid gap-3 sm:grid-cols-2">
+        <label className="flex flex-col gap-1 text-sm font-medium text-gray-700">
+          Merchant name on UPI (optional)
+          <input
+            name="upiPayeeName"
+            defaultValue={tenant.upiPayeeName ?? ""}
+            maxLength={80}
+            placeholder={tenant.name}
+            className="rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-indigo-600 focus:outline-none"
+          />
+        </label>
+        <label className="flex flex-col gap-1 text-sm font-medium text-gray-700">
+          UPI provider (optional)
+          <input
+            name="upiProviderName"
+            defaultValue={tenant.upiProviderName ?? ""}
+            maxLength={60}
+            placeholder="Paytm, Google Pay, bank…"
+            className="rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-indigo-600 focus:outline-none"
+          />
+        </label>
+      </div>
+      <p className="-mt-2 text-xs text-gray-500">
+        A UPI QR can&apos;t confirm payment by itself. When money reaches your account, open the order and tap
+        &ldquo;Mark paid&rdquo;, then pick where it came from (Paytm, Google Pay, PhonePe…).
+      </p>
 
       <div className="flex flex-col gap-3 border-t border-gray-100 pt-4">
         <p className="text-sm font-semibold text-gray-900">Reviews &amp; social (shown on your menu page)</p>

@@ -9,10 +9,13 @@ export function KitchenAdvanceButton({
   orderId,
   to,
   label,
+  accent = "#ffffff",
 }: {
   orderId: string;
   to: OrderStatus;
   label: string;
+  /** Column colour, so the next step is obvious at a glance. */
+  accent?: string;
 }) {
   const [isPending, startTransition] = useTransition();
   return (
@@ -20,7 +23,8 @@ export function KitchenAdvanceButton({
       type="button"
       disabled={isPending}
       onClick={() => startTransition(() => advanceOrderStatusAction(orderId, to))}
-      className="w-full rounded-md bg-white dark:bg-[#241d17] px-3 py-2 text-base font-semibold text-gray-900 hover:bg-gray-200 disabled:opacity-50"
+      style={{ backgroundColor: accent }}
+      className="min-h-12 w-full touch-manipulation rounded-xl px-3 py-3 text-lg font-bold text-slate-950 shadow-sm transition hover:brightness-110 active:scale-[0.98] disabled:opacity-50"
     >
       {isPending ? "Working…" : label}
     </button>

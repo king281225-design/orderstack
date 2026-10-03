@@ -2,7 +2,7 @@ import "server-only";
 import { prisma } from "@/lib/prisma";
 import { hashPassword } from "@/lib/auth";
 import type { BillingPeriod, PlanTier, SubscriptionStatus, Prisma } from "@prisma/client";
-import { PLAN_DEFINITIONS, getPlanPriceCents, TRIAL_MS } from "@/lib/plans";
+import { PLAN_DEFINITIONS, getAnnualPricing, getPlanPriceCents, TRIAL_MS } from "@/lib/plans";
 import {
   createRazorpayPlan,
   createRazorpaySubscription,
@@ -11,6 +11,8 @@ import {
   createRazorpayOrder,
   verifyCheckoutSignature,
   fetchRazorpayPlan,
+  fetchRazorpaySubscriptionPlanId,
+  scheduleRazorpaySubscriptionPlanChange,
 } from "@/lib/payments/razorpay";
 
 const SLUG_RE = /^[a-z0-9]+(-[a-z0-9]+)*$/;
@@ -327,6 +329,18 @@ export async function getTenantsForDeletion(ids: string[]) {
  * in object storage are not touched. Super-admin only.
  */
 export async function deleteTenants(ids: string[]): Promise<number> {
+  // A Business owner's login belongs to one "home" store; deleting that store
+  // would cascade-delete the owner (and with them the Business) while their
+  // other stores still exist. Re-home the owner to a surviving store first,
+  // and if no store survives, the Business goes away with the last one.
+  const owners = await prisma.business.findMany({
+    where: { owner: { tenantId: { in: ids } } },
+    select: { id: true, ownerUserId: true, tenants: { select: { id: true } } },
+  });
+  for (const b of owners) {
+    const survivor = b.tenants.find((t) => !ids.includes(t.id));
+    if (survivor) await prisma.user.update({ where: { id: b.ownerUserId }, data: { tenantId: survivor.id } });
+  }
   const res = await prisma.tenant.deleteMany({ where: { id: { in: ids } } });
   return res.count;
 }
@@ -463,6 +477,8 @@ export async function updateTenantBranding(
     colorHeaderText?: string;
     colorCardBackground?: string;
     upiId?: string | null;
+    upiPayeeName?: string | null;
+    upiProviderName?: string | null;
     googleReviewUrl?: string | null;
     googleRating?: number | null;
     googleReviewCount?: number | null;
@@ -566,6 +582,46 @@ export async function getOrCreateRazorpayPlanId(tier: PlanTier, period: BillingP
   return plan.id;
 }
 
+/**
+ * The discounted first-year Plan (e.g. Advanced annual at ₹7,000), created
+ * lazily and cached by a key that encodes tier + price, so changing the
+ * configured discount creates a fresh Plan rather than reusing a stale one.
+ */
+export async function getOrCreateFirstYearPlanId(tier: PlanTier): Promise<string> {
+  const pricing = getAnnualPricing(tier);
+  const key = `${tier}_ANNUAL_FIRST_YEAR_${pricing.firstYearCents}`;
+  const cached = await prisma.razorpayPromoPlan.findUnique({ where: { key } });
+  if (cached) {
+    try {
+      await fetchRazorpayPlan(cached.planId);
+      return cached.planId;
+    } catch {
+      await prisma.razorpayPromoPlan.delete({ where: { key } });
+    }
+  }
+  const plan = await createRazorpayPlan({
+    name: `BhojSetu ${PLAN_DEFINITIONS[tier].label} (Annual, first year)`,
+    amountCents: pricing.firstYearCents,
+    period: "yearly",
+    interval: 1,
+  });
+  await prisma.razorpayPromoPlan.create({ data: { key, planId: plan.id } });
+  return plan.id;
+}
+
+/**
+ * True when a store should be charged the discounted first-year price: an
+ * annual purchase of a tier that has a first-year discount, on a store that
+ * has never received it. Decided here on the server, never from the client.
+ */
+export function isFirstYearDiscountEligible(
+  tenant: { firstYearDiscountAppliedAt: Date | null },
+  tier: PlanTier,
+  period: BillingPeriod,
+): boolean {
+  return period === "ANNUAL" && getAnnualPricing(tier).hasFirstYearDiscount && !tenant.firstYearDiscountAppliedAt;
+}
+
 /** from + one billing period (calendar month / year). */
 export function addBillingPeriod(from: Date, period: BillingPeriod): Date {
   const d = new Date(from);
@@ -608,7 +664,11 @@ export async function startTenantSubscription(tenantId: string, tier: PlanTier, 
   const tenant = await prisma.tenant.findUnique({ where: { id: tenantId } });
   if (!tenant) throw new Error("Restaurant not found.");
 
-  const planId = await getOrCreateRazorpayPlanId(tier, period);
+  // First annual purchase of a discounted tier: subscribe to the first-year
+  // Plan (e.g. ₹7,000); once the payment is confirmed we schedule a switch
+  // to the full-price Plan for the renewal (scheduleRenewalPlanChange).
+  const firstYear = isFirstYearDiscountEligible(tenant, tier, period);
+  const planId = firstYear ? await getOrCreateFirstYearPlanId(tier) : await getOrCreateRazorpayPlanId(tier, period);
   // Razorpay subscriptions require a fixed number of billing cycles, not
   // "until cancelled" — 120 monthly cycles / 10 annual cycles (10 years
   // either way) stand in for indefinite; renew/replace manually if BhojSetu
@@ -652,6 +712,75 @@ export async function verifyAndActivateSubscription(
       ...activatedBillingFields(tenant),
     },
   });
+  await afterSubscriptionActivated(tenant, razorpaySubscriptionId, razorpayPaymentId);
+}
+
+/**
+ * Runs after a subscription's first payment is confirmed (client verification
+ * or webhook — whichever comes first; idempotent via the two timestamps).
+ * For a first-year-discounted annual purchase it (1) records the discount in
+ * the permanent SubscriptionPurchase ledger, and (2) schedules the Razorpay
+ * subscription to move to the full-price Plan at the end of the first year.
+ * If scheduling fails, the failure is logged and retried on the next
+ * activation/charged event — the store is never overcharged either way.
+ */
+async function afterSubscriptionActivated(
+  tenant: {
+    id: string;
+    pendingPlanTier: PlanTier | null;
+    planTier: PlanTier;
+    pendingBillingPeriod: BillingPeriod | null;
+    billingPeriod: BillingPeriod | null;
+    firstYearDiscountAppliedAt: Date | null;
+    renewalPlanScheduledAt: Date | null;
+  },
+  razorpaySubscriptionId: string,
+  razorpayPaymentId?: string,
+) {
+  const tier = tenant.pendingPlanTier ?? tenant.planTier;
+  const period = tenant.pendingBillingPeriod ?? tenant.billingPeriod;
+  if (period !== "ANNUAL" || !getAnnualPricing(tier).hasFirstYearDiscount) return;
+  if (tenant.renewalPlanScheduledAt) return;
+  // Was this subscription really started on the discounted first-year Plan?
+  // Asked of Razorpay itself (not inferred), so a store that subscribed at
+  // full price before the promo existed is never mislabelled as discounted.
+  let onFirstYearPlan = false;
+  try {
+    const pricing0 = getAnnualPricing(tier);
+    const promo = await prisma.razorpayPromoPlan.findUnique({ where: { key: `${tier}_ANNUAL_FIRST_YEAR_${pricing0.firstYearCents}` } });
+    onFirstYearPlan = Boolean(promo) && (await fetchRazorpaySubscriptionPlanId(razorpaySubscriptionId)) === promo!.planId;
+  } catch (err) {
+    console.error(`[billing] could not read subscription plan for tenant ${tenant.id}`, err);
+    return; // retried on the next activation/charged event
+  }
+  if (!onFirstYearPlan) return;
+  const pricing = getAnnualPricing(tier);
+  // Conditional claim: only one of the concurrent client-verify / webhook
+  // calls gets to write the ledger row.
+  const claimed = await prisma.tenant.updateMany({
+    where: { id: tenant.id, firstYearDiscountAppliedAt: null },
+    data: { firstYearDiscountAppliedAt: new Date() },
+  });
+  if (claimed.count === 1) {
+    await prisma.subscriptionPurchase.create({
+      data: {
+        tenantId: tenant.id,
+        tier,
+        originalPriceCents: pricing.originalCents,
+        discountCents: pricing.discountCents,
+        couponCode: "FIRST_YEAR_ANNUAL",
+        finalPriceCents: pricing.firstYearCents,
+        razorpayPaymentId: razorpayPaymentId ?? null,
+        razorpaySubscriptionId,
+      },
+    });
+  }
+  try {
+    await scheduleRazorpaySubscriptionPlanChange(razorpaySubscriptionId, await getOrCreateRazorpayPlanId(tier, "ANNUAL"));
+    await prisma.tenant.update({ where: { id: tenant.id }, data: { renewalPlanScheduledAt: new Date() } });
+  } catch (err) {
+    console.error(`[billing] could not schedule renewal plan change for tenant ${tenant.id}`, err);
+  }
 }
 
 /** Webhook path (src/app/api/webhooks/razorpay) — the authoritative source of truth, same role it plays for one-time payments. */
@@ -674,6 +803,7 @@ export async function setSubscriptionStatusByRazorpaySubscriptionId(
           }
         : { subscriptionStatus: status },
   });
+  if (status === "ACTIVE") await afterSubscriptionActivated(tenant, razorpaySubscriptionId);
 }
 
 export async function cancelTenantSubscription(tenantId: string): Promise<void> {

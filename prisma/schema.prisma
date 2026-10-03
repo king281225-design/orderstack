@@ -52,6 +52,8 @@ enum PaymentStatus {
   PENDING
   PAID
   FAILED
+  CANCELLED
+  REFUNDED
 }
 
 enum OrderStatus {
@@ -261,7 +263,24 @@ model Tenant {
   // itself moves forward (a new payment/activation), so the next cycle gets
   // reminded again.
   renewalReminderSentAt   DateTime?
+  // First-year annual discount (see PLAN_DEFINITIONS.annualFirstYearDiscountCents
+  // in src/lib/plans.ts): set once the discounted first annual charge is
+  // confirmed, so the discount can never be given twice to one store.
+  // renewalPlanScheduledAt is set once the Razorpay subscription has been
+  // told to move to the full-price plan at the end of the first year.
+  firstYearDiscountAppliedAt DateTime?
+  renewalPlanScheduledAt     DateTime?
   upiId                   String?
+  // Merchant name shown in the customer's UPI app (the QR's "pn"), and an
+  // optional note on which provider the UPI ID is with (Paytm/GPay/bank...).
+  // The multi-store Business this store belongs to (null = standalone store,
+  // which is every store until its Business-plan owner adds a second one).
+  // Access to a store through a Business is always re-verified server-side
+  // against this column, never trusted from a session/request value.
+  businessId              String?
+  business                Business?          @relation(fields: [businessId], references: [id], onDelete: SetNull)
+  upiPayeeName            String?
+  upiProviderName         String?
   // A photographed/scanned physical menu, offered as an alternative to
   // building the digital menu item-by-item (see "hardcopy menu upload" on
   // /dashboard/menu) — shown to customers as a link on the storefront.
@@ -404,6 +423,17 @@ model SubscriptionPurchase {
 // (src/lib/data/tenants.ts). period defaults to MONTHLY so the 3 rows that
 // existed before annual billing was added keep their existing (tier-only)
 // identity under the new composite key.
+/// Razorpay Plan ids for one-off promotional prices (e.g. the discounted first
+/// year), keyed by a string that encodes tier+period+price so changing the
+/// configured price creates a fresh Plan instead of reusing a stale one.
+model RazorpayPromoPlan {
+  key       String   @id
+  planId    String
+  createdAt DateTime @default(now())
+
+  @@map("razorpay_promo_plans")
+}
+
 model RazorpayPlan {
   tier      PlanTier
   period    BillingPeriod @default(MONTHLY)
@@ -439,6 +469,20 @@ model Coupon {
   @@map("coupons")
 }
 
+/// A group of stores run by one owner (the Business plan's multi-store
+/// feature). One owner user per business; each store (Tenant) keeps its own
+/// plan, billing, menu, orders and staff.
+model Business {
+  id          String   @id @default(cuid())
+  name        String
+  ownerUserId String   @unique
+  owner       User     @relation(fields: [ownerUserId], references: [id], onDelete: Cascade)
+  createdAt   DateTime @default(now())
+  tenants     Tenant[]
+
+  @@map("businesses")
+}
+
 model User {
   id                  String               @id @default(cuid())
   tenantId            String?
@@ -456,6 +500,8 @@ model User {
   // treated as logged out (checked in src/proxy.ts). Null = never logged in,
   // or the check doesn't apply to this account's tenant.
   currentSessionId    String?
+  // Set when this user owns a multi-store Business (see Business below).
+  ownedBusiness       Business?
 
   @@index([tenantId])
   @@map("users")
@@ -725,6 +771,19 @@ model Order {
   // it's a 1:1 link and the webhook looks orders up by it.
   razorpayOrderId    String?         @unique
   razorpayPaymentId  String?
+  // Where the money actually came from (a key of PAYMENT_SOURCES in
+  // src/lib/payment-sources.ts: GOOGLE_PAY, PHONEPE, PAYTM, ...). Chosen by
+  // the merchant when they confirm receipt — a merchant's own UPI ID has no
+  // webhook, so this is manual, never inferred from a QR scan or a
+  // customer's claim. Plain string, validated in the app, so adding a source
+  // never needs an enum migration. paymentSourceLabel is the free text for
+  // "OTHER"; paymentReference is an optional UTR/transaction id.
+  paymentSource      String?
+  paymentSourceLabel String?
+  paymentReference   String?
+  // When paymentStatus last became PAID (null until then) — what payment
+  // analytics reconcile against.
+  paidAt             DateTime?
   // Inventory bookkeeping (src/lib/data/inventory.ts): set the moment any
   // ordered item's own tracked stock is deducted for this order, and again
   // when a cancellation restores it — each null-to-set transition happens at
@@ -739,6 +798,7 @@ model Order {
   @@index([tenantId])
   @@index([tenantId, status])
   @@index([couponId])
+  @@index([tenantId, createdAt])
   @@map("orders")
 }
 

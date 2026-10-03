@@ -1,7 +1,8 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  // Produces a self-contained .next/standalone/server.js — needed to run
+  // Dev-only "N" badge: move it off the bottom-left, where it covers the dashboard rail's account/sign-out button.
+  devIndicators: { position: "bottom-right" },  // Produces a self-contained .next/standalone/server.js — needed to run
   // this app on a plain Node.js host that just executes a startup file
   // (e.g. Hostinger shared hosting's Node.js app manager in hPanel), rather
   // than a platform that already knows how to run `next start` itself.
@@ -22,7 +23,9 @@ const nextConfig: NextConfig = {
   // under a rewritten, nonexistent path). pdf-parse pulls in pdfjs-dist,
   // which has similar Node-native/dynamic-require needs. Both are opted out
   // of Server Component bundling so they load via plain Node `require`.
-  serverExternalPackages: ["tesseract.js", "pdf-parse"],
+  // pdfkit (analytics PDF report, src/lib/reports/analytics-pdf.ts) reads its
+  // own data files at runtime, so it also loads via plain Node `require`.
+  serverExternalPackages: ["tesseract.js", "pdf-parse", "pdfkit"],
   // serverExternalPackages above stops Turbopack from bundling tesseract.js,
   // but that's a separate step from Vercel's own serverless-function file
   // tracing (@vercel/nft), which decides which files under node_modules
@@ -44,6 +47,10 @@ const nextConfig: NextConfig = {
   // own package.json "dependencies" here to fix the whole family at once
   // instead of one MODULE_NOT_FOUND at a time.
   outputFileTracingIncludes: {
+    // The report route builds a PDF with pdfkit using Noto Sans (the stock PDF
+    // fonts have no rupee glyph) read from disk at runtime — neither is
+    // statically traceable, so both are force-included for that route only.
+    "/api/dashboard/analytics/report": ["node_modules/pdfkit/**/*", "node_modules/fontkit/**/*", "assets/fonts/**/*"],
     "/*": [
       "node_modules/tesseract.js/**/*",
       "node_modules/tesseract.js-core/**/*",

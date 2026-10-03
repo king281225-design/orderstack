@@ -53,9 +53,10 @@ export default async function OrderStatusPage({
   const qr = showQr
     ? await buildUpiQr({
         upiId: tenant.upiId!,
-        payeeName: tenant.name,
+        payeeName: tenant.upiPayeeName || tenant.name,
         amountCents: order.totalCents,
         note: `Order #${order.orderNumber}`,
+        reference: `ORD${order.orderNumber}`,
       })
     : null;
 

@@ -4,6 +4,7 @@ import { useActionState, useMemo, useRef, useState } from "react";
 import { createManualOrderAction, type CreateManualOrderState } from "@/app/dashboard/orders/new/actions";
 import { updateOrderItemsAction } from "@/app/dashboard/orders/[id]/edit/actions";
 import { formatINR, rupeesToCents } from "@/lib/money";
+import { PAYMENT_SOURCES } from "@/lib/payment-sources";
 
 const initialState: CreateManualOrderState = { error: null };
 
@@ -337,6 +338,36 @@ export function ManualOrderForm({
             className="h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-600"
           />
           Mark as paid
+        </label>
+        <label className="flex flex-col gap-1 text-xs font-medium text-gray-600">
+          Payment source (if paid)
+          <select
+            name="paymentSource"
+            defaultValue=""
+            className="rounded-md border border-gray-300 px-3 py-1.5 text-sm focus:border-indigo-600 focus:outline-none"
+          >
+            <option value="">Not specified</option>
+            {PAYMENT_SOURCES.map((s) => (
+              <option key={s.value} value={s.value}>
+                {s.label}
+              </option>
+            ))}
+          </select>
+        </label>
+        <label className="flex flex-col gap-1 text-xs font-medium text-gray-600">
+          Source name (if &quot;Other&quot;) / UTR
+          <input
+            name="paymentSourceLabel"
+            maxLength={60}
+            placeholder="Other source name"
+            className="rounded-md border border-gray-300 px-3 py-1.5 text-sm focus:border-indigo-600 focus:outline-none"
+          />
+          <input
+            name="paymentReference"
+            maxLength={80}
+            placeholder="UTR / reference (optional)"
+            className="rounded-md border border-gray-300 px-3 py-1.5 text-sm focus:border-indigo-600 focus:outline-none"
+          />
         </label>
         <label className="col-span-full flex flex-col gap-1 text-xs font-medium text-gray-600">
           Notes (optional)

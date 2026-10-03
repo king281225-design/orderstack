@@ -5,6 +5,7 @@ import { getTenantById } from "@/lib/data/tenants";
 import { formatINR } from "@/lib/money";
 import { nowMs } from "@/lib/time";
 import { AutoRefresh } from "@/components/auto-refresh";
+import { paymentSourceDisplay } from "@/lib/payment-sources";
 import { OrderCardFooter } from "@/components/orders/order-card-footer";
 import type { DeliveryPlatform, Order, OrderItem, OrderStatus, PaymentMethod } from "@prisma/client";
 
@@ -414,10 +415,17 @@ function OrderCard({
   const method = PAYMENT_METHOD_LABEL[order.paymentMethod];
   const payment =
     order.paymentStatus === "PAID"
-      ? { text: order.paymentMethod === "RAZORPAY" ? "Paid online" : `Paid · ${method}`, cls: "bg-[#eaf6ec] text-[#1e7a4c]" }
+      ? {
+          text: order.paymentMethod === "RAZORPAY" ? "Paid online" : `Paid · ${order.paymentSource ? paymentSourceDisplay(order) : method}`,
+          cls: "bg-[#eaf6ec] text-[#1e7a4c]",
+        }
       : order.paymentStatus === "FAILED"
         ? { text: "Payment failed", cls: "bg-[#fdf0f0] text-[#b23b3b]" }
-        : { text: `Unpaid · ${method}`, cls: "bg-[#fdf1ec] text-[#9a4a1f]" };
+        : order.paymentStatus === "REFUNDED"
+          ? { text: "Refunded", cls: "bg-[#eef0f6] text-[#46507a]" }
+          : order.paymentStatus === "CANCELLED"
+            ? { text: "Payment cancelled", cls: "bg-[#fdf0f0] text-[#b23b3b]" }
+            : { text: `Unpaid · ${method}`, cls: "bg-[#fdf1ec] text-[#9a4a1f]" };
 
   const outsideZone =
     order.deliveryDistanceKm != null && deliveryRadiusKm != null && order.deliveryDistanceKm > deliveryRadiusKm;

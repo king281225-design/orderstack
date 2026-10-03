@@ -2,6 +2,7 @@ import { NextResponse, type NextRequest } from "next/server";
 import { verifySessionToken } from "@/lib/auth";
 import { getTenantByCustomDomain, getTenantTrialStatus } from "@/lib/data/tenants";
 import { isSessionStillActive } from "@/lib/data/sessions";
+import { verifyActiveStoreAccess } from "@/lib/data/business";
 import { TRIAL_MS } from "@/lib/plans";
 
 const COOKIE_NAME = "os_session";
@@ -63,6 +64,19 @@ export async function proxy(request: NextRequest) {
     const stillActive = await isSessionStillActive(session.sub, session.sid, session.tenantId);
     if (!stillActive) {
       const response = NextResponse.redirect(new URL("/login?loggedOutElsewhere=1", request.url));
+      response.cookies.delete(COOKIE_NAME);
+      return response;
+    }
+  }
+
+  // Multi-store: a signed token isn't enough once an owner can switch stores.
+  // Re-check against the database that this owner may still act on the store
+  // named in the token (their home store, or a store of the Business they
+  // own) — a forged tenantId, or a store later removed from the business,
+  // gets the cookie cleared and a login redirect. Staff never switch stores.
+  if (isDashboard && session && !session.impersonatorId && session.role === "OWNER" && session.tenantId) {
+    if (!(await verifyActiveStoreAccess(session.sub, session.tenantId))) {
+      const response = NextResponse.redirect(new URL("/login", request.url));
       response.cookies.delete(COOKIE_NAME);
       return response;
     }

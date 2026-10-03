@@ -126,8 +126,8 @@ export function AddItemForm({
         Description (optional)
         <textarea
           name="description"
-          rows={2}
-          className="rounded-md border border-gray-300 px-3 py-1.5 text-sm focus:border-indigo-600 focus:outline-none"
+          rows={3}
+          className="min-h-[5rem] w-full rounded-md border border-gray-300 px-3 py-1.5 text-sm focus:border-indigo-600 focus:outline-none"
         />
       </label>
 

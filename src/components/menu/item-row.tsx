@@ -143,9 +143,9 @@ export function ItemRow({
             Description (optional)
             <textarea
               name="description"
-              rows={2}
+              rows={3}
               defaultValue={item.description ?? ""}
-              className="rounded-md border border-gray-300 px-3 py-1.5 text-sm focus:border-indigo-600 focus:outline-none"
+              className="min-h-[5rem] rounded-md border border-gray-300 px-3 py-1.5 text-sm focus:border-indigo-600 focus:outline-none"
             />
           </label>
 
@@ -188,24 +188,28 @@ export function ItemRow({
   }
 
   return (
-    <li className="flex items-center gap-3 py-3">
+    // Wraps on narrow screens: photo + name/description on the first line, price and
+    // the Available/Edit/Delete controls on a second line (instead of squeezing the
+    // name into a one-letter column).
+    <li className="flex flex-wrap items-start gap-x-3 gap-y-2 py-3 sm:flex-nowrap sm:items-center">
       {item.imageUrl ? (
         <Image
           src={item.imageUrl}
           alt={item.name}
           width={48}
           height={48}
-          className="h-12 w-12 rounded-md object-cover"
+          className="h-12 w-12 shrink-0 rounded-md object-cover"
           unoptimized
         />
       ) : (
         <div className="h-12 w-12 shrink-0 rounded-md bg-gray-100" />
       )}
-      <div className="min-w-0 flex-1">
-        <p className="truncate text-sm font-medium text-gray-900">{item.name}</p>
-        {item.description && <p className="truncate text-xs text-gray-500">{item.description}</p>}
+      <div className="min-w-0 flex-1 basis-[10rem]">
+        <p className="text-sm font-medium text-gray-900 sm:truncate">{item.name}</p>
+        {item.description && <p className="line-clamp-2 text-xs text-gray-500 sm:truncate">{item.description}</p>}
         <ItemAddOnsManager itemId={item.id} addOns={item.addOns ?? []} />
       </div>
+      <div className="flex w-full flex-wrap items-center gap-x-3 gap-y-2 sm:w-auto sm:flex-nowrap">
       <span className="text-sm font-medium text-gray-700">{formatINR(item.priceCents)}</span>
       <form action={toggleItemAvailableAction.bind(null, item.id, !item.isAvailable)}>
         <button
@@ -229,6 +233,7 @@ export function ItemRow({
           Delete
         </button>
       </form>
+      </div>
     </li>
   );
 }

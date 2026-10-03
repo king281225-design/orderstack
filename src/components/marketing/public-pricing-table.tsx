@@ -4,8 +4,8 @@ import { useState } from "react";
 import Link from "next/link";
 import type { CSSProperties } from "react";
 import type { BillingPeriod } from "@prisma/client";
-import { PLAN_DEFINITIONS, PLAN_TIERS, getPlanPriceCents } from "@/lib/plans";
-import { formatINR } from "@/lib/money";
+import { PLAN_DEFINITIONS, PLAN_TIERS } from "@/lib/plans";
+import { PlanPrice } from "@/components/billing/plan-price";
 import { useScrollReveal } from "@/components/landing/use-scroll-reveal";
 
 /**
@@ -47,7 +47,6 @@ export function PublicPricingTable() {
       <div className="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-3">
         {PLAN_TIERS.map((tier, i) => {
           const def = PLAN_DEFINITIONS[tier];
-          const priceCents = getPlanPriceCents(tier, period);
           return (
             <div
               key={tier}
@@ -55,10 +54,7 @@ export function PublicPricingTable() {
               style={{ "--reveal-delay": `${i * 100}ms` } as CSSProperties}
             >
               <p className="text-sm font-semibold text-gray-900">{def.label}</p>
-              <p className="text-2xl font-semibold text-gray-900">
-                {formatINR(priceCents)}
-                <span className="text-xs font-normal text-gray-500">{period === "ANNUAL" ? " /year" : " /month"}</span>
-              </p>
+              <PlanPrice tier={tier} period={period} large />
               <ul className="mb-1 flex-1 text-xs text-gray-500">
                 {def.features.map((f) => (
                   <li key={f}>• {f}</li>

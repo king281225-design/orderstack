@@ -119,7 +119,11 @@ export default async function SuperAdminPage({ searchParams }: { searchParams: P
                     {formatINR(def.priceCents)}
                     <span className="text-xs font-normal text-gray-500">/mo</span>
                   </p>
-                  <p className="text-xs text-gray-400">or {formatINR(def.annualPriceCents)}/yr</p>
+                  <p className="text-xs text-gray-400">
+                    or {formatINR(def.annualPriceCents)}/yr
+                    {def.annualFirstYearDiscountCents > 0 &&
+                      ` (first year ${formatINR(def.annualPriceCents - def.annualFirstYearDiscountCents)}, save ${formatINR(def.annualFirstYearDiscountCents)})`}
+                  </p>
                 </div>
               );
             })}

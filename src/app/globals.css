@@ -242,6 +242,43 @@ body {
   font-family: Arial, Helvetica, sans-serif;
 }
 
+/* Cross-device (Android / iPhone / iPad) polish. */
+html {
+  /* Stop iOS Safari inflating text after rotation. */
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+  -webkit-tap-highlight-color: transparent;
+}
+body {
+  /* dvh tracks the collapsing mobile browser bars; vh would leave a gap or overflow. */
+  min-height: 100dvh;
+  overflow-wrap: break-word;
+  /* Keep content clear of notches / home-indicator when installed or in landscape. */
+  padding-left: env(safe-area-inset-left);
+  padding-right: env(safe-area-inset-right);
+}
+button,
+a,
+select,
+summary,
+label,
+input[type="checkbox"],
+input[type="radio"] {
+  /* No 300ms tap delay / double-tap zoom on controls. */
+  touch-action: manipulation;
+}
+@media (max-width: 1023px) {
+  /* iOS Safari zooms the page when a focused field's font is under 16px. */
+  input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="color"]):not([type="file"]),
+  select,
+  textarea {
+    font-size: 16px;
+  }
+  textarea {
+    min-height: 5rem;
+  }
+}
+
 /* Storefront animations (src/components/storefront/*) — a seamless
    scrolling promo strip and a subtle staggered entrance for menu items.
    Both are disabled under prefers-reduced-motion rather than just made

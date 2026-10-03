@@ -2,8 +2,8 @@
 
 import { useState } from "react";
 import type { BillingPeriod } from "@prisma/client";
-import { PLAN_DEFINITIONS, PLAN_TIERS, getPlanPriceCents } from "@/lib/plans";
-import { formatINR } from "@/lib/money";
+import { PLAN_DEFINITIONS, PLAN_TIERS } from "@/lib/plans";
+import { PlanPrice } from "@/components/billing/plan-price";
 import { SubscribeButton } from "@/components/billing/subscribe-button";
 import { WelcomeCouponForm } from "@/components/billing/welcome-coupon-form";
 
@@ -20,10 +20,13 @@ export function PlanCards({
   keyId,
   restaurantName,
   welcomeCouponEligible,
+  firstYearDiscountUsed = false,
 }: {
   keyId: string;
   restaurantName: string;
   welcomeCouponEligible: boolean;
+  /** True once this store already received the first-year annual discount. */
+  firstYearDiscountUsed?: boolean;
 }) {
   const [period, setPeriod] = useState<BillingPeriod>("MONTHLY");
 
@@ -57,19 +60,13 @@ export function PlanCards({
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
         {PLAN_TIERS.map((tier) => {
           const def = PLAN_DEFINITIONS[tier];
-          const priceCents = getPlanPriceCents(tier, period);
           return (
             <div
               key={tier}
               className="flex flex-col gap-2 rounded-lg border border-gray-200 bg-white dark:bg-[#241d17] p-4"
             >
               <p className="text-sm font-semibold text-gray-900">{def.label}</p>
-              <p className="text-lg font-semibold text-gray-900">
-                {formatINR(priceCents)}
-                <span className="text-xs font-normal text-gray-500">
-                  {period === "ANNUAL" ? " /year" : " /month"}
-                </span>
-              </p>
+              <PlanPrice tier={tier} period={period} firstYearEligible={!firstYearDiscountUsed} />
               <ul className="mb-1 flex-1 text-xs text-gray-500">
                 {def.features.map((f) => (
                   <li key={f}>• {f}</li>

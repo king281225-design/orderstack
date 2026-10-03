@@ -25,6 +25,8 @@ export function InvoiceView({
   totalCents,
   paymentMethod,
   paymentStatus,
+  paymentSource,
+  upiQr,
   kotHref,
 }: {
   tenantName: string;
@@ -47,6 +49,10 @@ export function InvoiceView({
   totalCents: number;
   paymentMethod: string;
   paymentStatus: string;
+  /** Channel the merchant recorded when confirming payment (e.g. "Google Pay"); null if none. */
+  paymentSource?: string | null;
+  /** Scan-to-pay QR for a still-unpaid UPI bill. Paying through it does NOT mark the bill paid — the merchant confirms receipt. */
+  upiQr?: { dataUrl: string; upiId: string; uri: string } | null;
   /** When set, the controls bar shows a "Print KOT" link to the order's kitchen ticket. */
   kotHref?: string;
 }) {
@@ -153,8 +159,17 @@ export function InvoiceView({
           )}
           <Row label="Grand total" value={formatINR(totalCents)} bold />
           <Row label="Payment method" value={paymentMethod} />
+          {paymentSource && <Row label="Paid via" value={paymentSource} />}
           <Row label="Payment status" value={paymentStatus} />
         </div>
+
+        {upiQr && (
+          <div className="mt-4 flex flex-col items-center gap-1 border-t border-dashed border-gray-300 pt-4 text-center">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src={upiQr.dataUrl} data-upi-uri={upiQr.uri} alt="Scan to pay with any UPI app" width={140} height={140} />
+            <p className="text-xs text-gray-600">Scan to pay with any UPI app · {upiQr.upiId}</p>
+          </div>
+        )}
 
         <p className="mt-6 border-t border-gray-200 pt-4 text-center text-xs text-gray-400">
           Thank you for visiting {tenantName}.

@@ -207,6 +207,7 @@ export function DashboardShell({
   acknowledgeWaiterCallAction,
   banner,
   notices,
+  storeSwitcher,
   children,
 }: {
   tenantName: string;
@@ -221,6 +222,8 @@ export function DashboardShell({
   acknowledgeWaiterCallAction: (id: string) => Promise<void>;
   banner?: ReactNode;
   notices?: ReactNode;
+  /** Business accounts only: the "Current store" dropdown. */
+  storeSwitcher?: ReactNode;
   children: ReactNode;
 }) {
   const pathname = usePathname();
@@ -302,7 +305,7 @@ export function DashboardShell({
             {moreOpen && (
               <>
                 <button type="button" aria-label="Close menu" className="fixed inset-0 z-30 cursor-default" onClick={() => setMoreOpen(false)} />
-                <nav className="absolute left-[calc(100%+12px)] top-0 z-40 w-56 rounded-xl border border-[var(--ds-border)] bg-[var(--ds-surface)] p-1.5 text-sm shadow-xl">
+                <nav className="fixed left-[88px] top-4 z-40 max-h-[calc(100vh-2rem)] w-56 overflow-y-auto overscroll-contain rounded-xl border border-[var(--ds-border)] bg-[var(--ds-surface)] p-1.5 text-sm shadow-xl [scrollbar-width:thin]">
                   {moreLinks.map((l) => (
                     <Link
                       key={l.href}
@@ -332,6 +335,15 @@ export function DashboardShell({
             <span>Settings</span>
           </Link>
         )}
+
+        <form action={logoutAction}>
+          <button type="submit" className={railBtn(false)} aria-label="Sign out" title="Sign out">
+            <svg {...svgBase(18)}>
+              <path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4M16 17l5-5-5-5M21 12H9" />
+            </svg>
+            <span>Sign out</span>
+          </button>
+        </form>
 
         <div className="relative mt-2">
           <button
@@ -393,15 +405,16 @@ export function DashboardShell({
         {banner}
 
         {/* DESKTOP TOP BAR */}
-        <header className="hidden h-[68px] shrink-0 items-center gap-[18px] border-b border-[var(--ds-border)] bg-[var(--ds-bg)] px-7 md:flex print:hidden">
+        <header className="hidden min-h-[68px] shrink-0 flex-wrap items-center gap-x-[18px] gap-y-2 py-2 border-b border-[var(--ds-border)] bg-[var(--ds-bg)] px-7 md:flex print:hidden">
           <div className="flex min-w-0 flex-col gap-px">
             <h1 className="ds-serif m-0 truncate text-xl font-semibold tracking-[-0.01em]">{tenantName}</h1>
             <span className="text-xs text-[var(--ds-muted)]">
               {roleLabel} · {activeLabel}
             </span>
           </div>
+          {storeSwitcher}
           <OpenToggle isOpen={isOpen} setOpenAction={setOpenAction} />
-          <SearchBox className="max-w-[380px] flex-1" />
+          <SearchBox className="hidden max-w-[380px] min-w-0 flex-1 lg:flex" />
           <div className="flex-1" />
           <NotificationBell
             variant="light"
@@ -461,9 +474,10 @@ export function DashboardShell({
               <IconSearch />
             </button>
           </div>
+          {storeSwitcher}
           {searchOpen && <SearchBox autoFocus />}
           {drawerOpen && (
-            <nav className="flex flex-col rounded-xl border border-[var(--ds-border)] bg-[var(--ds-surface)] p-1.5 text-sm">
+            <nav className="flex max-h-[calc(100dvh-9rem)] flex-col overflow-y-auto overscroll-contain rounded-xl border border-[var(--ds-border)] bg-[var(--ds-surface)] p-1.5 text-sm [scrollbar-width:thin]">
               {links.map((l) => (
                 <Link
                   key={l.href}

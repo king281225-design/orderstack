@@ -33,19 +33,31 @@ export function trialState(
  *
  * Feature lists here double as the actual gate (see FEATURES_BY_TIER below,
  * updated 2026-09-13 at the user's request) — keep this copy and that map
- * in sync when either changes. Business's "multiple outlet access" framing
- * (2026-09-16) is just marketing copy for "no device-limit restriction" —
- * see FEATURES_BY_TIER's own comment and src/lib/data/sessions.ts; it is
- * NOT real multi-location/multi-branch support, confirmed with the user.
+ * in sync when either changes. As of 2026-10-03 Advanced and Business include real
+ * multi-store support (the "multiStore" feature: a Business account with a
+ * store switcher and a central dashboard, src/lib/data/business.ts); the
+ * "no device limit" behaviour (src/lib/data/sessions.ts) is separate.
  */
 export const PLAN_DEFINITIONS: Record<
   PlanTier,
-  { label: string; priceCents: number; annualPriceCents: number; features: string[] }
+  {
+    label: string;
+    /** Monthly price. */
+    priceCents: number;
+    /** Annual list price — also what the plan renews at after the first year. */
+    annualPriceCents: number;
+    /** Off the FIRST annual payment only (0 = no promo). Renewal is back at annualPriceCents. */
+    annualFirstYearDiscountCents: number;
+    features: string[];
+    status: "ACTIVE" | "RETIRED";
+  }
 > = {
   STARTER: {
     label: "Starter",
     priceCents: 49900,
     annualPriceCents: 499900,
+    annualFirstYearDiscountCents: 0,
+    status: "ACTIVE",
     features: [
       "Menu management",
       "Order management & billing (invoices, printable bills)",
@@ -60,10 +72,14 @@ export const PLAN_DEFINITIONS: Record<
     label: "Advanced",
     priceCents: 69900,
     annualPriceCents: 799900,
+    // 2026-10-03: ₹999 off the first year (₹7,999 → ₹7,000); renews at ₹7,999.
+    annualFirstYearDiscountCents: 99900,
+    status: "ACTIVE",
     features: [
       "Everything in Starter",
       "Coupons",
       "Analytics dashboard",
+      "Multi-store: manage several outlets from one account with a central dashboard",
       "1 device logged in at a time",
     ],
   },
@@ -71,11 +87,13 @@ export const PLAN_DEFINITIONS: Record<
     label: "Business",
     priceCents: 99900,
     annualPriceCents: 999900,
+    annualFirstYearDiscountCents: 0,
+    status: "ACTIVE",
     features: [
       "Everything in Advanced",
       "Kitchen display system",
       "Staff logins",
-      "Multiple outlet access — log in from as many devices as you need",
+      "Log in from as many devices as you need",
       "Zomato / Swiggy order integration",
     ],
   },
@@ -85,6 +103,24 @@ export const PLAN_TIERS: PlanTier[] = ["STARTER", "ADVANCED", "BUSINESS"];
 
 export function getPlanPriceCents(tier: PlanTier, period: BillingPeriod): number {
   return period === "ANNUAL" ? PLAN_DEFINITIONS[tier].annualPriceCents : PLAN_DEFINITIONS[tier].priceCents;
+}
+
+/**
+ * Annual pricing in one place. `firstYearCents` is what is charged on the
+ * first annual payment; `renewalCents` what every later year charges. Every
+ * display (pricing page, billing page, super-admin) and the Razorpay plan
+ * creation read this — never hard-code these figures elsewhere.
+ */
+export function getAnnualPricing(tier: PlanTier) {
+  const def = PLAN_DEFINITIONS[tier];
+  const discountCents = Math.min(def.annualFirstYearDiscountCents, def.annualPriceCents);
+  return {
+    originalCents: def.annualPriceCents,
+    discountCents,
+    firstYearCents: def.annualPriceCents - discountCents,
+    renewalCents: def.annualPriceCents,
+    hasFirstYearDiscount: discountCents > 0,
+  };
 }
 
 /**
@@ -106,11 +142,12 @@ export type Feature =
   | "analytics"
   | "kitchen"
   | "staff"
-  | "deliveryAggregator";
+  | "deliveryAggregator"
+  | "multiStore";
 
 const FEATURES_BY_TIER: Record<PlanTier, ReadonlySet<Feature>> = {
   STARTER: new Set(["menu", "orders", "tables", "billing", "inventory", "kot"]),
-  ADVANCED: new Set(["menu", "orders", "tables", "billing", "inventory", "kot", "coupons", "analytics"]),
+  ADVANCED: new Set(["menu", "orders", "tables", "billing", "inventory", "kot", "coupons", "analytics", "multiStore"]),
   BUSINESS: new Set([
     "menu",
     "orders",
@@ -123,6 +160,7 @@ const FEATURES_BY_TIER: Record<PlanTier, ReadonlySet<Feature>> = {
     "kitchen",
     "staff",
     "deliveryAggregator",
+    "multiStore",
   ]),
 };
 

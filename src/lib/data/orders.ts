@@ -210,6 +210,10 @@ export async function createManualOrder(
     notes?: string | null;
     /** Owner ticked "Mark as paid" while creating the bill — settles it immediately instead of the usual after-the-fact reconciliation (see markOrderPaid). */
     markAsPaid?: boolean;
+    /** Merchant-recorded channel (see src/lib/payment-sources.ts); only stored when markAsPaid is set. */
+    paymentSource?: string | null;
+    paymentSourceLabel?: string | null;
+    paymentReference?: string | null;
   },
 ) {
   const lines = input.lines.filter((l) => l.quantity > 0 && l.name.trim());
@@ -263,6 +267,10 @@ export async function createManualOrder(
       // settled after the fact via the same reconciliation flow, or through
       // the normal status flow).
       paymentStatus: input.markAsPaid ? "PAID" : "PENDING",
+      paidAt: input.markAsPaid ? new Date() : null,
+      paymentSource: input.markAsPaid ? (input.paymentSource ?? null) : null,
+      paymentSourceLabel: input.markAsPaid ? (input.paymentSourceLabel ?? null) : null,
+      paymentReference: input.markAsPaid ? (input.paymentReference ?? null) : null,
       items: {
         create: lines.map((l) => {
           const linked = l.itemId ? linkedMap.get(l.itemId) : undefined;
@@ -463,6 +471,7 @@ export async function createAggregatorOrder(
         aggregatorRawPayload: input.rawPayload,
         paymentMethod: "AGGREGATOR",
         paymentStatus: "PAID",
+        paidAt: new Date(),
         subtotalCents,
         totalCents: subtotalCents,
         items: {
@@ -611,10 +620,31 @@ export async function attachRazorpayOrder(tenantId: string, orderId: string, raz
  * "reconciled manually"), scoped to the session's tenant like every other
  * dashboard action.
  */
-export async function markOrderPaid(tenantId: string, orderId: string) {
+export async function markOrderPaid(
+  tenantId: string,
+  orderId: string,
+  payment: { source?: string | null; label?: string | null; reference?: string | null } = {},
+) {
+  // Only an unpaid/failed order can be settled: a second click (or a
+  // double-submitted form) on an already-PAID order must not overwrite the
+  // first confirmation's source, reference or timestamp.
   return prisma.order.updateMany({
-    where: { id: orderId, tenantId },
-    data: { paymentStatus: "PAID" },
+    where: { id: orderId, tenantId, paymentStatus: { in: ["PENDING", "FAILED"] } },
+    data: {
+      paymentStatus: "PAID",
+      paidAt: new Date(),
+      paymentSource: payment.source ?? null,
+      paymentSourceLabel: payment.label ?? null,
+      paymentReference: payment.reference ?? null,
+    },
+  });
+}
+
+/** Owner marks an already-PAID order as refunded (the money went back out of band). */
+export async function markOrderRefunded(tenantId: string, orderId: string) {
+  return prisma.order.updateMany({
+    where: { id: orderId, tenantId, paymentStatus: "PAID" },
+    data: { paymentStatus: "REFUNDED" },
   });
 }
 
@@ -652,7 +682,10 @@ export async function markPaymentStatus(
       where: { id: orderId, tenantId },
       data: { paymentStatus: status, ...(razorpayPaymentId ? { razorpayPaymentId } : {}) },
     });
-    if (status === "PAID") await autoAcceptOnPaid(tx, { id: orderId, tenantId });
+    if (status === "PAID") {
+      await tx.order.updateMany({ where: { id: orderId, tenantId, paidAt: null }, data: { paidAt: new Date() } });
+      await autoAcceptOnPaid(tx, { id: orderId, tenantId });
+    }
     return result;
   });
 }
@@ -673,7 +706,10 @@ export async function setPaymentStatusByRazorpayOrderId(
       where: { razorpayOrderId },
       data: { paymentStatus: status, ...(razorpayPaymentId ? { razorpayPaymentId } : {}) },
     });
-    if (status === "PAID") await autoAcceptOnPaid(tx, { razorpayOrderId });
+    if (status === "PAID") {
+      await tx.order.updateMany({ where: { razorpayOrderId, paidAt: null }, data: { paidAt: new Date() } });
+      await autoAcceptOnPaid(tx, { razorpayOrderId });
+    }
     return result;
   });
 }

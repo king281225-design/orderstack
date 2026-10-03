@@ -10,6 +10,7 @@ import {
 } from "@/lib/data/tenants";
 import { saveUpload } from "@/lib/storage";
 import { INDIA_STATES } from "@/lib/india-states";
+import { isValidUpiId } from "@/lib/payment-sources";
 
 export type BrandingState = { error: string | null; success: boolean };
 
@@ -35,6 +36,11 @@ export async function updateBrandingAction(
   const facebookUrl = String(formData.get("facebookUrl") ?? "").trim();
 
   if (!name) return { error: "Restaurant name is required.", success: false };
+  if (upiId && !isValidUpiId(upiId)) {
+    return { error: "UPI ID looks wrong — it should look like name@bank (e.g. shop@okicici).", success: false };
+  }
+  const upiPayeeName = String(formData.get("upiPayeeName") ?? "").trim().slice(0, 80);
+  const upiProviderName = String(formData.get("upiProviderName") ?? "").trim().slice(0, 60);
 
   const googleRating = googleRatingRaw ? Number(googleRatingRaw) : null;
   if (googleRating !== null && (!Number.isFinite(googleRating) || googleRating < 0 || googleRating > 5)) {
@@ -59,6 +65,8 @@ export async function updateBrandingAction(
     colorHeaderText,
     colorCardBackground,
     upiId: upiId || null,
+    upiPayeeName: upiPayeeName || null,
+    upiProviderName: upiProviderName || null,
     googleReviewUrl: googleReviewUrl || null,
     googleRating,
     googleReviewCount,

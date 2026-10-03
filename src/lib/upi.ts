@@ -12,6 +12,8 @@ export async function buildUpiQr(input: {
   payeeName: string;
   amountCents: number;
   note: string;
+  /** Order/bill reference (UPI's "tr") so the payment can be matched to this bill in the merchant's UPI app statement. */
+  reference?: string;
 }): Promise<{ uri: string; qrDataUrl: string }> {
   const amount = (input.amountCents / 100).toFixed(2);
   const params = new URLSearchParams({
@@ -21,6 +23,7 @@ export async function buildUpiQr(input: {
     cu: "INR",
     tn: input.note,
   });
+  if (input.reference) params.set("tr", input.reference);
   const uri = `upi://pay?${params.toString()}`;
   const qrDataUrl = await QRCode.toDataURL(uri, { margin: 1, width: 280 });
   return { uri, qrDataUrl };

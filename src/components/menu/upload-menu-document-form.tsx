@@ -68,7 +68,7 @@ export function UploadMenuDocumentForm({
           accept="image/*,application/pdf"
           required
           onChange={handleFileChange}
-          className="rounded-md border border-gray-300 px-3 py-1 text-sm file:mr-2 file:rounded file:border-0 file:bg-gray-100 file:px-2 file:py-1 file:text-xs"
+          className="w-full min-w-0 max-w-full rounded-md border border-gray-300 px-3 py-1 text-sm sm:w-auto file:mr-2 file:rounded file:border-0 file:bg-gray-100 file:px-2 file:py-1 file:text-xs"
         />
         <button
           type="submit"

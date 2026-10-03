@@ -4,18 +4,23 @@ import { getOrderForPrint } from "@/lib/data/orders";
 import { getTenantById } from "@/lib/data/tenants";
 import { invoiceCode } from "@/lib/kot";
 import { InvoiceView } from "@/components/orders/invoice-view";
+import { buildUpiQr } from "@/lib/upi";
+import { paymentSourceDisplay } from "@/lib/payment-sources";
 
 const PAYMENT_METHOD_LABEL: Record<string, string> = {
   UPI: "UPI",
   COD: "Cash",
   CARD: "Card",
   RAZORPAY: "Online",
+  AGGREGATOR: "Aggregator",
 };
 
 const PAYMENT_STATUS_LABEL: Record<string, string> = {
   PAID: "Payment successful",
   PENDING: "Payment pending",
   FAILED: "Payment failed",
+  CANCELLED: "Payment cancelled",
+  REFUNDED: "Refunded",
 };
 
 export default async function PrintInvoicePage({ params }: { params: Promise<{ id: string }> }) {
@@ -30,6 +35,21 @@ export default async function PrintInvoicePage({ params }: { params: Promise<{ i
     getTenantById(session.tenantId),
   ]);
   if (!order || !tenant) notFound();
+
+  // Unpaid UPI bill: a scan-to-pay QR carrying the exact amount and the bill
+  // reference. Scanning/paying never flips the status — the merchant confirms.
+  let upiQr: { dataUrl: string; upiId: string; uri: string } | null = null;
+  if (order.paymentMethod === "UPI" && order.paymentStatus === "PENDING" && tenant.upiId) {
+    const code = invoiceCode(tenant.name, order.orderNumber);
+    const qr = await buildUpiQr({
+      upiId: tenant.upiId,
+      payeeName: tenant.upiPayeeName || tenant.name,
+      amountCents: order.totalCents,
+      note: `Bill ${code}`,
+      reference: code,
+    });
+    upiQr = { dataUrl: qr.qrDataUrl, upiId: tenant.upiId, uri: qr.uri };
+  }
 
   return (
     <InvoiceView
@@ -51,6 +71,8 @@ export default async function PrintInvoicePage({ params }: { params: Promise<{ i
       totalCents={order.totalCents}
       paymentMethod={PAYMENT_METHOD_LABEL[order.paymentMethod] ?? order.paymentMethod}
       paymentStatus={PAYMENT_STATUS_LABEL[order.paymentStatus] ?? order.paymentStatus}
+      paymentSource={order.paymentStatus === "PAID" && order.paymentSource ? paymentSourceDisplay(order) : null}
+      upiQr={upiQr}
       kotHref={`/dashboard/orders/${order.id}/kot`}
     />
   );

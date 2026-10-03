@@ -10,6 +10,7 @@ import {
   type ManualOrderLine,
 } from "@/lib/data/orders";
 import { rupeesToCents } from "@/lib/money";
+import { parsePaymentSourceInput } from "@/lib/payment-sources";
 import type { FulfillmentType, PaymentMethod } from "@prisma/client";
 
 export type CreateManualOrderState = { error: string | null };
@@ -69,6 +70,14 @@ export async function createManualOrderAction(
       tableLabel: tableLabel || null,
       paymentMethod,
       markAsPaid,
+      ...(() => {
+        const p = parsePaymentSourceInput({
+          source: formData.get("paymentSource"),
+          label: formData.get("paymentSourceLabel"),
+          reference: formData.get("paymentReference"),
+        });
+        return { paymentSource: p.source, paymentSourceLabel: p.label, paymentReference: p.reference };
+      })(),
       notes: notes || null,
       ...(discountMode === "percent"
         ? { discountPercent: discountRupees ? Number(discountRupees) : 0 }

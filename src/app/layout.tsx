@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import { ThemeInitScript } from "@/components/theme/theme-init-script";
 import { JsonLd } from "@/components/seo/json-ld";
@@ -53,6 +53,14 @@ const organizationJsonLd = {
     telephone: PHONE_TEL.replace("tel:", ""),
     contactType: "customer service",
   },
+};
+
+// Fit edge-to-edge on notched iPhones/iPads (paired with the safe-area padding
+// in globals.css); pinch-zoom stays allowed for accessibility.
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+  viewportFit: "cover",
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
