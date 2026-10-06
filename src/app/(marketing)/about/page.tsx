@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { BUSINESS_NAME } from "@/lib/contact";
+import { BUSINESS_NAME, BUSINESS_FOUNDER, BUSINESS_ADDRESS_DISPLAY, BUSINESS_EMAIL } from "@/lib/contact";
 
 export const metadata: Metadata = {
   title: "About Us",
@@ -25,7 +25,24 @@ export default function AboutPage() {
         pay by UPI QR code or cash on delivery, no app download required on either side.
       </p>
 
-      <p className="mt-4">BhojSetu is built and operated by {BUSINESS_NAME}.</p>
+      <p className="mt-4">
+        Real restaurants already running their ordering on BhojSetu include{" "}
+        <strong className="text-gray-900 dark:text-white">Urban Bake House</strong> and{" "}
+        <strong className="text-gray-900 dark:text-white">Delhi Dhaba</strong>, both in New Delhi.
+      </p>
+
+      <p className="mt-4">
+        BhojSetu is built and operated by {BUSINESS_NAME}, founded by {BUSINESS_FOUNDER} in 2026 and
+        based at {BUSINESS_ADDRESS_DISPLAY}.
+      </p>
+
+      <p className="mt-4">
+        Reach us at{" "}
+        <a href={`mailto:${BUSINESS_EMAIL}`} className="text-indigo-600 hover:underline dark:text-indigo-400">
+          {BUSINESS_EMAIL}
+        </a>
+        .
+      </p>
 
       <p className="mt-4">
         Have questions before signing up? See our{" "}

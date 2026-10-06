@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { WhatsAppIcon } from "@/components/marketing/whatsapp-icon";
-import { BUSINESS_NAME, PHONE_DISPLAY, PHONE_TEL, WHATSAPP_URL } from "@/lib/contact";
+import { BUSINESS_NAME, BUSINESS_EMAIL, PHONE_DISPLAY, PHONE_TEL, WHATSAPP_URL } from "@/lib/contact";
 
 export const metadata: Metadata = {
   title: "Contact Us",
@@ -42,6 +42,19 @@ export default function ContactPage() {
           <div>
             <p className="text-sm font-semibold text-gray-900 dark:text-white">Call us</p>
             <p className="text-xs text-gray-500">{PHONE_DISPLAY}</p>
+          </div>
+        </a>
+
+        <a
+          href={`mailto:${BUSINESS_EMAIL}`}
+          className="flex w-fit items-center gap-3 rounded-lg border border-gray-200 bg-white px-4 py-3 shadow-sm hover:-translate-y-0.5 hover:shadow-md dark:bg-[#241d17]"
+        >
+          <span className="flex h-9 w-9 items-center justify-center rounded-full bg-indigo-100 text-indigo-600 dark:bg-indigo-500/20 dark:text-indigo-300">
+            ✉
+          </span>
+          <div>
+            <p className="text-sm font-semibold text-gray-900 dark:text-white">Email us</p>
+            <p className="text-xs text-gray-500">{BUSINESS_EMAIL}</p>
           </div>
         </a>
       </div>

@@ -22,6 +22,8 @@ export interface BlogPost {
   title: string;
   description: string;
   publishedAt: string; // ISO date, also used as the display date
+  /** BCP 47 language tag for this post's body copy. Defaults to "en" when omitted — only set for a non-English post (e.g. "hi"), so the page can set a correct lang attribute on its content for accessibility/SEO instead of inheriting the root layout's hardcoded lang="en". */
+  lang?: string;
   intro: string[];
   sections: BlogSection[];
   faqs: BlogFaq[];
@@ -275,6 +277,330 @@ export const BLOG_POSTS: BlogPost[] = [
       {
         q: "How much does restaurant billing software cost in India?",
         a: "It varies by vendor and plan, but as a real reference point, BhojSetu's plans start at ₹499/month for menu, ordering, billing/invoicing, and QR table ordering, with a 7-day free trial to test it before paying anything.",
+      },
+    ],
+  },
+  {
+    slug: "qr-table-ordering-delhi",
+    title: "QR Table Ordering for Cafes and Restaurants in Delhi",
+    description:
+      "How Delhi restaurants and cafes are putting a QR code on every table instead of printed menus and order pads — what it actually changes for a dine-in customer and for the kitchen, with real Delhi restaurants already running it.",
+    publishedAt: "2026-10-06",
+    intro: [
+      "Walk into almost any newer cafe in Delhi now and the menu is a code on the table, not a laminated card. For the restaurant, the appeal isn't the novelty — it's that a QR code replaces three things at once: the printed menu (which goes out of date the moment a price changes), the waiter taking down a dine-in order by hand, and the walk between the table and the billing counter.",
+      "Two real Delhi restaurants already run their dine-in ordering this way on BhojSetu: Urban Bake House in Hari Nagar, and Delhi Dhaba.",
+    ],
+    sections: [
+      {
+        heading: "What actually happens when a customer scans the code",
+        paragraphs: [
+          "Each table gets its own QR code, generated and printed from the restaurant's own dashboard. Scanning it opens that restaurant's menu in the customer's own phone browser — no app to install — with the table number already filled in. The customer browses, adds items, and places the order themselves; it lands straight in the restaurant's live order dashboard and, where the kitchen uses a KOT screen, routes to the right station automatically.",
+          "Nothing about this requires replacing how the restaurant already runs service — a table can still flag down a waiter for anything the code doesn't cover, and dine-in sits alongside the same takeaway and delivery flow the restaurant already uses for its storefront link.",
+        ],
+      },
+      {
+        heading: "Why this matters more for Delhi specifically",
+        paragraphs: [
+          "Dense markets and malls with heavy footfall traffic — Hari Nagar, Lajpat Nagar, Connaught Place, GK — are exactly where a slow order-taking process compounds the fastest: every extra minute between a table sitting down and their order reaching the kitchen is a table that turns over slower on a busy Friday night. A printed QR code at the table removes that wait without needing more waitstaff.",
+          "It also sidesteps a cost that's specific to delivery, not dine-in: a customer sitting in the restaurant placing a dine-in order through BhojSetu's own storefront link isn't going through Zomato or Swiggy at all, so there's no aggregator commission on that order in the first place.",
+        ],
+      },
+      {
+        heading: "What this doesn't replace",
+        paragraphs: [
+          "A QR code is an ordering channel, not a substitute for service — it works best for a table that wants to order at their own pace, and it still needs a staff member to actually bring the food and handle anything a phone screen can't (a special request, a question about an ingredient, splitting a bill a particular way).",
+        ],
+      },
+    ],
+    faqs: [
+      {
+        q: "Do customers need to download an app to order from a table QR code?",
+        a: "No — scanning the code opens the restaurant's menu directly in the phone's own browser. Nothing to install on either side.",
+      },
+      {
+        q: "Does a QR code replace waitstaff?",
+        a: "No. It replaces the printed menu and the manual step of a waiter writing down and walking over an order — a staff member still serves the table and handles anything outside what a phone screen can do.",
+      },
+      {
+        q: "Can a restaurant still take walk-in orders at the counter alongside table QR ordering?",
+        a: "Yes — dine-in QR orders land in the same order dashboard as counter billing, takeaway, and delivery orders, so staff work from one queue rather than several separate systems.",
+      },
+      {
+        q: "Which Delhi restaurants are already using QR table ordering on BhojSetu?",
+        a: "Urban Bake House in Hari Nagar and Delhi Dhaba both run their dine-in ordering this way today.",
+      },
+    ],
+  },
+  {
+    slug: "best-restaurant-billing-software-india",
+    title: "Best Restaurant Billing Software for Small Restaurants in India (2026)",
+    description:
+      "An honest roundup of restaurant billing and ordering software in India — Petpooja, Posist, DineOpen, myBillBook, QR-only tools, and where BhojSetu fits — with a price table, not just marketing copy.",
+    publishedAt: "2026-10-06",
+    intro: [
+      "Most \"best restaurant software\" roundups are written by the vendor they end up recommending. This one is too — BhojSetu is included, and we're not pretending otherwise — but it's laid out so you can actually tell who else is worth looking at and why, not just take our word for it.",
+      "The honest starting point: these tools aren't all solving the same problem. A few are full point-of-sale systems built for large chains, a few are QR-ordering add-ons that sit alongside whatever billing system you already have, and a few (BhojSetu included) try to cover ordering and billing together in one flat-fee product. Picking the \"best\" one depends on which of those you actually are.",
+    ],
+    sections: [
+      {
+        heading: "Full POS / restaurant management platforms",
+        paragraphs: [
+          "These cover billing, KOT, inventory, staff, and usually a lot more — built for restaurants that want one system running the whole back-of-house, often with a dedicated POS terminal.",
+        ],
+        list: [
+          "Petpooja — one of the most widely used restaurant POS platforms in India; billing, KOT, inventory, staff attendance, and dozens of integrations. Pricing isn't published — you get a quote after a demo call; independent estimates put real-world cost (including hardware and setup) well above a flat SaaS subscription. See our full BhojSetu vs Petpooja comparison.",
+          "Posist — an enterprise-grade cloud POS, in the market since 2012, built for large multi-outlet chains and QSR brands rather than a single small restaurant; billing, CRM, inventory, recipe/wastage management, and centralized multi-outlet menu control.",
+          "DineOpen — a broader \"restaurant operating system\" with an AI agent for voice/chat ordering alongside cloud POS, a waiter app, reservations, and loyalty. Unusually for this category, it does publish pricing — tiers starting around ₹300/month for a single outlet, scaling up for chains. See our full BhojSetu vs DineOpen comparison.",
+        ],
+      },
+      {
+        heading: "Simple GST billing tools",
+        paragraphs: [
+          "myBillBook is a general small-business billing/accounting app with a dedicated restaurant mode — GST-compliant invoicing, basic inventory alerts, order management, and a QR-based digital menu. It's lighter-weight than a full restaurant POS, closer to \"billing software that also happens to handle a restaurant's menu\" than a ground-up restaurant platform.",
+        ],
+      },
+      {
+        heading: "QR-ordering-only tools",
+        paragraphs: [
+          "A separate category worth knowing about: tools that only add QR table ordering on top of whatever billing system a restaurant already runs, rather than replacing it.",
+        ],
+        list: [
+          "Orderzy — QR table ordering with a live kitchen queue and a \"pay one combined bill at the end\" dining-session model; free for the restaurant, with diners paying a small platform fee per order at checkout.",
+          "Ahaar Scan — flat-rate QR ordering (from ₹399/month) for dine-in, takeaway, and delivery, with a real-time order dashboard.",
+          "Neither of these is a billing/invoicing system on its own — they're an ordering layer meant to sit alongside a restaurant's existing POS or billing tool.",
+        ],
+      },
+      {
+        heading: "Where BhojSetu fits",
+        paragraphs: [
+          "BhojSetu doesn't split ordering and billing into separate tools or separate costs: a public menu link with QR table ordering, GST-ready printable invoices and KOT split by kitchen station, and inventory with low-stock alerts are all included starting at the Starter plan — no separate POS terminal, no per-order commission, no quote-only sales call. Plans start at ₹499/month with a 7-day free trial.",
+          "That's the honest pitch: if you're a smaller restaurant that wants ordering and billing together without taking on a full enterprise POS project, BhojSetu is built for exactly that gap. If you're running a large multi-outlet chain that needs deep staff/vendor/recipe management, Posist or Petpooja's broader suites are built for that scale instead.",
+        ],
+      },
+    ],
+    faqs: [
+      {
+        q: "What's actually the cheapest restaurant billing software in India?",
+        a: "It depends what you need included. Among tools that publish pricing, BhojSetu starts at ₹499/month with ordering, billing, QR tables, inventory, and KOT all included; DineOpen's entry tier is advertised around ₹300/month but is scoped to a single outlet with more features gated to higher tiers. Petpooja and Posist don't publish pricing, so their real monthly cost (plus hardware and setup) only becomes clear after a sales call.",
+      },
+      {
+        q: "Do I need a full POS system, or is a simpler tool enough?",
+        a: "If you're a single-outlet restaurant or cafe mainly focused on getting orders in and bills out correctly, a full enterprise POS (built for multi-outlet chains) is often more system than you need. A flat-fee platform that covers ordering, billing, KOT, and inventory together is usually the better fit at that size.",
+      },
+      {
+        q: "Is a QR-ordering-only tool like Orderzy or Ahaar Scan enough on its own?",
+        a: "Not as your only system — they add QR table ordering but aren't a billing/invoicing/GST-compliant system by themselves, so you'd still need a separate billing tool alongside one. A combined platform avoids running two separate systems for the same order.",
+      },
+      {
+        q: "Which of these actually publish their pricing?",
+        a: "BhojSetu and DineOpen both publish real pricing on their own sites. Petpooja and Posist are quote-only — you get pricing after a demo/sales call. Ahaar Scan also publishes a flat starting price. Always check the vendor's current pricing page directly, since this changes.",
+      },
+    ],
+  },
+  {
+    slug: "petpooja-alternatives",
+    title: "Petpooja Alternatives for Small Restaurants and Cafes",
+    description:
+      "If Petpooja's quote-only enterprise POS feels like more system (and sales process) than your restaurant needs, here's what the actual alternatives look like — including BhojSetu.",
+    publishedAt: "2026-10-06",
+    intro: [
+      "Petpooja is a genuinely capable restaurant POS platform, widely used across India — but it's built around a dedicated POS terminal, a sales-assisted demo-call onboarding, and pricing that isn't published, which is a fit for some restaurants and real friction for others, especially a smaller single-outlet place that just wants to start taking orders.",
+      "If you're looking at Petpooja and wondering what else is out there, here's an honest map of the actual alternatives, not just a list of names.",
+    ],
+    sections: [
+      {
+        heading: "If you want flat, published pricing and no hardware — BhojSetu",
+        paragraphs: [
+          "BhojSetu covers the same core ground a smaller restaurant actually needs from Petpooja — ordering, GST billing/invoicing, KOT by kitchen station, and inventory — as a browser-based platform with no POS terminal to buy, self-serve sign-up, and flat pricing from ₹499/month published openly on the pricing page. See the full side-by-side in our BhojSetu vs Petpooja comparison.",
+        ],
+      },
+      {
+        heading: "If you specifically want AI-driven automation — DineOpen",
+        paragraphs: [
+          "DineOpen takes a different angle on the same quote-only-pricing complaint — it publishes its pricing too, and adds an AI agent for voice/chat ordering, a waiter app, and reservations on top of cloud POS. Worth a look if that automation is specifically what you're after. See our BhojSetu vs DineOpen comparison.",
+        ],
+      },
+      {
+        heading: "If your restaurant is actually enterprise-scale — Posist",
+        paragraphs: [
+          "If you're running a large multi-outlet chain or QSR brand and the reason you're looking at Petpooja in the first place is deep staff, vendor, and recipe-management tooling at scale, Posist is built for exactly that tier — it's not really a smaller-restaurant alternative, it's a peer enterprise platform.",
+        ],
+      },
+      {
+        heading: "If you only need simple GST billing — myBillBook",
+        paragraphs: [
+          "If your restaurant's actual pain point is just \"I need a proper GST invoice, not a full POS project,\" myBillBook's restaurant mode covers GST-compliant billing, basic inventory alerts, and a QR menu — lighter-weight than a full platform, closer to billing software with a restaurant layer than a ground-up restaurant system.",
+        ],
+      },
+    ],
+    faqs: [
+      {
+        q: "Why look for a Petpooja alternative at all?",
+        a: "Common reasons: Petpooja's pricing isn't published so the real cost is only clear after a sales call; it's built around dedicated POS hardware; and its full feature depth (staff attendance, vendor management, multi-outlet tooling) is more than a single small restaurant typically needs day one.",
+      },
+      {
+        q: "Is BhojSetu a direct replacement for Petpooja?",
+        a: "Not feature-for-feature — Petpooja's broader suite (payroll/attendance, vendor management) isn't something BhojSetu offers. For the core of running orders and billing at a smaller restaurant, though, BhojSetu covers it without the hardware or sales call.",
+      },
+      {
+        q: "Can I switch from Petpooja without losing my menu?",
+        a: "Yes — rebuild your menu by hand, by uploading a photo of your existing paper or printed menu, or with AI-assisted import that reads items in automatically for you to review before saving.",
+      },
+    ],
+  },
+  {
+    slug: "restaurant-software-cost-india",
+    title: "How Much Does Restaurant Software Cost in India?",
+    description:
+      "Flat subscription, quote-only enterprise pricing, or per-order commission — the three real pricing models behind restaurant software in India, what each actually costs, and what the headline price usually doesn't include.",
+    publishedAt: "2026-10-06",
+    intro: [
+      "\"How much does restaurant software cost\" doesn't have one answer, because the vendors in this market don't price the same way at all. Before comparing any two options on cost, it helps to know which of three pricing models you're actually looking at.",
+    ],
+    sections: [
+      {
+        heading: "Model 1: Flat monthly subscription, published upfront",
+        paragraphs: [
+          "A fixed price per month, listed on the vendor's own pricing page, usually scaling by feature tier rather than order volume. This is the easiest to budget for and the easiest to compare, because the number is the number.",
+        ],
+        list: [
+          "BhojSetu — ₹499 to ₹999/month depending on tier, with menu/ordering/billing/QR tables/inventory/KOT included at every tier",
+          "DineOpen — advertised from around ₹300/month for a single outlet, scaling up for multi-outlet chains, with more automation features gated to higher tiers",
+          "Ahaar Scan (QR ordering only, not full billing) — from ₹399/month",
+        ],
+      },
+      {
+        heading: "Model 2: Quote-only enterprise pricing",
+        paragraphs: [
+          "No price on the website — you book a demo, a sales team scopes your restaurant, and you get a custom quote. This isn't inherently a red flag (it's standard for enterprise software generally), but it means the real monthly cost is unknown until you're already partway through a sales process, and it typically bundles in costs a flat-fee product wouldn't have in the first place.",
+          "Petpooja and Posist both work this way. For Petpooja specifically, independent third-party estimates (not Petpooja's own published figures, since none exist) put real-world monthly cost in a wide ₹3,000–₹12,000+ range once hardware, setup fees, and GST are factored in — treat that as a rough industry estimate to sanity-check a quote against, not a guaranteed number.",
+        ],
+      },
+      {
+        heading: "Model 3: Per-order commission, no upfront fee",
+        paragraphs: [
+          "This is how aggregators like Zomato and Swiggy actually make money — no flat software fee, but a commission cut of every order that goes through their platform. It can look \"free\" because there's no subscription line item, but it scales with your sales rather than staying fixed, and it comes with no direct customer relationship (the aggregator owns the customer's phone number and order history, not you). We've covered this model in more depth in our guide to reducing Zomato/Swiggy commission.",
+        ],
+      },
+      {
+        heading: "Costs that hide below the headline price, regardless of model",
+        paragraphs: [
+          "Whichever model you're comparing, check these specifically before assuming the headline number is the real number:",
+        ],
+        list: [
+          "Per-device or per-login limits — does a second staff login or a second screen (counter + kitchen) cost extra?",
+          "Dedicated POS hardware — is a terminal required, and is it included or billed separately?",
+          "Payment gateway commission on top of the software's own fee, for card/online payments specifically (UPI and cash typically have no such cut)",
+          "Setup/onboarding fees charged once, separately from the recurring price",
+          "GST on the subscription itself (18% is standard on SaaS in India) — ask whether a quoted price already includes it",
+        ],
+      },
+    ],
+    faqs: [
+      {
+        q: "Why don't all restaurant software vendors publish their pricing?",
+        a: "Enterprise-oriented platforms (Petpooja, Posist) are typically scoped per restaurant — outlet count, hardware needs, integrations — so a single published number wouldn't actually be accurate for most buyers. The tradeoff is that you don't know your real cost until after a sales conversation.",
+      },
+      {
+        q: "Is a per-order commission model ever cheaper than a flat subscription?",
+        a: "It can be, at very low order volumes, since there's no fixed monthly cost. It almost always gets more expensive than a flat subscription as volume grows, which is exactly why restaurants with meaningful order volume look for a direct, commission-free ordering channel alongside aggregators.",
+      },
+      {
+        q: "What does BhojSetu actually include at ₹499/month, with nothing extra?",
+        a: "Menu management, order management and GST-ready billing/invoicing, QR table ordering, inventory and stock tracking with low-stock alerts, and KOT screens/printing by kitchen station — all included at the Starter tier, with no per-order commission and no required hardware purchase.",
+      },
+    ],
+  },
+  {
+    slug: "chhote-restaurant-ke-liye-billing-software",
+    title: "छोटे रेस्टोरेंट के लिए बिलिंग सॉफ्टवेयर: पूरी गाइड (2026)",
+    description:
+      "भारत में रेस्टोरेंट बिलिंग और ऑर्डरिंग सॉफ्टवेयर चुनते समय असल में क्या मायने रखता है — प्राइसिंग मॉडल, GST इनवॉइसिंग, KOT, इन्वेंटरी, और साइन अप करने से पहले एक व्यावहारिक चेकलिस्ट।",
+    publishedAt: "2026-10-06",
+    lang: "hi",
+    intro: [
+      "\"रेस्टोरेंट सॉफ्टवेयर\" या \"restaurant billing software India\" सर्च करने पर आपको वेंडर्स की एक लंबी लिस्ट मिलेगी, जिनमें से हर कोई खुद को हर रेस्टोरेंट के लिए सबसे सही बताता है। यह तुलना करने का सही तरीका नहीं है — 20 टेबल वाले डाइन-इन रेस्टोरेंट, सिर्फ डिलीवरी करने वाली क्लाउड किचन, और एक बेकरी काउंटर की ज़रूरतें बिल्कुल अलग होती हैं।",
+      "यह गाइड मार्केटिंग भाषा छोड़कर सीधे उन बातों पर आती है जो असल में चेक करनी चाहिए — आपके रेस्टोरेंट को सॉफ्टवेयर से क्या-क्या चाहिए, प्राइसिंग में असली लागत कहाँ छुपी होती है, और कमिट करने से पहले एक practical checklist।",
+    ],
+    sections: [
+      {
+        heading: "\"रेस्टोरेंट सॉफ्टवेयर\" में असल में क्या होना चाहिए",
+        paragraphs: [
+          "यह शब्द कई अलग चीज़ों के लिए इस्तेमाल होता है — एक QR मेन्यू मेकर, एक POS टर्मिनल, एक इन्वेंटरी टूल, या किसी एग्रीगेटर का अपना डैशबोर्ड। रोज़ असली ऑर्डर लेने वाले रेस्टोरेंट के लिए एक पूरा प्लेटफ़ॉर्म इन सबको कवर करता है, सिर्फ किसी एक को नहीं:",
+        ],
+        list: [
+          "एक पब्लिक ऑर्डरिंग मेन्यू जिससे ग्राहक असल में ऑर्डर कर सकें — सिर्फ मेन्यू की PDF या फोटो नहीं",
+          "डाइन-इन टेबल ऑर्डरिंग (आमतौर पर QR कोड से), टेकअवे और डिलीवरी के साथ",
+          "बिलिंग और इनवॉइसिंग जो GST-ready हो — सिर्फ रसीद के नीचे टोटल नहीं",
+          "किचन ऑर्डर टिकट (KOT) ताकि किचन को ऑर्डर साफ़-साफ़ दिखे, न कि ज़बानी बताया जाए",
+          "बेसिक इन्वेंटरी/स्टॉक ट्रैकिंग, ताकि खत्म हो चुकी चीज़ का ऑर्डर फिर भी न आ जाए",
+          "ग्राहक के पेमेंट करने का तरीका — कम से कम UPI और कैश ऑन डिलीवरी",
+        ],
+      },
+      {
+        heading: "प्राइसिंग मॉडल — वह डिटेल जो आसानी से छूट जाती है",
+        paragraphs: [
+          "दो रेस्टोरेंट एक जैसे दिखने वाले सॉफ्टवेयर के लिए बिल्कुल अलग असली कीमत चुका सकते हैं, और इसकी वजह आमतौर पर ये तीन चीज़ें होती हैं जो हेडलाइन प्राइस के नीचे छुपी रहती हैं:",
+        ],
+        list: [
+          "डिवाइस या लॉगिन की लिमिट — कुछ प्लान दूसरे स्टाफ मेंबर के एक साथ लॉगिन करते ही एक्स्ट्रा चार्ज कर देते हैं, जो तब बहुत मायने रखता है जब काउंटर और किचन स्क्रीन दोनों एक साथ चल रही हों",
+          "मंथली प्राइस से अलग सेटअप या ऑनबोर्डिंग फीस",
+          "सॉफ्टवेयर की अपनी फीस के ऊपर पेमेंट गेटवे कमीशन — UPI QR कोड या कैश पेमेंट पर ऐसा कोई कट नहीं होता, लेकिन कार्ड/ऑनलाइन पेमेंट गेटवे पर अक्सर होता है",
+        ],
+      },
+      {
+        heading: "GST बिलिंग और इनवॉइसिंग — यह ज़रूरी है, सिर्फ अच्छी बात नहीं",
+        paragraphs: [
+          "रेस्टोरेंट एक असली, टैक्स योग्य बिज़नेस है, और \"GST बाद में जोड़ देंगे\" अक्सर सस्ते या नए टूल्स में एक बड़ी कमी होती है। साइन अप करने से पहले चेक करें कि प्लेटफ़ॉर्म असल में सही इनवॉइस बना सकता है — आपका बिज़नेस नाम, एड्रेस और GSTIN उस पर हो, टैक्स रेट सही से लगा हो, और एक असली इनवॉइस नंबर हो जो आप बिना झिझक किसी टैक्स ऑडिटर को दिखा सकें। जो टूल सिर्फ एक प्लेन टोटल प्रिंट करता है, वह बिलिंग सॉफ्टवेयर नहीं, सिर्फ रसीद प्रिंटर है।",
+        ],
+      },
+      {
+        heading: "इन्वेंटरी और KOT — जहाँ कई \"ऑर्डर मैनेजमेंट\" टूल्स अधूरे रह जाते हैं",
+        paragraphs: [
+          "बहुत से ऑर्डरिंग टूल्स ग्राहक वाला मेन्यू पार्ट तो अच्छे से संभाल लेते हैं, लेकिन वहीं रुक जाते हैं। दो चीज़ें खासतौर पर चेक करने लायक हैं:",
+        ],
+        list: [
+          "किचन ऑर्डर टिकट (KOT) — क्या किचन को हर ऑर्डर का साफ़, प्रिंटेड या स्क्रीन पर टिकट मिलता है (हो सके तो स्टेशन के हिसाब से बंटा हुआ — ग्रिल, बार, डेज़र्ट), या किसी को ज़बानी ऑर्डर बताना पड़ता है?",
+          "स्टॉक ट्रैकिंग — क्या कोई आइटम बिकने पर उसका स्टॉक काउंट असल में कम होता है, और क्या सिस्टम आपको बताता है (या आइटम को छुपा देता है) जब वह खत्म हो जाए, या \"सोल्ड आउट\" अभी भी स्टाफ को याद रखकर बताना पड़ता है?",
+        ],
+      },
+      {
+        heading: "साइन अप करने से पहले एक practical checklist",
+        paragraphs: [
+          "किसी भी प्लेटफ़ॉर्म को जांचते समय यह लिस्ट इस्तेमाल करें, BhojSetu समेत:",
+        ],
+        list: [
+          "क्या मैं एक असली, काम करने वाला डेमो स्टोरफ्रंट देख सकता हूँ — सिर्फ स्क्रीनशॉट नहीं?",
+          "क्या प्रिंटेड इनवॉइस में मेरे बिज़नेस डिटेल्स के साथ GST सही से दिखता है?",
+          "क्या असली फ्री ट्रायल है, या टेस्ट करने के लिए पहले पेमेंट करना पड़ता है?",
+          "अगर मैं दूसरा स्टाफ लॉगिन या दूसरा डिवाइस जोड़ूं तो असल में क्या बदलता है?",
+          "क्या ग्राहक बिना एक्स्ट्रा पेमेंट-गेटवे कट के UPI या कैश से पेमेंट कर सकते हैं?",
+          "क्या डाइन-इन टेबल ऑर्डरिंग है, या सिर्फ टेकअवे/डिलीवरी?",
+        ],
+      },
+      {
+        heading: "इस checklist पर BhojSetu कहाँ फिट होता है",
+        paragraphs: [
+          "BhojSetu इस लिस्ट के हर पॉइंट को सीधे कवर करता है: डाइन-इन के लिए QR टेबल ऑर्डरिंग के साथ एक असली डिजिटल मेन्यू, आपके बिज़नेस डिटेल्स के साथ GST-ready प्रिंटेबल इनवॉइस, किचन स्टेशन के हिसाब से बंटे किचन ऑर्डर टिकट, लो-स्टॉक अलर्ट के साथ इन्वेंटरी और स्टॉक ट्रैकिंग, और बिना किसी पर-ऑर्डर कमीशन के UPI QR / कैश ऑन डिलीवरी चेकआउट। प्लान ₹499/महीने से शुरू होते हैं, 7 दिन के फ्री ट्रायल के साथ — टेस्ट करने के लिए क्रेडिट कार्ड की ज़रूरत नहीं।",
+        ],
+      },
+    ],
+    faqs: [
+      {
+        q: "QR मेन्यू टूल और पूरे रेस्टोरेंट सॉफ्टवेयर में असली फर्क क्या है?",
+        a: "QR मेन्यू टूल आमतौर पर सिर्फ डिजिटल मेन्यू दिखाता है — यह असली ऑर्डर नहीं लेता, GST इनवॉइस नहीं बनाता, किचन टिकट प्रिंट नहीं करता, और स्टॉक ट्रैक नहीं करता। पूरा रेस्टोरेंट सॉफ्टवेयर ऑर्डरिंग, बिलिंग, KOT, और इन्वेंटरी — सबको साथ कवर करता है, सिर्फ मेन्यू दिखाना नहीं।",
+      },
+      {
+        q: "क्या भारत में रेस्टोरेंट के लिए GST बिलिंग ज़रूरी है?",
+        a: "GST रजिस्ट्रेशन और इनवॉइसिंग की ज़रूरत आपके टर्नओवर और राज्य के नियमों पर निर्भर करती है — यह कानूनी सलाह नहीं है, और अपनी असली ज़िम्मेदारी किसी टैक्स प्रोफेशनल से कन्फर्म करें। लेकिन यह हमेशा सच है: अगर आपको GST लगाना ज़रूरी है, तो आपके बिलिंग सॉफ्टवेयर को एक सही, कम्प्लायंट इनवॉइस बनाना आना चाहिए, सिर्फ प्लेन टोटल नहीं।",
+      },
+      {
+        q: "क्या रेस्टोरेंट बिलिंग सॉफ्टवेयर के लिए अलग से POS हार्डवेयर चाहिए?",
+        a: "ज़रूरी नहीं — आजकल के ब्राउज़र-बेस्ड प्लेटफ़ॉर्म बिल, इनवॉइस, और किचन टिकट सीधे लैपटॉप, टैबलेट या फ़ोन से किसी भी प्रिंटर पर प्रिंट कर सकते हैं (थर्मल/रसीद प्रिंटर समेत), बिना किसी डेडिकेटेड POS टर्मिनल के।",
+      },
+      {
+        q: "भारत में रेस्टोरेंट बिलिंग सॉफ्टवेयर की कीमत कितनी होती है?",
+        a: "यह वेंडर और प्लान पर निर्भर करता है, लेकिन एक असली रेफरेंस पॉइंट के तौर पर, BhojSetu के प्लान ₹499/महीने से शुरू होते हैं — मेन्यू, ऑर्डरिंग, बिलिंग/इनवॉइसिंग, और QR टेबल ऑर्डरिंग के साथ, 7 दिन के फ्री ट्रायल के साथ टेस्ट करने के लिए।",
       },
     ],
   },

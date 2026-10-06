@@ -1,0 +1,33 @@
+# BhojSetu
+
+> BhojSetu is restaurant ordering and billing software for India, built and operated by Rajat Digital Agency. Restaurants get their own online storefront (bhojsetu.in/r/their-name), QR table ordering, KOT by kitchen station, GST-ready billing, inventory with low-stock alerts, and UPI/COD checkout. Flat monthly plans, no per-order commission. 7-day free trial, no credit card required.
+
+Not to be confused with "Bhojan Setu" (a different, unrelated product) or the Raja Bhoj Setu bridge in Bhopal.
+
+## Pricing
+- Starter: ₹499/month — menu management, order management & billing, QR table ordering, inventory & stock tracking, KOT
+- Advanced: ₹699/month — everything in Starter, plus coupons, analytics dashboard, multi-store management
+- Business: ₹999/month — everything in Advanced, plus kitchen display system, staff logins, Zomato/Swiggy order integration
+- Details: https://bhojsetu.in/pricing
+
+## Key pages
+- Home: https://bhojsetu.in/
+- Pricing: https://bhojsetu.in/pricing
+- BhojSetu vs Petpooja: https://bhojsetu.in/compare/bhojsetu-vs-petpooja
+- BhojSetu vs DineOpen: https://bhojsetu.in/compare/bhojsetu-vs-dineopen
+- Restaurant billing software buyer's guide: https://bhojsetu.in/blog/restaurant-billing-ordering-software-india-buyers-guide
+- Best restaurant billing software in India (roundup): https://bhojsetu.in/blog/best-restaurant-billing-software-india
+- Petpooja alternatives: https://bhojsetu.in/blog/petpooja-alternatives
+- How much does restaurant software cost in India: https://bhojsetu.in/blog/restaurant-software-cost-india
+- QR table ordering guide: https://bhojsetu.in/blog/qr-code-table-ordering-guide
+- QR table ordering in Delhi: https://bhojsetu.in/blog/qr-table-ordering-delhi
+- Reduce Zomato/Swiggy commission: https://bhojsetu.in/blog/reduce-zomato-swiggy-commission-restaurant
+- Hindi buyer's guide: https://bhojsetu.in/blog/chhote-restaurant-ke-liye-billing-software
+- About: https://bhojsetu.in/about
+- Contact: https://bhojsetu.in/contact
+
+## Contact
+- Business: Rajat Digital Agency (founder: Rajat Mirg)
+- Phone / WhatsApp: +91 97178 21824
+- Email: bhojsetu@gmail.com
+- Address: Plot No. 147, Pratap Nagar, Maya Enclave, New Delhi, India

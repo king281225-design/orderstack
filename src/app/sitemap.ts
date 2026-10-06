@@ -13,7 +13,8 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const staticRoutes: MetadataRoute.Sitemap = [
     { url: `${SITE_URL}/`, changeFrequency: "weekly", priority: 1 },
     { url: `${SITE_URL}/pricing`, changeFrequency: "monthly", priority: 0.9 },
-    { url: `${SITE_URL}/signup`, changeFrequency: "monthly", priority: 0.8 },
+    // /signup deliberately left out of the sitemap — a conversion form, not a
+    // page worth indexing (flagged in the 6 Oct 2026 visibility audit).
     { url: `${SITE_URL}/about`, changeFrequency: "yearly", priority: 0.5 },
     { url: `${SITE_URL}/contact`, changeFrequency: "yearly", priority: 0.5 },
     { url: `${SITE_URL}/terms`, changeFrequency: "yearly", priority: 0.3 },
@@ -21,6 +22,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     { url: `${SITE_URL}/refund`, changeFrequency: "yearly", priority: 0.3 },
     { url: `${SITE_URL}/blog`, changeFrequency: "weekly", priority: 0.6 },
     { url: `${SITE_URL}/compare/bhojsetu-vs-petpooja`, changeFrequency: "monthly", priority: 0.7 },
+    { url: `${SITE_URL}/compare/bhojsetu-vs-dineopen`, changeFrequency: "monthly", priority: 0.7 },
   ];
 
   const blogRoutes: MetadataRoute.Sitemap = BLOG_POSTS.map((post) => ({

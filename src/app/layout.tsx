@@ -3,7 +3,7 @@ import { Geist, Geist_Mono } from "next/font/google";
 import { ThemeInitScript } from "@/components/theme/theme-init-script";
 import { JsonLd } from "@/components/seo/json-ld";
 import { SITE_URL, SITE_NAME } from "@/lib/site";
-import { WHATSAPP_URL, PHONE_TEL } from "@/lib/contact";
+import { WHATSAPP_URL, PHONE_TEL, BUSINESS_NAME, BUSINESS_FOUNDER, BUSINESS_EMAIL, BUSINESS_ADDRESS } from "@/lib/contact";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -41,12 +41,29 @@ export const metadata: Metadata = {
   },
 };
 
+// Exported so other pages (e.g. the homepage's SoftwareApplication JSON-LD)
+// can reference this exact entity as `publisher: { "@id": ORG_JSON_LD_ID }`
+// instead of repeating the Organization's fields inline.
+export const ORG_JSON_LD_ID = `${SITE_URL}/#org`;
+
+// The legal operating entity is Rajat Digital Agency; BhojSetu is its
+// product/brand name — kept distinct via `brand` (per the visibility audit's
+// recommended schema) so this doesn't read as a business named "BhojSetu".
 const organizationJsonLd = {
   "@context": "https://schema.org",
   "@type": "Organization",
-  name: SITE_NAME,
+  "@id": ORG_JSON_LD_ID,
+  name: BUSINESS_NAME,
+  brand: { "@type": "Brand", name: SITE_NAME },
   url: SITE_URL,
   logo: `${SITE_URL}/brand/front-page-logo.png`,
+  founder: { "@type": "Person", name: BUSINESS_FOUNDER },
+  email: BUSINESS_EMAIL,
+  telephone: PHONE_TEL.replace("tel:", ""),
+  address: {
+    "@type": "PostalAddress",
+    ...BUSINESS_ADDRESS,
+  },
   sameAs: [WHATSAPP_URL],
   contactPoint: {
     "@type": "ContactPoint",

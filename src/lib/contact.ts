@@ -19,6 +19,17 @@ export const PHONE_DISPLAY = "+91 97178 21824";
 export const PHONE_TEL = "tel:+919717821824";
 
 export const BUSINESS_NAME = "Rajat Digital Agency";
+export const BUSINESS_FOUNDER = "Rajat Mirg";
+export const BUSINESS_EMAIL = "bhojsetu@gmail.com";
+
+// Confirmed directly by the user, 2026-10-06 — used in JSON-LD (Organization
+// address) and the About/Contact pages, not just a formatting string.
+export const BUSINESS_ADDRESS = {
+  streetAddress: "Plot No. 147, Pratap Nagar, Maya Enclave",
+  addressLocality: "New Delhi",
+  addressCountry: "IN",
+};
+export const BUSINESS_ADDRESS_DISPLAY = `${BUSINESS_ADDRESS.streetAddress}, ${BUSINESS_ADDRESS.addressLocality}, India`;
 
 // A dedicated, always-on demo storefront (not a real restaurant) seeded via
 // prisma/seed.ts — see that file's own comment for why.

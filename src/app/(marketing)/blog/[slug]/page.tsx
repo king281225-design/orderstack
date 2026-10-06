@@ -23,7 +23,13 @@ export async function generateMetadata({
   return {
     title: post.title,
     description: post.description,
-    alternates: { canonical: url },
+    alternates: {
+      canonical: url,
+      // hreflang: tells search engines which language this specific post's
+      // body copy is in, so a Hindi-language query can surface it directly
+      // instead of the (otherwise identical-looking) English posts.
+      languages: { [post.lang ?? "en"]: url },
+    },
     openGraph: {
       type: "article",
       title: post.title,
@@ -70,17 +76,23 @@ export default async function BlogPostPage({
     })),
   };
 
+  const isHindi = post.lang === "hi";
+
   return (
-    <article className="mx-auto max-w-3xl px-4 py-16">
+    <article className="mx-auto max-w-3xl px-4 py-16" lang={post.lang ?? "en"}>
       <JsonLd data={articleJsonLd} />
       <JsonLd data={faqJsonLd} />
 
       <Link href="/blog" className="text-sm text-indigo-600 hover:underline dark:text-indigo-400">
-        ← All posts
+        {isHindi ? "← सभी पोस्ट" : "← All posts"}
       </Link>
 
       <p className="mt-4 text-xs text-gray-500">
-        {new Date(post.publishedAt).toLocaleDateString("en-IN", { year: "numeric", month: "long", day: "numeric" })}
+        {new Date(post.publishedAt).toLocaleDateString(isHindi ? "hi-IN" : "en-IN", {
+          year: "numeric",
+          month: "long",
+          day: "numeric",
+        })}
       </p>
       <h1 className="mt-1 text-2xl font-bold text-gray-900 dark:text-white sm:text-3xl">{post.title}</h1>
 
@@ -110,20 +122,24 @@ export default async function BlogPostPage({
 
       {post.faqs.length > 0 && (
         <section className="mt-10">
-          <h2 className="mb-4 text-xl font-semibold text-gray-900 dark:text-white">Frequently asked questions</h2>
+          <h2 className="mb-4 text-xl font-semibold text-gray-900 dark:text-white">
+            {isHindi ? "अक्सर पूछे जाने वाले सवाल" : "Frequently asked questions"}
+          </h2>
           <FaqAccordion faqs={post.faqs} columns={2} />
         </section>
       )}
 
       <div className="mt-12 rounded-xl border border-gray-200 bg-indigo-50 p-6 text-center dark:border-gray-700 dark:bg-indigo-500/10">
         <p className="font-medium text-gray-900 dark:text-white">
-          Ready to give your restaurant its own direct ordering channel?
+          {isHindi
+            ? "अपने रेस्टोरेंट का अपना डायरेक्ट ऑर्डरिंग चैनल शुरू करें"
+            : "Ready to give your restaurant its own direct ordering channel?"}
         </p>
         <Link
           href="/signup"
           className="mt-3 inline-block rounded-lg bg-indigo-600 px-5 py-2.5 font-medium text-white hover:bg-indigo-700"
         >
-          Start 7-day free trial
+          {isHindi ? "7 दिन का फ्री ट्रायल शुरू करें" : "Start 7-day free trial"}
         </Link>
       </div>
     </article>
