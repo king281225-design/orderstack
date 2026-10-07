@@ -23,6 +23,7 @@ Not to be confused with "Bhojan Setu" (a different, unrelated product) or the Ra
 - QR table ordering in Delhi: https://bhojsetu.in/blog/qr-table-ordering-delhi
 - Reduce Zomato/Swiggy commission: https://bhojsetu.in/blog/reduce-zomato-swiggy-commission-restaurant
 - Hindi buyer's guide: https://bhojsetu.in/blog/chhote-restaurant-ke-liye-billing-software
+- Live demo storefront: https://bhojsetu.in/r/bhojsetu-demo
 - About: https://bhojsetu.in/about
 - Contact: https://bhojsetu.in/contact
 

@@ -31,9 +31,17 @@ export const BUSINESS_ADDRESS = {
 };
 export const BUSINESS_ADDRESS_DISPLAY = `${BUSINESS_ADDRESS.streetAddress}, ${BUSINESS_ADDRESS.addressLocality}, India`;
 
-// A dedicated, always-on demo storefront (not a real restaurant) seeded via
-// prisma/seed.ts — see that file's own comment for why.
-export const DEMO_STOREFRONT_SLUG = "demo-restaurant";
+// A dedicated, always-on demo storefront (not a real restaurant), seeded via
+// prisma/seed.ts — see that file's own comment for why. This is the ONLY
+// place this slug should be written; prisma/seed.ts imports it rather than
+// hardcoding its own copy, specifically so a second demo tenant with a
+// different slug can never get created by accident again (the 6 Oct 2026
+// visibility audit found two real duplicates — bhojsetu-demo and
+// bhojsetu-demo-2 — because the seed script and this constant had drifted
+// apart and each got created by hand instead). Changed to "bhojsetu-demo"
+// on 2026-10-07 to match the tenant that's actually live in production —
+// "demo-restaurant" (the old value) only ever existed locally.
+export const DEMO_STOREFRONT_SLUG = "bhojsetu-demo";
 
 // What the Help page promises customers about support turnaround. One place to
 // change if the team's real response time changes.

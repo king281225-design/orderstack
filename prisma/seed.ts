@@ -7,6 +7,7 @@ import { PrismaClient } from "@prisma/client";
 import { PrismaMariaDb } from "@prisma/adapter-mariadb";
 import bcrypt from "bcryptjs";
 import { randomUUID } from "node:crypto";
+import { DEMO_STOREFRONT_SLUG } from "@/lib/contact";
 
 const adapter = new PrismaMariaDb(process.env.DATABASE_URL ?? "");
 const prisma = new PrismaClient({ adapter });
@@ -36,9 +37,17 @@ async function main() {
 }
 
 // A dedicated, always-on demo storefront for the marketing homepage to link
-// to (src/lib/contact.ts's DEMO_STOREFRONT_SLUG) — not a real restaurant.
-// Guarded on the slug already existing, so this is safe to leave here
+// to. Guarded on the slug already existing, so this is safe to leave here
 // permanently and re-run on every `npx prisma db seed` without duplicating.
+//
+// DEMO_SLUG is imported from src/lib/contact.ts's DEMO_STOREFRONT_SLUG
+// rather than hardcoded here — a previous version of this file hardcoded
+// its own copy of the same slug, which drifted out of sync with the
+// constant the homepage link actually uses and left production with two
+// real duplicate demo tenants (bhojsetu-demo, bhojsetu-demo-2) and a third,
+// different slug 404ing from the homepage link (flagged in the 6 Oct 2026
+// visibility audit). Importing the one constant makes that drift
+// structurally impossible going forward.
 //
 // Deliberately does NOT import createTenantWithOwner/seedSampleMenu from
 // src/lib/data/* — those files start with `import "server-only"`, which
@@ -46,10 +55,12 @@ async function main() {
 // project's own CLAUDE.md, 2026-09-08 entry). Raw prisma.*.create calls
 // here instead, same workaround already used above for the super-admin
 // bootstrap (bcrypt.hash duplicated rather than importing lib/auth.ts).
+// src/lib/contact.ts has no such guard, so importing its plain string
+// constant is safe.
 //
 // Menu content mirrors SAMPLE_MENU in src/lib/data/menu.ts — keep the two
 // in sync if that list changes.
-const DEMO_SLUG = "demo-restaurant";
+const DEMO_SLUG = DEMO_STOREFRONT_SLUG;
 const DEMO_MENU: { category: string; items: { name: string; priceRupees: number; description: string }[] }[] = [
   {
     category: "Starters",
