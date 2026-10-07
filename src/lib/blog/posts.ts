@@ -604,6 +604,141 @@ export const BLOG_POSTS: BlogPost[] = [
       },
     ],
   },
+  {
+    slug: "kitchen-order-tickets-kot-explained",
+    title: "Kitchen Order Tickets (KOT) Explained: What Every Restaurant Should Know",
+    description:
+      "What a KOT actually is, why a verbal or handwritten order breaks down once a kitchen gets busy, and what to look for in a digital KOT system — station routing, timestamps, and print vs screen.",
+    publishedAt: "2026-10-07",
+    intro: [
+      "\"KOT\" shows up on every restaurant software feature list, but it's worth being precise about what it actually is and why it matters, rather than treating it as a checkbox. A Kitchen Order Ticket is the single source of truth between the front of house and the kitchen for exactly what was ordered — and the gap between a restaurant that has one and a restaurant that doesn't shows up fastest on a busy night, not a quiet one.",
+    ],
+    sections: [
+      {
+        heading: "What a KOT actually is",
+        paragraphs: [
+          "A Kitchen Order Ticket is a printed slip or on-screen ticket, generated the moment an order is placed, listing exactly what was ordered, in what quantity, with any notes (no onions, extra spicy), for a specific table or order number. It's handed to or shown to the kitchen so cooking starts from a written record, not a waiter's memory or a shouted relay across a busy kitchen.",
+          "The alternative — a waiter remembering or verbally relaying an order — works fine at low volume and breaks down predictably as volume increases: items get missed, modifications get dropped, and two tables' orders get crossed. A KOT isn't solving a theoretical problem; it's solving the specific, well-known failure mode of verbal order-taking at scale.",
+        ],
+      },
+      {
+        heading: "Why station routing matters, not just \"a ticket\"",
+        paragraphs: [
+          "A single printed ticket with every item on it works for a small kitchen with one cook. Once a kitchen has distinct stations — grill, bar, dessert, tandoor — a single mixed ticket means every station has to scan past items that aren't theirs to find the ones that are, which is slower and more error-prone than it needs to be.",
+          "A KOT system that routes by station sends the grill items to the grill screen/printer, the drinks to the bar, and so on — each station sees only what it needs to make, and an order with items across three stations becomes three focused tickets instead of one crowded one.",
+        ],
+      },
+      {
+        heading: "Print vs screen — both are legitimate, pick based on your kitchen",
+        paragraphs: [
+          "A printed KOT (thermal/receipt printer at each station) works well when the kitchen is loud, hands are often wet or floury, and a physical slip can be stuck on a rail or spike as a visual record of what's in progress. A screen-based KOT (a tablet or monitor per station) avoids paper entirely and can show live status (new → in progress → ready) without anyone touching a ticket.",
+          "Neither is objectively better — it depends on the kitchen's layout and habits. Worth checking before committing to a platform: does it actually support both, or does it lock you into whichever one the vendor built first?",
+        ],
+      },
+      {
+        heading: "What to check before assuming a tool has \"KOT\"",
+        paragraphs: [
+          "\"Has KOT\" on a feature list can mean very different things in practice. Worth confirming specifically:",
+        ],
+        list: [
+          "Does it route by kitchen station, or is it one ticket with everything on it regardless of kitchen layout?",
+          "Does a dine-in table order, a takeaway order, and a delivery order all generate a KOT the same way, or only some of them?",
+          "Is there a timestamp on the ticket, so the kitchen (and the owner, reviewing later) can see how long an item actually took?",
+          "Does cancelling or modifying an order after it's sent update or reprint the KOT, or does the kitchen keep cooking against a stale ticket?",
+        ],
+      },
+      {
+        heading: "How this works on BhojSetu",
+        paragraphs: [
+          "Every order — dine-in (including QR table orders), takeaway, delivery, and manually entered counter bills — generates a KOT automatically, routed by kitchen station if stations are set up, with both a live on-screen kitchen board and 80mm thermal print support per station or for the whole order. It's included at every plan tier, not held back as an add-on.",
+        ],
+      },
+    ],
+    faqs: [
+      {
+        q: "Does a KOT replace a kitchen display system (KDS)?",
+        a: "A KOT is the ticket/record itself (printed or on-screen); a kitchen display system is typically a larger board view showing all active tickets across stations at once, often with status tracking. BhojSetu's KOT screens handle the per-station ticket view; its separate Kitchen board (available on the Business plan) adds the larger Kanban-style overview on top.",
+      },
+      {
+        q: "Do I need a thermal printer for KOT, or can it be screen-only?",
+        a: "Either works — a thermal/receipt printer at each station, or a tablet/screen showing the live ticket queue. Many kitchens use a mix: print for stations that are hands-dirty or loud, screens where that's less of an issue.",
+      },
+      {
+        q: "Does a manually entered counter order (not through the online menu) still generate a KOT?",
+        a: "It should — a walk-in counter sale is still a real kitchen order. On BhojSetu, manual bills created from the dashboard generate a KOT the same way an online order does, including station routing when the line items are picked from the existing menu.",
+      },
+    ],
+  },
+  {
+    slug: "restaurant-inventory-management-guide-india",
+    title: "Restaurant Inventory Management: A Simple Guide for Small Restaurants in India",
+    description:
+      "Why \"we'll track stock on a notebook\" breaks down, what a restaurant actually needs from inventory software versus a full warehouse system, and how low-stock alerts and recipe-based deduction actually work.",
+    publishedAt: "2026-10-07",
+    intro: [
+      "Inventory management sounds like a bigger, more industrial problem than most small restaurants think they have — which is exactly why so many run it on a notebook, a WhatsApp message to the supplier when something looks low, or pure memory. That works until the day it doesn't: a sold-out item gets ordered anyway, or a popular dish quietly stops being offered because nobody noticed stock was fine until it very suddenly wasn't.",
+    ],
+    sections: [
+      {
+        heading: "What \"inventory\" actually means for a restaurant, vs a warehouse",
+        paragraphs: [
+          "A full warehouse/retail inventory system is built around SKUs, purchase orders, multi-location transfers, and batch/lot tracking — genuinely more machinery than a single restaurant kitchen needs. What a restaurant actually needs is narrower and more specific:",
+        ],
+        list: [
+          "Know how much of each sellable item or ingredient is on hand, right now",
+          "Have that number go down automatically as items sell, not rely on someone remembering to update it",
+          "Get warned before something runs out, not after a customer's order fails",
+          "Optionally, stop customers from even seeing/ordering something that's genuinely at zero stock",
+        ],
+      },
+      {
+        heading: "The core mechanic: selling something should move its stock number",
+        paragraphs: [
+          "This is the part that separates real inventory tracking from a static count somebody updates manually once a week. Every sale — whether it's a customer's online order, a QR table order, or a walk-in counter bill — should reduce the relevant stock count immediately, in the same transaction as the sale itself, not as a separate manual step someone has to remember to do later.",
+          "The practical test: if an item sells 20 times in a day, does the stock number reflect that by evening without anyone touching it? If the answer is \"only if someone remembers to update it,\" that's not really inventory tracking yet — it's a count that happens to exist.",
+        ],
+      },
+      {
+        heading: "Low-stock alerts — the point where tracking becomes useful",
+        paragraphs: [
+          "A stock count that only gets checked when someone thinks to look at it is informational at best. The actual value shows up when the system proactively flags an item once it crosses a threshold the owner sets — \"warn me when paneer tikka is down to 5 servings\" — so restocking happens before a customer's order fails, not after.",
+          "Some setups go a step further and automatically hide or mark an item unavailable once it hits zero, so it can't be ordered at all until restocked. That's a real tradeoff worth thinking about deliberately rather than defaulting into: it guarantees no customer orders something you can't make, but it also means a stock-count mistake can wrongly hide something you actually have — which is why it's usually worth making this an optional setting, not forced behavior.",
+        ],
+      },
+      {
+        heading: "A practical checklist before trusting any inventory feature",
+        paragraphs: [
+          "If a restaurant platform claims inventory/stock tracking, it's worth checking specifically:",
+        ],
+        list: [
+          "Does a sale actually reduce stock automatically, in real time — or is there a manual \"update stock\" step?",
+          "Can you set a low-stock threshold per item, and does the alert actually reach you (dashboard, email) rather than requiring you to check a report?",
+          "Does cancelling an order restore the stock it had deducted, or does a cancelled order leave stock permanently wrong?",
+          "Does a manually entered counter sale deduct stock the same way an online order does, or only online orders?",
+        ],
+      },
+      {
+        heading: "How this works on BhojSetu",
+        paragraphs: [
+          "Every sellable item can have its own tracked stock count, with a low-stock threshold that triggers a dashboard alert (and an email to the owner, once email is configured). Stock deducts automatically and in the same transaction as the sale — for online orders, QR table orders, and manually entered counter bills alike — and cancelling an order restores the stock it had deducted. An optional setting auto-hides an item once it hits zero stock, off by default so it's a deliberate choice, not a surprise. Restocking (including a photo-scan of a real supplier bill, read automatically) is covered in the dashboard's Inventory section, included at every plan tier.",
+        ],
+      },
+    ],
+    faqs: [
+      {
+        q: "Do I need separate inventory software, or should it be part of my ordering/billing platform?",
+        a: "Part of the same platform is almost always better for a restaurant specifically, because the trigger for a stock change (a sale) already happens inside that same system. A separate inventory tool means manually re-entering what already sold, which reintroduces the exact \"someone forgot to update it\" gap that makes notebook tracking unreliable in the first place.",
+      },
+      {
+        q: "What happens if my stock count is wrong — does the system stop taking orders?",
+        a: "On BhojSetu, no — stock can go negative rather than blocking a sale outright, since a slightly wrong count shouldn't be able to stop a restaurant from serving a walk-in customer. The optional auto-hide-at-zero setting is the one case where stock does affect what customers can order, and it's opt-in specifically so that tradeoff is a deliberate choice.",
+      },
+      {
+        q: "Can I track ingredient-level stock, or only finished menu items?",
+        a: "BhojSetu tracks stock directly on sellable items/products (including raw-material-style products bought and sold by the unit, like a bakery ingredient), rather than a separate recipe-based ingredient-deduction layer — selling a product deducts its own stock directly, which is simpler to reason about for most small restaurants than maintaining a recipe for every dish.",
+      },
+    ],
+  },
 ];
 
 export function getBlogPost(slug: string): BlogPost | undefined {
