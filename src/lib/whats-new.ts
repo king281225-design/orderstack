@@ -12,7 +12,7 @@ export const WHATS_NEW: WhatsNewEntry[] = [
     date: "9 Oct",
     title: "Win back customers who've gone quiet",
     description:
-      'Customers (Advanced plan+) now shows who hasn\'t ordered in a while and lets you send them a one-time discount over WhatsApp with one tap — you choose the % or ₹ off, a minimum order amount, how long it\'s valid, and even your own coupon code.',
+      "Customers now shows who hasn't ordered in a while and lets you send them a one-time discount over WhatsApp with one tap — you choose the % or ₹ off, a minimum order amount, how long it's valid, and even your own coupon code.",
   },
   {
     id: "2026-10-09-edit-history-whatsapp",
