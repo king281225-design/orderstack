@@ -78,6 +78,7 @@ export const PLAN_DEFINITIONS: Record<
     features: [
       "Everything in Starter",
       "Coupons",
+      "Loyalty points & WhatsApp win-back offers",
       "Analytics dashboard",
       "Multi-store: manage several outlets from one account with a central dashboard",
       "1 device logged in at a time",
@@ -139,6 +140,7 @@ export type Feature =
   | "inventory"
   | "kot"
   | "coupons"
+  | "loyalty"
   | "analytics"
   | "kitchen"
   | "staff"
@@ -147,7 +149,7 @@ export type Feature =
 
 const FEATURES_BY_TIER: Record<PlanTier, ReadonlySet<Feature>> = {
   STARTER: new Set(["menu", "orders", "tables", "billing", "inventory", "kot"]),
-  ADVANCED: new Set(["menu", "orders", "tables", "billing", "inventory", "kot", "coupons", "analytics", "multiStore"]),
+  ADVANCED: new Set(["menu", "orders", "tables", "billing", "inventory", "kot", "coupons", "loyalty", "analytics", "multiStore"]),
   BUSINESS: new Set([
     "menu",
     "orders",
@@ -156,6 +158,7 @@ const FEATURES_BY_TIER: Record<PlanTier, ReadonlySet<Feature>> = {
     "inventory",
     "kot",
     "coupons",
+    "loyalty",
     "analytics",
     "kitchen",
     "staff",

@@ -4,6 +4,7 @@ import { getItemsForOrder } from "@/lib/data/menu";
 import { validateCoupon, tryRedeemCoupon, CouponRedemptionLimitError } from "@/lib/data/coupons";
 import { deductStockForOrder, restoreStockForOrder, notifyLowStockItems } from "@/lib/data/inventory";
 import { markTableOccupiedFromOrder } from "@/lib/data/tables";
+import { upsertCustomerForOrder, adjustCustomerForOrderEdit } from "@/lib/data/customers";
 import { DYNO_ACTION } from "@/lib/aggregator/dyno";
 import type { DeliveryPlatform, FulfillmentType, OrderStatus, PaymentMethod, PaymentStatus, Prisma } from "@prisma/client";
 
@@ -163,6 +164,7 @@ export async function createOrder(
   });
   const { newlyLowItems } = await deductStockForOrder(tx, tenantId, order.id);
   if (order.fulfillmentType === "DINE_IN") await markTableOccupiedFromOrder(tx, tenantId, order.tableLabel);
+  await upsertCustomerForOrder(tx, tenantId, order);
   return { order, newlyLowItems };
   });
   if (newlyLowItems.length) void notifyLowStockItems(tenantId, newlyLowItems);
@@ -289,6 +291,7 @@ export async function createManualOrder(
   });
   const { newlyLowItems } = await deductStockForOrder(tx, tenantId, order.id);
   if (order.fulfillmentType === "DINE_IN") await markTableOccupiedFromOrder(tx, tenantId, order.tableLabel);
+  await upsertCustomerForOrder(tx, tenantId, order);
   return { order, newlyLowItems };
   });
   if (newlyLowItems.length) void notifyLowStockItems(tenantId, newlyLowItems);
@@ -327,9 +330,13 @@ export async function updateOrderItems(
     discountCents?: number;
     discountPercent?: number | null;
     gstRatePercent?: number | null;
+    /** Who made this edit — snapshotted onto the OrderRevision row (see src/lib/data/order-revisions.ts). */
+    editedByUserId: string;
+    editedByName?: string | null;
+    reason?: string | null;
   },
 ) {
-  const existing = await prisma.order.findFirst({ where: { id: orderId, tenantId } });
+  const existing = await prisma.order.findFirst({ where: { id: orderId, tenantId }, include: { items: true } });
   if (!existing) throw new Error("Order not found for this restaurant.");
   if (existing.status === "COMPLETED" || existing.status === "CANCELLED") {
     throw new OrderNotEditableError("This order is already completed or cancelled — it can no longer be edited.");
@@ -362,6 +369,23 @@ export async function updateOrderItems(
     : [];
   const linkedMap = new Map(linkedItems.map((i) => [i.id, i]));
 
+  const beforeSnapshot = {
+    items: existing.items.map((l) => ({ name: l.nameSnapshot, priceCents: l.priceCentsSnapshot, quantity: l.quantity, itemId: l.itemId })),
+    subtotalCents: existing.subtotalCents,
+    discountCents: existing.discountCents,
+    taxCents: existing.taxCents,
+    gstRatePercent: existing.gstRatePercent,
+    totalCents: existing.totalCents,
+  };
+  const afterSnapshot = {
+    items: lines.map((l) => ({ name: l.name.trim(), priceCents: l.priceCents, quantity: l.quantity, itemId: l.itemId ?? null })),
+    subtotalCents,
+    discountCents,
+    taxCents,
+    gstRatePercent: taxCents > 0 ? gstRate : null,
+    totalCents,
+  };
+
   const { order, newlyLowItems } = await prisma.$transaction(async (tx) => {
     await restoreStockForOrder(tx, tenantId, orderId);
     // restoreStockForOrder only flips stockRestoredAt — reset both flags so
@@ -393,6 +417,27 @@ export async function updateOrderItems(
       include: { items: true },
     });
     const { newlyLowItems } = await deductStockForOrder(tx, tenantId, orderId);
+    await adjustCustomerForOrderEdit(
+      tx,
+      tenantId,
+      { customerPhone: existing.customerPhone, customerName: existing.customerName, customerEmail: existing.customerEmail },
+      existing.totalCents,
+      totalCents,
+    );
+    // Written in the same transaction as the edit itself, so a revision and
+    // its edit are atomic — never one without the other. See OrderRevision's
+    // schema comment.
+    await tx.orderRevision.create({
+      data: {
+        tenantId,
+        orderId,
+        editedByUserId: input.editedByUserId,
+        editedByName: input.editedByName ?? null,
+        reason: input.reason ?? null,
+        beforeSnapshot,
+        afterSnapshot,
+      },
+    });
     return { order, newlyLowItems };
   });
   if (newlyLowItems.length) void notifyLowStockItems(tenantId, newlyLowItems);

@@ -63,6 +63,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
   const links: DashboardNavLink[] = [
     { href: "/dashboard", label: "Orders" },
     { href: "/dashboard/orders/new", label: "New bill" },
+    { href: "/dashboard/orders/history", label: "Edit history" },
     { href: "/dashboard/customers", label: "Customers" },
     { href: "/dashboard/menu", label: "Menu" },
     ...(tierHasFeature(tier, "inventory") ? [{ href: "/dashboard/inventory", label: "Inventory", badge: lowStockCount }] : []),

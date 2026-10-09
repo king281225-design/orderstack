@@ -192,3 +192,43 @@ export async function updateBillingSettingsAction(
   revalidatePath("/dashboard/branding");
   return { error: null, success: true };
 }
+
+export type NotificationsSettingsState = { error: string | null; success: boolean };
+
+/**
+ * WhatsApp number for bill-edit alerts (src/app/dashboard/orders/[id]/edit/actions.ts,
+ * src/lib/notifications/whatsapp.ts) + the ₹-per-loyalty-point rate
+ * (src/lib/data/customers.ts) — filed as its own settings section, same
+ * "restaurant settings" pattern as the branding/delivery-zone/billing forms
+ * above on this page.
+ */
+export async function updateNotificationsAction(
+  _prev: NotificationsSettingsState,
+  formData: FormData,
+): Promise<NotificationsSettingsState> {
+  const session = await requireOwnerSession();
+
+  const ownerWhatsappRaw = String(formData.get("ownerWhatsapp") ?? "").trim();
+  const loyaltyRaw = String(formData.get("loyaltyRupeesPerPoint") ?? "").trim();
+
+  // wa.me's own format: digits only, no leading "+" or "0" — same convention
+  // as WHATSAPP_NUMBER in src/lib/contact.ts.
+  const ownerWhatsapp = ownerWhatsappRaw ? ownerWhatsappRaw.replace(/[^0-9]/g, "").replace(/^0+/, "") : null;
+  if (ownerWhatsappRaw && (!ownerWhatsapp || ownerWhatsapp.length < 10)) {
+    return { error: "Enter a valid WhatsApp number with country code (e.g. 919876543210).", success: false };
+  }
+
+  let loyaltyRupeesPerPoint: number | null = null;
+  if (loyaltyRaw) {
+    loyaltyRupeesPerPoint = Number(loyaltyRaw);
+    if (!Number.isFinite(loyaltyRupeesPerPoint) || loyaltyRupeesPerPoint <= 0) {
+      return { error: "₹ per point must be a positive number.", success: false };
+    }
+    loyaltyRupeesPerPoint = Math.round(loyaltyRupeesPerPoint);
+  }
+
+  await updateTenantBranding(session.tenantId, { ownerWhatsapp, loyaltyRupeesPerPoint });
+
+  revalidatePath("/dashboard/branding");
+  return { error: null, success: true };
+}

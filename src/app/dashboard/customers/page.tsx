@@ -1,12 +1,19 @@
 import { requireTenantSession } from "@/lib/auth";
 import { listCustomersForTenant } from "@/lib/data/customers";
+import { getTenantById } from "@/lib/data/tenants";
+import { tierHasFeature } from "@/lib/plans";
 import { formatINR } from "@/lib/money";
+import { WinBackPanel } from "@/components/customers/win-back-panel";
 
 export const dynamic = "force-dynamic";
 
 export default async function CustomersPage() {
   const session = await requireTenantSession();
-  const customers = await listCustomersForTenant(session.tenantId);
+  const [customers, tenant] = await Promise.all([
+    listCustomersForTenant(session.tenantId),
+    getTenantById(session.tenantId),
+  ]);
+  const showWinBack = session.role === "OWNER" && tenant && tierHasFeature(tenant.planTier, "loyalty");
 
   return (
     <div className="flex flex-col gap-4">
@@ -21,6 +28,7 @@ export default async function CustomersPage() {
           </a>
         )}
       </div>
+      {showWinBack && <WinBackPanel />}
       {customers.length === 0 ? (
         <p className="text-sm text-gray-500">No customers yet — they&apos;ll show up here once orders come in.</p>
       ) : (

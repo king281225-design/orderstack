@@ -5,6 +5,7 @@ import { createManualOrderAction, type CreateManualOrderState } from "@/app/dash
 import { updateOrderItemsAction } from "@/app/dashboard/orders/[id]/edit/actions";
 import { formatINR, rupeesToCents } from "@/lib/money";
 import { PAYMENT_SOURCES } from "@/lib/payment-sources";
+import { queueBill } from "@/lib/offline-bill-queue";
 
 const initialState: CreateManualOrderState = { error: null };
 
@@ -84,6 +85,11 @@ export function ManualOrderForm({
   // own menu inline instead of switching to the tap-to-add grid above (which
   // stays, for browsing the full list at a glance / touch-first ordering).
   const [suggestFor, setSuggestFor] = useState<number | null>(null);
+  // Only bill CREATION queues offline (never an edit — see offline-bill-
+  // queue.ts's header comment for why). Checked at submit time only: this
+  // doesn't attempt to catch a connection dropping mid-request, just the
+  // common "already offline before tapping save" case.
+  const [savedOffline, setSavedOffline] = useState(false);
 
   const totals = useMemo(() => {
     const subtotalCents = lines.reduce((sum, l) => {
@@ -199,8 +205,27 @@ export function ManualOrderForm({
       })),
   );
 
+  function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
+    if (editOrder) return; // offline queueing only applies to creating a new bill
+    if (typeof navigator === "undefined" || navigator.onLine) return;
+
+    e.preventDefault();
+    const fd = new FormData(e.currentTarget);
+    const fields: Record<string, string> = {};
+    for (const [key, value] of fd.entries()) {
+      if (typeof value === "string") fields[key] = value;
+    }
+    queueBill(fields);
+    setSavedOffline(true);
+    setLines([{ ...emptyLine }]);
+    setCustomerName("");
+    setCustomerPhone("");
+    setCustomerEmail("");
+    setDiscount("");
+  }
+
   return (
-    <form ref={formRef} action={formAction} className="flex flex-col gap-6">
+    <form ref={formRef} action={formAction} onSubmit={handleSubmit} className="flex flex-col gap-6">
       <input type="hidden" name="lines" value={linesPayload} />
       <input type="hidden" name="discountMode" value={discountMode} />
       {editOrder && <input type="hidden" name="orderId" value={editOrder.id} />}
@@ -597,6 +622,11 @@ export function ManualOrderForm({
         </div>
       </section>
 
+      {savedOffline && (
+        <p className="rounded-md border border-amber-300 bg-amber-50 px-3 py-2 text-sm font-semibold text-amber-800">
+          Saved offline — this bill will sync automatically once you&apos;re back online.
+        </p>
+      )}
       {state.error && <p className="text-sm text-red-600">{state.error}</p>}
 
       <div className="flex flex-wrap items-center gap-3">

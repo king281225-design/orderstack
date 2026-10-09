@@ -1,82 +1,136 @@
 import "server-only";
 import { prisma } from "@/lib/prisma";
+import type { Prisma } from "@prisma/client";
 
 /**
- * There's no separate Customer table — a "customer" is just the distinct
- * (customerPhone) values on this tenant's own Order rows, grouped in
- * application code. Fine at launch scale (1–5 restaurants, modest order
- * volume); a dedicated table would only earn its keep once cross-order
- * customer profile fields (saved addresses, etc.) are actually needed.
- * Always scoped by tenantId — one restaurant's customers never leak into
- * another's list, same isolation rule as every other query in src/lib/data.
+ * A persisted, phone-keyed customer profile (see Customer in prisma/schema.prisma)
+ * — replaces deriving this on the fly from Order rows on every page load.
+ * Upserted here inside the SAME transaction as createOrder/createManualOrder,
+ * whenever the order carries a non-empty customerPhone (a walk-in bill saved
+ * without a phone has no identity to group by, same rule the old live-grouping
+ * version used). Points accrue at order time using the tenant's own configured
+ * rate (Tenant.loyaltyRupeesPerPoint, default ₹10 = 1 point) and are a real
+ * running balance from here on — not recomputed from total spend on every read.
+ *
+ * Existing tenants (orders placed before this shipped) need a one-time
+ * backfill — see scripts/backfill-customers.ts.
  */
-export async function listCustomersForTenant(tenantId: string) {
-  const orders = await prisma.order.findMany({
-    // Walk-in bills saved without a phone number have no identity to group
-    // by, so they are left out of the customer list.
-    where: { tenantId, status: { not: "CANCELLED" }, customerPhone: { not: "" } },
-    select: {
-      customerName: true,
-      customerPhone: true,
-      customerEmail: true,
-      totalCents: true,
-      createdAt: true,
+export async function upsertCustomerForOrder(
+  tx: Prisma.TransactionClient,
+  tenantId: string,
+  order: { customerPhone: string; customerName: string; customerEmail: string | null; totalCents: number; createdAt: Date },
+): Promise<void> {
+  const phone = order.customerPhone.trim();
+  if (!phone) return;
+
+  const tenant = await tx.tenant.findUnique({ where: { id: tenantId }, select: { loyaltyRupeesPerPoint: true } });
+  const earnedPoints = loyaltyPointsFor(order.totalCents, tenant?.loyaltyRupeesPerPoint ?? null);
+
+  await tx.customer.upsert({
+    where: { tenantId_phone: { tenantId, phone } },
+    create: {
+      tenantId,
+      phone,
+      name: order.customerName,
+      email: order.customerEmail,
+      totalSpentCents: order.totalCents,
+      orderCount: 1,
+      pointsBalance: earnedPoints,
+      firstOrderAt: order.createdAt,
+      lastOrderAt: order.createdAt,
     },
-    orderBy: { createdAt: "asc" },
+    update: {
+      // Keep the most recent name/email on file — a repeat customer's latest
+      // order is the freshest info we have about them.
+      name: order.customerName,
+      email: order.customerEmail ?? undefined,
+      totalSpentCents: { increment: order.totalCents },
+      orderCount: { increment: 1 },
+      pointsBalance: { increment: earnedPoints },
+      lastOrderAt: order.createdAt,
+    },
   });
-
-  const byPhone = new Map<
-    string,
-    {
-      phone: string;
-      name: string;
-      email: string | null;
-      orderCount: number;
-      totalSpentCents: number;
-      firstOrderAt: Date;
-      lastOrderAt: Date;
-    }
-  >();
-
-  for (const o of orders) {
-    const existing = byPhone.get(o.customerPhone);
-    if (existing) {
-      existing.orderCount += 1;
-      existing.totalSpentCents += o.totalCents;
-      existing.lastOrderAt = o.createdAt;
-      // Keep the most recent name/email on file — a repeat customer's
-      // latest order is the freshest info we have about them.
-      existing.name = o.customerName;
-      existing.email = o.customerEmail ?? existing.email;
-    } else {
-      byPhone.set(o.customerPhone, {
-        phone: o.customerPhone,
-        name: o.customerName,
-        email: o.customerEmail,
-        orderCount: 1,
-        totalSpentCents: o.totalCents,
-        firstOrderAt: o.createdAt,
-        lastOrderAt: o.createdAt,
-      });
-    }
-  }
-
-  return Array.from(byPhone.values())
-    .map((c) => ({ ...c, loyaltyPoints: loyaltyPointsFor(c.totalSpentCents) }))
-    .sort((a, b) => b.lastOrderAt.getTime() - a.lastOrderAt.getTime());
 }
 
 /**
- * A simple, fixed points-per-spend rule (1 point per ₹10) rather than a
- * stored balance — consistent with this file's own "no separate table,
- * derive from Order rows" approach above, and with an auto-applied
- * discount-on-Nth-order left out of scope (redeeming points isn't wired
- * into checkout; an owner who wants to reward a specific repeat customer
- * can already do that manually with the existing Coupon system). Points
- * are shown for recognition/reporting, not spent anywhere yet.
+ * ₹ per point — the long-standing default (unchanged from the old
+ * display-only placeholder) is ₹10 = 1 point; a tenant can configure its own
+ * rate in Settings (Tenant.loyaltyRupeesPerPoint).
  */
-function loyaltyPointsFor(totalSpentCents: number): number {
-  return Math.floor(totalSpentCents / 1000);
+function loyaltyPointsFor(totalSpentCents: number, rupeesPerPoint: number | null): number {
+  const rate = rupeesPerPoint && rupeesPerPoint > 0 ? rupeesPerPoint : 10;
+  return Math.floor(totalSpentCents / 100 / rate);
+}
+
+/**
+ * Re-settles one order's contribution to its customer's totals after an edit
+ * (see updateOrderItems in src/lib/data/orders.ts) — without this, editing a
+ * bill's total would leave Customer.totalSpentCents/pointsBalance stuck at
+ * whatever the bill totalled when first created. Removes the old total's
+ * points, adds the new total's, using the tenant's CURRENT loyalty rate for
+ * both sides of the delta (there's no record of what the rate was back when
+ * the order was first created, so a rate change mid-flight is an accepted
+ * imprecision, same as the backfill script's own note on this).
+ */
+export async function adjustCustomerForOrderEdit(
+  tx: Prisma.TransactionClient,
+  tenantId: string,
+  order: { customerPhone: string; customerName: string; customerEmail: string | null },
+  oldTotalCents: number,
+  newTotalCents: number,
+): Promise<void> {
+  const phone = order.customerPhone.trim();
+  if (!phone) return;
+
+  const tenant = await tx.tenant.findUnique({ where: { id: tenantId }, select: { loyaltyRupeesPerPoint: true } });
+  const rate = tenant?.loyaltyRupeesPerPoint ?? null;
+  const pointsDelta = loyaltyPointsFor(newTotalCents, rate) - loyaltyPointsFor(oldTotalCents, rate);
+  const totalDelta = newTotalCents - oldTotalCents;
+  if (pointsDelta === 0 && totalDelta === 0) return;
+
+  await tx.customer.upsert({
+    where: { tenantId_phone: { tenantId, phone } },
+    create: {
+      tenantId,
+      phone,
+      name: order.customerName,
+      email: order.customerEmail,
+      totalSpentCents: Math.max(0, newTotalCents),
+      orderCount: 1,
+      pointsBalance: Math.max(0, loyaltyPointsFor(newTotalCents, rate)),
+    },
+    update: {
+      totalSpentCents: { increment: totalDelta },
+      pointsBalance: { increment: pointsDelta },
+    },
+  });
+}
+
+/** Always scoped by tenantId — one restaurant's customers never leak into another's list. */
+export async function listCustomersForTenant(tenantId: string) {
+  const customers = await prisma.customer.findMany({
+    where: { tenantId },
+    orderBy: { lastOrderAt: "desc" },
+  });
+  return customers.map((c) => ({
+    phone: c.phone,
+    name: c.name,
+    email: c.email,
+    orderCount: c.orderCount,
+    totalSpentCents: c.totalSpentCents,
+    firstOrderAt: c.firstOrderAt,
+    lastOrderAt: c.lastOrderAt,
+    loyaltyPoints: c.pointsBalance,
+  }));
+}
+
+/** Customers who haven't ordered in at least `sinceDays` days — feeds the win-back section on /dashboard/customers. */
+export async function listInactiveCustomers(tenantId: string, sinceDays: number) {
+  const cutoff = new Date(Date.now() - sinceDays * 86_400_000);
+  return prisma.customer.findMany({
+    where: { tenantId, lastOrderAt: { lt: cutoff } },
+    orderBy: { lastOrderAt: "asc" },
+  });
 }
 
 /** CSV export for the Customers page — see /api/dashboard/customers/export. */

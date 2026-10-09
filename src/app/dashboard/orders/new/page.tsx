@@ -5,6 +5,7 @@ import { listCustomersForTenant } from "@/lib/data/customers";
 import { listTables } from "@/lib/data/tables";
 import { buildPickableMenu } from "@/lib/pickable-menu-items";
 import { ManualOrderForm } from "@/components/orders/manual-order-form";
+import { OfflineBillIndicator } from "@/components/orders/offline-bill-indicator";
 
 export default async function NewOrderPage() {
   const session = await requireTenantSession();
@@ -24,6 +25,7 @@ export default async function NewOrderPage() {
       <p className="text-sm text-gray-500">
         For a walk-in or phone-in order — pick products, adjust quantities, then print or save the invoice.
       </p>
+      <OfflineBillIndicator />
       <ManualOrderForm
         menuItems={menuItems}
         menuCategories={menuCategories}

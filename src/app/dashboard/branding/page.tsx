@@ -4,6 +4,7 @@ import { BrandingForm } from "@/components/branding-form";
 import { CustomDomainForm } from "@/components/custom-domain-form";
 import { DeliveryZoneForm } from "@/components/delivery-zone-form";
 import { BillingSettingsForm } from "@/components/billing-settings-form";
+import { NotificationsForm } from "@/components/notifications-form";
 
 export default async function BrandingPage() {
   const session = await requireOwnerSession();
@@ -28,6 +29,7 @@ export default async function BrandingPage() {
         gstin={tenant.gstin}
         businessState={tenant.businessState}
       />
+      <NotificationsForm ownerWhatsapp={tenant.ownerWhatsapp} loyaltyRupeesPerPoint={tenant.loyaltyRupeesPerPoint} />
     </div>
   );
 }

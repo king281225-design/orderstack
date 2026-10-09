@@ -344,6 +344,18 @@ model Tenant {
   // colours, custom lines, table labels) — validated/defaulted through
   // sanitizeQrCardDesign (src/lib/qr-card.ts) on every read and write.
   qrCardDesign            Json?
+  // WhatsApp number (no leading "+"/"0", wa.me's own format) that gets a
+  // "Notify owner on WhatsApp" link after a bill edit (see
+  // src/app/dashboard/orders/[id]/history and src/lib/notifications/
+  // whatsapp.ts) — and, once a real WhatsApp Business API is configured via
+  // env vars, an automatic send to the same number. Null = feature off;
+  // nothing here is the platform's own support number (see src/lib/contact.ts,
+  // a separate concern).
+  ownerWhatsapp           String?
+  // ₹ per loyalty point, for Customer.pointsBalance accrual (see
+  // src/lib/data/customers.ts). Null = the long-standing default of ₹10 = 1
+  // point, same figure the old display-only placeholder always used.
+  loyaltyRupeesPerPoint   Int?
   createdAt               DateTime           @default(now())
   updatedAt               DateTime           @updatedAt
 
@@ -351,6 +363,8 @@ model Tenant {
   categories            Category[]
   items                 Item[]
   orders                Order[]
+  orderRevisions        OrderRevision[]
+  customers             Customer[]
   coupons               Coupon[]
   subscriptionPurchases SubscriptionPurchase[]
   itemAddOns            ItemAddOn[]
@@ -366,6 +380,64 @@ model Tenant {
   dynoRestaurantLinks   DynoRestaurantLink[]
 
   @@map("tenants")
+}
+
+/**
+ * One row per edit to an already-created bill (see updateOrderItems in
+ * src/lib/data/orders.ts) — written inside the same transaction as the edit
+ * itself, so a revision and its edit are atomic. Order/OrderItem keep being
+ * overwritten exactly as before; this is purely a side history log, same
+ * append-only spirit as ItemStockMovement/Purchase above. before/afterSnapshot
+ * hold a full items+totals snapshot (not a diff) so the history screen never
+ * has to re-join anything. editedByName is captured at edit time so a later
+ * user rename/removal doesn't blank the log.
+ */
+model OrderRevision {
+  id             String   @id @default(cuid())
+  tenantId       String
+  tenant         Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  orderId        String
+  order          Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  editedByUserId String
+  editedByName   String?
+  reason         String?  @db.Text
+  beforeSnapshot Json
+  afterSnapshot  Json
+  createdAt      DateTime @default(now())
+
+  @@index([tenantId, orderId, createdAt])
+  @@index([tenantId, createdAt])
+  @@map("order_revisions")
+}
+
+/**
+ * A persisted, phone-keyed customer profile — replaces deriving this on the
+ * fly from Order rows every time (see src/lib/data/customers.ts's older
+ * comment, now out of date). Upserted inside createOrder/createManualOrder's
+ * own transaction whenever an order carries a customerPhone, so
+ * pointsBalance/totalSpentCents are real running totals rather than
+ * recomputed on every page load. Existing tenants need a one-time backfill
+ * from their Order history (scripts/backfill-customers.ts) before this has
+ * anything in it.
+ */
+model Customer {
+  id              String   @id @default(cuid())
+  tenantId        String
+  tenant          Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  phone           String
+  name            String
+  email           String?
+  pointsBalance   Int      @default(0)
+  totalSpentCents Int      @default(0)
+  orderCount      Int      @default(0)
+  firstOrderAt    DateTime @default(now())
+  lastOrderAt     DateTime @default(now())
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@unique([tenantId, phone])
+  @@index([tenantId, lastOrderAt])
+  @@map("customers")
 }
 
 /**
@@ -793,7 +865,8 @@ model Order {
   createdAt          DateTime        @default(now())
   updatedAt          DateTime        @updatedAt
 
-  items OrderItem[]
+  items    OrderItem[]
+  revisions OrderRevision[]
 
   @@index([tenantId])
   @@index([tenantId, status])

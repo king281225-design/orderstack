@@ -488,6 +488,8 @@ export async function updateTenantBranding(
     businessAddress?: string | null;
     gstin?: string | null;
     businessState?: string | null;
+    ownerWhatsapp?: string | null;
+    loyaltyRupeesPerPoint?: number | null;
   },
 ) {
   return prisma.tenant.update({ where: { id: tenantId }, data });

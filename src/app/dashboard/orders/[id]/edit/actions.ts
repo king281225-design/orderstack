@@ -10,6 +10,8 @@ import {
   OrderNotEditableError,
   type ManualOrderLine,
 } from "@/lib/data/orders";
+import { getTenantById } from "@/lib/data/tenants";
+import { sendOwnerOrderEditWhatsApp } from "@/lib/notifications/whatsapp";
 import { rupeesToCents } from "@/lib/money";
 
 export type UpdateOrderItemsState = { error: string | null };
@@ -48,13 +50,16 @@ export async function updateOrderItemsAction(
     itemId: typeof l.itemId === "string" && l.itemId ? l.itemId : null,
   }));
 
+  let updated;
   try {
-    await updateOrderItems(session.tenantId, orderId, {
+    updated = await updateOrderItems(session.tenantId, orderId, {
       lines,
       ...(discountMode === "percent"
         ? { discountPercent: discountRupees ? Number(discountRupees) : 0 }
         : { discountCents: discountRupees ? rupeesToCents(discountRupees) : 0 }),
       gstRatePercent: gstRateRaw ? Number(gstRateRaw) : null,
+      editedByUserId: session.sub,
+      editedByName: session.email,
     });
   } catch (err) {
     if (err instanceof EmptyManualOrderError || err instanceof InvalidManualLineError || err instanceof OrderNotEditableError) {
@@ -63,11 +68,25 @@ export async function updateOrderItemsAction(
     return { error: "Could not update this order." };
   }
 
+  // Tier A (zero credentials, always available): a prefilled wa.me link on
+  // the history screen. Tier B (dormant until real WhatsApp API keys exist):
+  // this fire-and-forget automatic send — see src/lib/notifications/whatsapp.ts.
+  const tenant = await getTenantById(session.tenantId);
+  if (tenant?.ownerWhatsapp) {
+    void sendOwnerOrderEditWhatsApp(tenant.ownerWhatsapp, tenant.name, {
+      orderNumber: updated.orderNumber,
+      editedByName: session.email,
+      totalCents: updated.totalCents,
+    });
+  }
+
   revalidatePath("/dashboard");
   revalidatePath("/dashboard/customers");
   revalidatePath("/dashboard/invoices");
   revalidatePath("/dashboard/kot");
   revalidatePath("/dashboard/tables/board");
+  revalidatePath(`/dashboard/orders/${orderId}/history`);
+  revalidatePath("/dashboard/orders/history");
   const intent = String(formData.get("intent") ?? "bill");
   if (intent === "kot") redirect(`/dashboard/orders/${orderId}/kot`);
   if (intent === "save") redirect("/dashboard");

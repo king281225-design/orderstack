@@ -14,6 +14,21 @@ export function buildWhatsAppUrl(message?: string): string {
   return `${WHATSAPP_URL}?text=${encodeURIComponent(message)}`;
 }
 
+/**
+ * Same wa.me click-to-chat shape as buildWhatsAppUrl above, but targeting a
+ * TENANT's own number (Tenant.ownerWhatsapp, or a customer's own phone for a
+ * win-back message) instead of the platform's own support number — the
+ * zero-credential fallback for src/lib/notifications/whatsapp.ts's dormant
+ * real-API path. `phone` is expected digits-only, international format, same
+ * convention as WHATSAPP_NUMBER above (no leading "+" or "0").
+ */
+export function buildTenantWhatsAppUrl(phone: string, message?: string): string {
+  const digits = phone.replace(/[^0-9]/g, "");
+  const base = `https://wa.me/${digits}`;
+  if (!message) return base;
+  return `${base}?text=${encodeURIComponent(message)}`;
+}
+
 // tel: links keep the "+" — that's the correct format for a tel: href.
 export const PHONE_DISPLAY = "+91 97178 21824";
 export const PHONE_TEL = "tel:+919717821824";
