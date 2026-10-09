@@ -3,6 +3,7 @@
 import { useTransition } from "react";
 import type { OrderStatus } from "@prisma/client";
 import { advanceOrderStatusAction } from "@/app/dashboard/actions";
+import { stopOrderAlertSound } from "@/components/dashboard/notification-bell";
 
 /** Same pending-state fix as the Orders board buttons, for the kitchen board's own copy of this button. */
 export function KitchenAdvanceButton({
@@ -22,7 +23,12 @@ export function KitchenAdvanceButton({
     <button
       type="button"
       disabled={isPending}
-      onClick={() => startTransition(() => advanceOrderStatusAction(orderId, to))}
+      onClick={() => {
+        // Same immediate-stop reasoning as OrderCardFooter's Accept button —
+        // see stopOrderAlertSound's own comment.
+        if (to === "ACCEPTED") stopOrderAlertSound();
+        startTransition(() => advanceOrderStatusAction(orderId, to));
+      }}
       style={{ backgroundColor: accent }}
       className="min-h-12 w-full touch-manipulation rounded-xl px-3 py-3 text-lg font-bold text-slate-950 shadow-sm transition hover:brightness-110 active:scale-[0.98] disabled:opacity-50"
     >

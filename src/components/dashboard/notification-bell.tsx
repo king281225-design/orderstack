@@ -13,9 +13,70 @@ const MUTE_KEY = "bhojsetu_dashboard_sound_muted";
 const REFRESH_MS = 8000;
 
 /* ------------------------------------------------------------------ */
-/* Two short, distinct chimes via the Web Audio API — no audio asset to  */
-/* ship, and each reads as a different kind of alert.                   */
+/* Order alert: a real ringtone file (public/sounds/incoming-order.mp3). */
+/* Waiter call: a synthesized Web Audio API beep — deliberately a        */
+/* different, harsher timbre so the two are tellable apart by ear alone. */
 /* ------------------------------------------------------------------ */
+
+let sharedOrderAudio: HTMLAudioElement | null = null;
+
+function getOrderAudio(): HTMLAudioElement | null {
+  if (typeof window === "undefined") return null;
+  if (!sharedOrderAudio) {
+    sharedOrderAudio = new Audio("/sounds/incoming-order.mp3");
+    sharedOrderAudio.volume = 0.8;
+  }
+  return sharedOrderAudio;
+}
+
+// Set by stopOrderAlertSound; checked by playOrderChime. See that function's
+// own comment for why this exists — a stray already-scheduled setInterval
+// tick (from a NotificationBell instance whose own effect hasn't torn down
+// yet) can otherwise land in the few hundred milliseconds right after an
+// explicit stop and restart the clip, making Accept look like it didn't
+// work. 5s comfortably covers a normal revalidatePath round trip.
+let suppressReplayUntil = 0;
+const REPLAY_SUPPRESS_MS = 5000;
+
+/**
+ * The ringtone file runs much longer than a short chime (~a minute) — the
+ * "keep ringing until handled" poll below calls this every 8s, but if it's
+ * still playing from the last trigger, this is a no-op rather than cutting
+ * it off and restarting from 0. The next poll after it actually finishes is
+ * what replays it, so an unaccepted order stays audible without the ringtone
+ * ever sounding chopped up.
+ */
+function playOrderChime() {
+  if (Date.now() < suppressReplayUntil) return;
+  const audio = getOrderAudio();
+  if (!audio || !audio.paused) return;
+  audio.currentTime = 0;
+  void audio.play().catch(() => {});
+}
+
+/**
+ * Cuts the ringtone off immediately — the moment an order is accepted (or
+ * sound gets muted), not whenever the ~58s clip happens to finish on its
+ * own. Clearing the repeat interval alone only stops it from being
+ * RE-triggered; the clip already mid-playback would otherwise keep going.
+ *
+ * Exported so OrderCardFooter's and KitchenAdvanceButton's Accept buttons
+ * can call this directly, at click time — not just rely on the
+ * pendingOrderCount prop eventually dropping to 0 after the server action's
+ * revalidatePath round-trips back (there are two NotificationBell instances
+ * mounted at once, desktop + mobile headers, both sharing this same module's
+ * audio singleton; calling this straight from the click handler silences it
+ * immediately regardless of that round-trip's timing). Also sets a short
+ * replay-suppression window — see playOrderChime — so a repeat interval tick
+ * already in flight from before the click can't immediately undo this.
+ */
+export function stopOrderAlertSound() {
+  if (sharedOrderAudio) {
+    sharedOrderAudio.pause();
+    sharedOrderAudio.currentTime = 0;
+  }
+  suppressReplayUntil = Date.now() + REPLAY_SUPPRESS_MS;
+}
 
 let sharedAudioCtx: AudioContext | null = null;
 
@@ -55,23 +116,10 @@ function playTone(
 }
 
 /**
- * New order: a warm two-note ascending "ding-dong" on a triangle wave —
- * deliberately a different timbre and rhythm from the waiter chime below so
- * the two are tellable apart by ear alone, not just by badge/dropdown text.
- * Repeats on a timer (see hasPendingOrders effect) for as long as at least
- * one order is still sitting unaccepted — a single chime is too easy to
- * miss over a busy kitchen, same reasoning as the waiter bell.
- */
-function playOrderChime(ctx: AudioContext) {
-  playTone(ctx, 880, 0, 0.22, 0.6, "triangle");
-  playTone(ctx, 1175, 0.18, 0.3, 0.6, "triangle");
-}
-
-/**
  * Waiter call: three sharp, even beeps on a square wave — a harsher,
- * more alarm-like timbre than the order chime's warm triangle-wave "ding-
- * dong", so it reads as the more urgent of the two even at a glance of the
- * ear. Repeated on a timer below until acknowledged.
+ * more alarm-like timbre than the order ringtone, so it reads as the more
+ * urgent of the two even at a glance of the ear. Repeated on a timer below
+ * until acknowledged.
  */
 function playWaiterChime(ctx: AudioContext) {
   playTone(ctx, 660, 0, 0.14, 0.6, "square");
@@ -126,6 +174,20 @@ export function NotificationBell({
       if (audioUnlocked.current) return;
       const ctx = getAudioContext();
       if (ctx?.state === "suspended") void ctx.resume();
+      // Same unlock trick for the real <audio> element: a play() that
+      // actually starts during this real user gesture satisfies the
+      // browser's autoplay policy for this element going forward, so a
+      // later unattended poll-triggered play() isn't blocked.
+      const orderAudio = getOrderAudio();
+      if (orderAudio) {
+        orderAudio
+          .play()
+          .then(() => {
+            orderAudio.pause();
+            orderAudio.currentTime = 0;
+          })
+          .catch(() => {});
+      }
       audioUnlocked.current = true;
     };
     window.addEventListener("pointerdown", unlock, { once: true });
@@ -138,8 +200,7 @@ export function NotificationBell({
 
   useEffect(() => {
     if (pendingOrderCount > prevOrderCount.current && !muted) {
-      const ctx = getAudioContext();
-      if (ctx) playOrderChime(ctx);
+      playOrderChime();
     }
     prevOrderCount.current = pendingOrderCount;
   }, [pendingOrderCount, muted]);
@@ -166,11 +227,11 @@ export function NotificationBell({
   // identical even if they happen to land close together.
   const hasPendingOrders = pendingOrderCount > 0;
   useEffect(() => {
-    if (!hasPendingOrders || muted) return;
-    const id = setInterval(() => {
-      const ctx = getAudioContext();
-      if (ctx) playOrderChime(ctx);
-    }, 8000);
+    if (!hasPendingOrders || muted) {
+      stopOrderAlertSound();
+      return;
+    }
+    const id = setInterval(() => playOrderChime(), 8000);
     return () => clearInterval(id);
   }, [hasPendingOrders, muted]);
 

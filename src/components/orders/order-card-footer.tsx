@@ -5,6 +5,7 @@ import { useState, useTransition } from "react";
 import type { OrderStatus } from "@prisma/client";
 import { PAYMENT_SOURCES } from "@/lib/payment-sources";
 import { advanceOrderStatusAction, markOrderPaidAction } from "@/app/dashboard/actions";
+import { stopOrderAlertSound } from "@/components/dashboard/notification-bell";
 
 /**
  * The bottom of an order card in the Orders board: total, the small icon
@@ -148,7 +149,15 @@ export function OrderCardFooter({
         <button
           type="button"
           disabled={pending}
-          onClick={() => startTransition(() => advanceOrderStatusAction(orderId, next.to))}
+          onClick={() => {
+            // Accepting is the one transition that actually clears a Pending
+            // order — silence the ringtone right here, at click time, rather
+            // than waiting for the server round trip to bring pendingOrderCount
+            // back down (see stopOrderAlertSound's own comment for why that
+            // alone isn't immediate enough).
+            if (next.to === "ACCEPTED") stopOrderAlertSound();
+            startTransition(() => advanceOrderStatusAction(orderId, next.to));
+          }}
           className={`w-full rounded-[10px] px-3 py-[11px] text-[13.5px] font-bold hover:brightness-95 disabled:opacity-60 ${toneCls}`}
         >
           {pending ? "Working…" : next.label}
