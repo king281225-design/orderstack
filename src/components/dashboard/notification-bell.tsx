@@ -116,15 +116,23 @@ function playTone(
 }
 
 /**
- * Waiter call: three sharp, even beeps on a square wave — a harsher,
- * more alarm-like timbre than the order ringtone, so it reads as the more
- * urgent of the two even at a glance of the ear. Repeated on a timer below
- * until acknowledged.
+ * Waiter call: a high-alert alarm — 6 rapid, sharp beeps on a square wave,
+ * alternating between two high frequencies a fifth apart (988Hz/1318Hz,
+ * a classic "siren" interval), tighter spacing and louder than before so it
+ * reads as genuinely urgent, not just a polite ding. Still a harsher timbre
+ * than the order ringtone (a real mp3) so the two are tellable apart by ear
+ * alone even if they happen to overlap. Repeated on a faster timer below
+ * (every 4s, vs. the order alert's 8s) until acknowledged — a customer
+ * standing at a table waiting is more time-sensitive than a kitchen ticket.
  */
 function playWaiterChime(ctx: AudioContext) {
-  playTone(ctx, 660, 0, 0.14, 0.6, "square");
-  playTone(ctx, 660, 0.18, 0.14, 0.6, "square");
-  playTone(ctx, 660, 0.36, 0.14, 0.6, "square");
+  const ALERT_FREQS = [988, 1318];
+  const BEEP_COUNT = 6;
+  const BEEP_DURATION = 0.09;
+  const BEEP_GAP = 0.11;
+  for (let i = 0; i < BEEP_COUNT; i++) {
+    playTone(ctx, ALERT_FREQS[i % 2], i * BEEP_GAP, BEEP_DURATION, 0.7, "square");
+  }
 }
 
 export function NotificationBell({
@@ -239,13 +247,15 @@ export function NotificationBell({
   // an unaccepted order — it keeps ringing every few seconds for as long as
   // it sits unacknowledged, the same way a real physical call bell would,
   // instead of chiming once and going silent while a customer keeps waiting.
+  // 4s (vs. the order alert's 8s) — a customer standing at a table is more
+  // time-sensitive than a kitchen ticket, so it nags faster.
   const hasPendingWaiterCalls = waiterCalls.length > 0;
   useEffect(() => {
     if (!hasPendingWaiterCalls || muted) return;
     const id = setInterval(() => {
       const ctx = getAudioContext();
       if (ctx) playWaiterChime(ctx);
-    }, 6000);
+    }, 4000);
     return () => clearInterval(id);
   }, [hasPendingWaiterCalls, muted]);
 
