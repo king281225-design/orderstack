@@ -1,8 +1,17 @@
 import "server-only";
 import { prisma } from "@/lib/prisma";
 import { hashPassword } from "@/lib/auth";
-import type { BillingPeriod, PlanTier, SubscriptionStatus, Prisma } from "@prisma/client";
-import { PLAN_DEFINITIONS, getAnnualPricing, getPlanPriceCents, TRIAL_MS } from "@/lib/plans";
+import { Prisma, type BillingPeriod, type PlanTier, type SubscriptionStatus } from "@prisma/client";
+import {
+  PLAN_DEFINITIONS,
+  getAnnualPricing,
+  getPlanPriceCents,
+  trialMsFor,
+  TRIAL_DAYS_MIN,
+  TRIAL_DAYS_MAX,
+  parseFeatureOverrides,
+  type Feature,
+} from "@/lib/plans";
 import {
   createRazorpayPlan,
   createRazorpaySubscription,
@@ -62,7 +71,7 @@ export async function getTenantByCustomDomain(domain: string) {
 export async function getTenantTrialStatus(tenantId: string) {
   return prisma.tenant.findUnique({
     where: { id: tenantId },
-    select: { subscriptionStatus: true, createdAt: true },
+    select: { subscriptionStatus: true, createdAt: true, trialDays: true },
   });
 }
 
@@ -369,6 +378,7 @@ export async function getBillingSummary(now: number): Promise<BillingSummary> {
       billingPeriod: true,
       paidUntil: true,
       createdAt: true,
+      trialDays: true,
     },
   });
   const out: BillingSummary = {
@@ -405,7 +415,7 @@ export async function getBillingSummary(now: number): Promise<BillingSummary> {
         if (left < 0) out.paidUntilExpired++;
         else if (left < week) out.paidUntilSoon++;
       }
-    } else if (t.createdAt.getTime() + TRIAL_MS > now) {
+    } else if (t.createdAt.getTime() + trialMsFor(t.trialDays) > now) {
       out.onTrial++;
     } else {
       out.trialEnded++;
@@ -543,6 +553,40 @@ export async function setTenantSubscriptionOverride(tenantId: string, active: bo
   return prisma.tenant.update({
     where: { id: tenantId },
     data: { subscriptionStatus: active ? "ACTIVE" : "NONE" },
+  });
+}
+
+/**
+ * Super-admin override of one tenant's free trial length (Tenant.trialDays,
+ * null = platform default TRIAL_DAYS — see trialMsFor/trialState in
+ * src/lib/plans.ts, read by both src/proxy.ts's gate and the dashboard
+ * banner). Clamped server-side regardless of what the client sent.
+ */
+export async function setTenantTrialDays(tenantId: string, days: number) {
+  const clamped = Math.min(TRIAL_DAYS_MAX, Math.max(TRIAL_DAYS_MIN, Math.round(days)));
+  return prisma.tenant.update({ where: { id: tenantId }, data: { trialDays: clamped } });
+}
+
+/**
+ * Super-admin per-tenant feature grant/revoke (Tenant.featureOverrides — see
+ * tenantHasFeature in src/lib/plans.ts, the real gate everywhere this used
+ * to just check planTier). `value: null` clears that one feature's override
+ * entirely, reverting it to whatever the plan tier normally grants — it does
+ * NOT mean "revoke" (pass `false` for that). Read-modify-write since
+ * Tenant.featureOverrides is one JSON column, not per-feature rows.
+ */
+export async function setTenantFeatureOverride(tenantId: string, feature: Feature, value: boolean | null) {
+  const current = await prisma.tenant.findUnique({ where: { id: tenantId }, select: { featureOverrides: true } });
+  const overrides = { ...parseFeatureOverrides(current?.featureOverrides) };
+  if (value === null) {
+    delete overrides[feature];
+  } else {
+    overrides[feature] = value;
+  }
+  const hasAny = Object.keys(overrides).length > 0;
+  return prisma.tenant.update({
+    where: { id: tenantId },
+    data: { featureOverrides: hasAny ? (overrides as Prisma.InputJsonValue) : Prisma.DbNull },
   });
 }
 

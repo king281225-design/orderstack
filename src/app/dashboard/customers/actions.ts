@@ -5,7 +5,7 @@ import { requireOwnerSession } from "@/lib/auth";
 import { getTenantById } from "@/lib/data/tenants";
 import { listInactiveCustomers } from "@/lib/data/customers";
 import { createCoupon, CouponCodeTakenError } from "@/lib/data/coupons";
-import { tierHasFeature } from "@/lib/plans";
+import { tenantHasFeature } from "@/lib/plans";
 import { buildTenantWhatsAppUrl } from "@/lib/contact";
 import { sendWinBackWhatsApp } from "@/lib/notifications/whatsapp";
 import { formatINR } from "@/lib/money";
@@ -53,7 +53,7 @@ export async function sendWinBackOfferAction(customerPhone: string, offer: WinBa
   // activity the dashboard itself won't show, same pattern as
   // createCouponAction/createStaffAction.
   const tenant = await getTenantById(session.tenantId);
-  if (!tenant || !tierHasFeature(tenant.planTier, "loyalty")) {
+  if (!tenant || !tenantHasFeature(tenant, "loyalty")) {
     return { ok: false, error: "Loyalty & win-back offers aren't included on your current plan." };
   }
 
@@ -111,6 +111,6 @@ export async function sendWinBackOfferAction(customerPhone: string, offer: WinBa
 export async function listWinBackCandidatesAction(sinceDays: number) {
   const session = await requireOwnerSession();
   const tenant = await getTenantById(session.tenantId);
-  if (!tenant || !tierHasFeature(tenant.planTier, "loyalty")) return [];
+  if (!tenant || !tenantHasFeature(tenant, "loyalty")) return [];
   return listInactiveCustomers(session.tenantId, sinceDays);
 }

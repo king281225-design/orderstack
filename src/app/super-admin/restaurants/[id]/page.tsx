@@ -3,7 +3,7 @@ import { notFound } from "next/navigation";
 import { getTenantDetailForAdmin } from "@/lib/data/tenants";
 import { formatINR } from "@/lib/money";
 import { PlanSelect } from "@/components/super-admin/plan-select";
-import { AccessToggle, StatusToggle, ManageButtons } from "@/components/super-admin/tenant-controls";
+import { AccessSelect, StatusSelect, ManageSelect, TrialDaysSelect, FeatureOverridesPanel } from "@/components/super-admin/tenant-controls";
 import { formatDate, formatDateTime, toDateInput, paidUntilNote } from "@/components/super-admin/format";
 import { saveTenantBillingAction } from "@/app/super-admin/actions";
 import { AutoRefresh } from "@/components/auto-refresh";
@@ -39,25 +39,42 @@ export default async function RestaurantDetailPage({ params }: { params: Promise
             {t.customDomain && <> · {t.customDomain}</>} · signed up {formatDate(t.createdAt)}
           </p>
         </div>
-        <div className="flex flex-wrap items-center gap-3">
+        <div className="flex flex-wrap items-end gap-3">
           <span
-            className={`rounded-full px-2 py-0.5 text-xs font-medium ${
-              t.status === "ACTIVE" ? "bg-green-100 text-green-700" : "bg-gray-200 text-gray-600"
-            }`}
-          >
-            {t.status}
-          </span>
-          <span
-            className={`rounded-full px-2 py-0.5 text-xs font-medium ${
+            className={`mb-1.5 flex min-h-9 items-center rounded-full px-2.5 text-xs font-medium ${
               t.isOpen ? "bg-green-100 text-green-700" : "bg-gray-200 text-gray-600"
             }`}
           >
             {t.isOpen ? "Open for orders" : "Closed"}
           </span>
-          <PlanSelect tenantId={t.id} planTier={t.planTier} />
-          <AccessToggle tenantId={t.id} subscriptionStatus={t.subscriptionStatus} createdAt={t.createdAt} now={now} />
-          <StatusToggle tenantId={t.id} status={t.status} />
-          <ManageButtons tenantId={t.id} />
+          <label className="flex flex-col gap-1 text-xs font-medium text-gray-500">
+            Plan
+            <PlanSelect tenantId={t.id} planTier={t.planTier} />
+          </label>
+          <label className="flex flex-col gap-1 text-xs font-medium text-gray-500">
+            Access
+            <AccessSelect
+              tenantId={t.id}
+              subscriptionStatus={t.subscriptionStatus}
+              createdAt={t.createdAt}
+              now={now}
+              trialDays={t.trialDays}
+            />
+          </label>
+          {t.subscriptionStatus !== "ACTIVE" && (
+            <label className="flex flex-col gap-1 text-xs font-medium text-gray-500">
+              Trial length
+              <TrialDaysSelect tenantId={t.id} trialDays={t.trialDays} />
+            </label>
+          )}
+          <label className="flex flex-col gap-1 text-xs font-medium text-gray-500">
+            Status
+            <StatusSelect tenantId={t.id} status={t.status} />
+          </label>
+          <label className="flex flex-col gap-1 text-xs font-medium text-gray-500">
+            Jump in
+            <ManageSelect tenantId={t.id} />
+          </label>
         </div>
       </header>
 
@@ -166,6 +183,14 @@ export default async function RestaurantDetailPage({ params }: { params: Promise
             </button>
           </form>
         </div>
+      </Card>
+
+      <Card title="Feature access">
+        <p className="mb-3 text-xs text-gray-500">
+          Overrides what {PLAN_DEFINITIONS[t.planTier].label} normally includes for this restaurant only — &quot;Default&quot; follows the
+          plan, &quot;Force on/off&quot; always wins regardless of tier. Nothing here changes any other restaurant.
+        </p>
+        <FeatureOverridesPanel tenantId={t.id} planTier={t.planTier} featureOverrides={t.featureOverrides} />
       </Card>
 
       {detail.openTickets.length > 0 && (

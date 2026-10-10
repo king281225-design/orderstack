@@ -1,7 +1,7 @@
 import { requireTenantSession } from "@/lib/auth";
 import { listCustomersForTenant } from "@/lib/data/customers";
 import { getTenantById } from "@/lib/data/tenants";
-import { tierHasFeature } from "@/lib/plans";
+import { tenantHasFeature } from "@/lib/plans";
 import { formatINR } from "@/lib/money";
 import { WinBackPanel } from "@/components/customers/win-back-panel";
 
@@ -13,7 +13,7 @@ export default async function CustomersPage() {
     listCustomersForTenant(session.tenantId),
     getTenantById(session.tenantId),
   ]);
-  const showWinBack = session.role === "OWNER" && tenant && tierHasFeature(tenant.planTier, "loyalty");
+  const showWinBack = session.role === "OWNER" && tenant && tenantHasFeature(tenant, "loyalty");
 
   return (
     <div className="flex flex-col gap-4">

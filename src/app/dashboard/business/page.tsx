@@ -10,7 +10,7 @@ import {
   type AnalyticsPreset,
 } from "@/lib/data/analytics";
 import { formatINR } from "@/lib/money";
-import { PLAN_DEFINITIONS, tierHasFeature } from "@/lib/plans";
+import { PLAN_DEFINITIONS, tenantHasFeature } from "@/lib/plans";
 import { PAYMENT_SOURCE_LABEL } from "@/lib/payment-sources";
 import { UpgradeRequired } from "@/components/upgrade-required";
 import { AddStoreForm } from "@/components/business/add-store-form";
@@ -28,7 +28,7 @@ export default async function BusinessDashboardPage({
   if (!tenant) return null;
 
   const business = session.impersonatorId ? null : await getBusinessForOwner(session.sub);
-  const canUse = tierHasFeature(tenant.planTier, "multiStore") || Boolean(business);
+  const canUse = tenantHasFeature(tenant, "multiStore") || Boolean(business);
   if (!canUse) {
     return <UpgradeRequired feature="Multi-store central dashboard" requiredPlanLabel={PLAN_DEFINITIONS.ADVANCED.label} />;
   }
@@ -85,7 +85,7 @@ export default async function BusinessDashboardPage({
           <input type="date" name="to" defaultValue={preset === "custom" ? sp.to : undefined} className="rounded-md border border-gray-300 px-2 py-1 text-xs" />
           <button className="rounded-md border border-gray-300 px-3 py-1 font-medium text-gray-700 hover:bg-gray-50">Custom</button>
         </form>
-        {tierHasFeature(tenant.planTier, "analytics") && (
+        {tenantHasFeature(tenant, "analytics") && (
           <a
             href={`/api/dashboard/analytics/report?${reportQs.toString()}`}
             target="_blank"
@@ -176,7 +176,7 @@ export default async function BusinessDashboardPage({
         <p className="mb-3 text-xs text-gray-500">
           Each store has its own menu, orders, staff, inventory and subscription. You sign in once and switch between them.
         </p>
-        {tierHasFeature(tenant.planTier, "multiStore") ? (
+        {tenantHasFeature(tenant, "multiStore") ? (
           <AddStoreForm />
         ) : (
           <p className="text-sm text-gray-500">Adding stores needs the Advanced or Business plan on the current store.</p>

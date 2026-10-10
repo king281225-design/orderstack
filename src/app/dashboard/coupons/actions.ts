@@ -5,7 +5,7 @@ import { requireOwnerSession } from "@/lib/auth";
 import { createCoupon, setCouponActive, deleteCoupon, CouponCodeTakenError } from "@/lib/data/coupons";
 import { getTenantById } from "@/lib/data/tenants";
 import { rupeesToCents } from "@/lib/money";
-import { tierHasFeature } from "@/lib/plans";
+import { tenantHasFeature } from "@/lib/plans";
 import type { DiscountType } from "@prisma/client";
 
 export type CouponActionState = { error: string | null };
@@ -21,7 +21,7 @@ export async function createCouponAction(
   // a direct action call from a Starter-tier session must not be able to
   // create coupon data the dashboard itself won't show.
   const tenant = await getTenantById(session.tenantId);
-  if (!tenant || !tierHasFeature(tenant.planTier, "coupons")) {
+  if (!tenant || !tenantHasFeature(tenant, "coupons")) {
     return { error: "Coupons aren't included on your current plan." };
   }
 

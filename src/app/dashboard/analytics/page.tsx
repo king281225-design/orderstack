@@ -11,7 +11,7 @@ import {
 } from "@/lib/data/analytics";
 import { getTenantById } from "@/lib/data/tenants";
 import { formatINR } from "@/lib/money";
-import { tierHasFeature, PLAN_DEFINITIONS } from "@/lib/plans";
+import { tenantHasFeature, PLAN_DEFINITIONS } from "@/lib/plans";
 import { PAYMENT_SOURCES, PAYMENT_SOURCE_LABEL } from "@/lib/payment-sources";
 import { UpgradeRequired } from "@/components/upgrade-required";
 import { MenuItemActions } from "@/components/analytics/menu-item-actions";
@@ -33,7 +33,7 @@ export default async function AnalyticsPage({ searchParams }: { searchParams: Pr
   const session = await requireOwnerSession();
   const tenant = await getTenantById(session.tenantId);
   if (!tenant) return null;
-  if (!tierHasFeature(tenant.planTier, "analytics")) {
+  if (!tenantHasFeature(tenant, "analytics")) {
     return <UpgradeRequired feature="Analytics" requiredPlanLabel={PLAN_DEFINITIONS.ADVANCED.label} />;
   }
 

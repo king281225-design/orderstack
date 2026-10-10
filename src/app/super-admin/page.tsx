@@ -5,11 +5,11 @@ import { AddRestaurantForm } from "@/components/super-admin/add-restaurant-form"
 import { PlanSelect } from "@/components/super-admin/plan-select";
 import { BillingPeriodSelect } from "@/components/super-admin/billing-period-select";
 import { SelectAllCheckbox } from "@/components/super-admin/select-all";
-import { AccessToggle, StatusToggle, ManageButtons } from "@/components/super-admin/tenant-controls";
+import { AccessSelect, StatusSelect, ManageSelect, TrialDaysSelect } from "@/components/super-admin/tenant-controls";
 import { formatDate, timeAgo, paidUntilNote } from "@/components/super-admin/format";
 import { AutoRefresh } from "@/components/auto-refresh";
 import { nowMs } from "@/lib/time";
-import { PLAN_DEFINITIONS, PLAN_TIERS } from "@/lib/plans";
+import { PLAN_DEFINITIONS, PLAN_TIERS, parseFeatureOverrides } from "@/lib/plans";
 import type { PlanTier } from "@prisma/client";
 
 export const dynamic = "force-dynamic";
@@ -173,7 +173,10 @@ export default async function SuperAdminPage({ searchParams }: { searchParams: P
                 </option>
               ))}
             </select>
-            <button type="submit" className="rounded-md bg-indigo-600 px-3 py-1.5 font-medium text-white hover:bg-indigo-700">
+            <button
+              type="submit"
+              className="min-h-9 touch-manipulation rounded-md bg-indigo-600 px-3 py-1.5 font-medium text-white hover:bg-indigo-700 active:scale-[0.98]"
+            >
               Search
             </button>
             {filtered && (
@@ -188,7 +191,7 @@ export default async function SuperAdminPage({ searchParams }: { searchParams: P
         <form id="bulk-delete" method="get" action="/super-admin/delete" className="flex items-center gap-3 text-sm">
           <button
             type="submit"
-            className="rounded-md border border-red-300 px-3 py-1.5 font-medium text-red-700 hover:bg-red-50"
+            className="min-h-9 touch-manipulation rounded-md border border-red-300 px-3 py-1.5 font-medium text-red-700 hover:bg-red-50 active:scale-[0.98]"
           >
             Delete selected…
           </button>
@@ -223,7 +226,7 @@ export default async function SuperAdminPage({ searchParams }: { searchParams: P
                         value={t.id}
                         form="bulk-delete"
                         aria-label={`Select ${t.name}`}
-                        className="h-4 w-4 cursor-pointer accent-indigo-600"
+                        className="h-5 w-5 touch-manipulation cursor-pointer accent-indigo-600"
                       />
                     </td>
                     <td className="px-3 py-3">
@@ -242,20 +245,35 @@ export default async function SuperAdminPage({ searchParams }: { searchParams: P
                         <PlanSelect tenantId={t.id} planTier={t.planTier} />
                         <BillingPeriodSelect tenantId={t.id} period={t.billingPeriod} />
                         {paid && <span className={`text-xs font-medium ${TONE[paid.tone]}`}>{paid.text}</span>}
+                        {(() => {
+                          const n = Object.keys(parseFeatureOverrides(t.featureOverrides)).length;
+                          return n > 0 ? (
+                            <Link
+                              href={`/super-admin/restaurants/${t.id}`}
+                              className="rounded-full bg-violet-100 px-2 py-0.5 text-xs font-medium text-violet-700 hover:underline"
+                            >
+                              {n} custom feature{n === 1 ? "" : "s"}
+                            </Link>
+                          ) : null;
+                        })()}
                       </div>
                     </td>
                     <td className="px-3 py-3">
-                      <AccessToggle
-                        tenantId={t.id}
-                        subscriptionStatus={t.subscriptionStatus}
-                        createdAt={t.createdAt}
-                        now={now}
-                      />
-                      {t.subscriptionStatus === "ACTIVE" && (
-                        <div className="mt-1 text-xs text-gray-400">
-                          {t.razorpaySubscriptionId ? "via Razorpay" : t._count.subscriptionPurchases > 0 ? "one-time payment" : "manual"}
-                        </div>
-                      )}
+                      <div className="flex flex-col items-start gap-1">
+                        <AccessSelect
+                          tenantId={t.id}
+                          subscriptionStatus={t.subscriptionStatus}
+                          createdAt={t.createdAt}
+                          now={now}
+                          trialDays={t.trialDays}
+                        />
+                        {t.subscriptionStatus !== "ACTIVE" && <TrialDaysSelect tenantId={t.id} trialDays={t.trialDays} />}
+                        {t.subscriptionStatus === "ACTIVE" && (
+                          <div className="text-xs text-gray-400">
+                            {t.razorpaySubscriptionId ? "via Razorpay" : t._count.subscriptionPurchases > 0 ? "one-time payment" : "manual"}
+                          </div>
+                        )}
+                      </div>
                     </td>
                     <td className="whitespace-nowrap px-3 py-3">
                       <div className="font-medium text-gray-900">{t.orderCount} orders</div>
@@ -266,23 +284,17 @@ export default async function SuperAdminPage({ searchParams }: { searchParams: P
                       <div className="text-gray-500">Last order {t.lastOrderAt ? timeAgo(t.lastOrderAt, now) : "—"}</div>
                     </td>
                     <td className="px-3 py-3">
-                      <span
-                        className={`rounded-full px-2 py-0.5 text-xs font-medium ${
-                          t.status === "ACTIVE" ? "bg-green-100 text-green-700" : "bg-gray-200 text-gray-600"
-                        }`}
-                      >
-                        {t.status}
-                      </span>
+                      <StatusSelect tenantId={t.id} status={t.status} />
                     </td>
                     <td className="px-3 py-3">
-                      <div className="flex flex-col items-end gap-1.5">
-                        <ManageButtons tenantId={t.id} />
-                        <div className="flex items-center gap-3">
-                          <Link href={`/super-admin/restaurants/${t.id}`} className="text-xs font-medium text-indigo-700 hover:underline">
-                            Details
-                          </Link>
-                          <StatusToggle tenantId={t.id} status={t.status} />
-                        </div>
+                      <div className="flex min-w-[9rem] flex-col items-stretch gap-1.5">
+                        <ManageSelect tenantId={t.id} />
+                        <Link
+                          href={`/super-admin/restaurants/${t.id}`}
+                          className="min-h-9 touch-manipulation rounded-md border border-gray-300 px-2.5 py-1.5 text-center text-xs font-medium text-gray-700 hover:border-indigo-400 hover:text-indigo-700 active:scale-[0.98] dark:bg-[#241d17]"
+                        >
+                          Details →
+                        </Link>
                       </div>
                     </td>
                   </tr>
@@ -302,7 +314,10 @@ export default async function SuperAdminPage({ searchParams }: { searchParams: P
         {list.pageCount > 1 && (
           <nav className="flex items-center justify-between text-sm" aria-label="Pagination">
             {list.page > 1 ? (
-              <Link href={pageHref(list.page - 1)} className="rounded-md border border-gray-300 bg-white px-3 py-1 hover:border-indigo-400 dark:bg-[#241d17]">
+              <Link
+                href={pageHref(list.page - 1)}
+                className="flex min-h-9 touch-manipulation items-center rounded-md border border-gray-300 bg-white px-3 py-1.5 hover:border-indigo-400 active:scale-[0.98] dark:bg-[#241d17]"
+              >
                 ← Previous
               </Link>
             ) : (
@@ -312,7 +327,10 @@ export default async function SuperAdminPage({ searchParams }: { searchParams: P
               Page {list.page} of {list.pageCount}
             </span>
             {list.page < list.pageCount ? (
-              <Link href={pageHref(list.page + 1)} className="rounded-md border border-gray-300 bg-white px-3 py-1 hover:border-indigo-400 dark:bg-[#241d17]">
+              <Link
+                href={pageHref(list.page + 1)}
+                className="flex min-h-9 touch-manipulation items-center rounded-md border border-gray-300 bg-white px-3 py-1.5 hover:border-indigo-400 active:scale-[0.98] dark:bg-[#241d17]"
+              >
                 Next →
               </Link>
             ) : (

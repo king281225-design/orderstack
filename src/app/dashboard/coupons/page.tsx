@@ -4,14 +4,14 @@ import { getTenantById } from "@/lib/data/tenants";
 import { formatINR } from "@/lib/money";
 import { AddCouponForm } from "@/components/coupons/add-coupon-form";
 import { deleteCouponAction, setCouponActiveAction } from "@/app/dashboard/coupons/actions";
-import { tierHasFeature, PLAN_DEFINITIONS } from "@/lib/plans";
+import { tenantHasFeature, PLAN_DEFINITIONS } from "@/lib/plans";
 import { UpgradeRequired } from "@/components/upgrade-required";
 
 export default async function CouponsPage() {
   const session = await requireOwnerSession();
   const tenant = await getTenantById(session.tenantId);
   if (!tenant) return null;
-  if (!tierHasFeature(tenant.planTier, "coupons")) {
+  if (!tenantHasFeature(tenant, "coupons")) {
     return <UpgradeRequired feature="Coupons" requiredPlanLabel={PLAN_DEFINITIONS.ADVANCED.label} />;
   }
 

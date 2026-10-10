@@ -12,7 +12,7 @@ import { listOrdersForTenant } from "@/lib/data/orders";
 import { listPendingWaiterCalls } from "@/lib/data/waiter-calls";
 import { acknowledgeWaiterCallAction, dismissOnboardingAction, toggleOpenAction } from "@/app/dashboard/actions";
 import { logoutAction } from "@/app/logout/actions";
-import { tierHasFeature, TRIAL_MS } from "@/lib/plans";
+import { tenantHasFeature, trialMsFor } from "@/lib/plans";
 import { listAccessibleStores } from "@/lib/data/business";
 import { switchStoreAction } from "@/app/dashboard/business/actions";
 import { StoreSwitcher } from "@/components/business/store-switcher";
@@ -44,21 +44,20 @@ export default async function DashboardLayout({ children }: { children: React.Re
   const isOwner = session.role === "OWNER";
   const menuDone = isOwner ? await hasAnyMenuItems(session.tenantId) : true;
   const brandingDone = Boolean(tenant.logoUrl || tenant.tagline);
-  const trialMsLeft = tenant.createdAt.getTime() + TRIAL_MS - nowMs();
+  const trialMsLeft = tenant.createdAt.getTime() + trialMsFor(tenant.trialDays) - nowMs();
   const trialDaysLeft =
     isOwner && tenant.subscriptionStatus !== "ACTIVE" && trialMsLeft > 0
       ? Math.max(0, Math.ceil(trialMsLeft / 86_400_000))
       : null;
-  // Nav visibility follows the tenant's plan tier (src/lib/plans.ts) —
-  // Kitchen is also gated even though staff can otherwise reach it, since
-  // it's a Business-tier feature regardless of who's asking.
-  const tier = tenant.planTier;
-
+  // Nav visibility follows the tenant's plan tier, with the super-admin's
+  // per-tenant feature overrides layered on top (src/lib/plans.ts) — Kitchen
+  // is also gated even though staff can otherwise reach it, since it's a
+  // Business-tier feature regardless of who's asking.
   const isOwnerSelf = isOwner && !session.impersonatorId;
   const { business, stores } = isOwnerSelf
     ? await listAccessibleStores(session.sub, session.tenantId)
     : { business: null, stores: [] };
-  const showBusinessNav = isOwnerSelf && (tierHasFeature(tenant.planTier, "multiStore") || Boolean(business));
+  const showBusinessNav = isOwnerSelf && (tenantHasFeature(tenant, "multiStore") || Boolean(business));
 
   const links: DashboardNavLink[] = [
     { href: "/dashboard", label: "Orders" },
@@ -66,19 +65,19 @@ export default async function DashboardLayout({ children }: { children: React.Re
     { href: "/dashboard/orders/history", label: "Edit history" },
     { href: "/dashboard/customers", label: "Customers" },
     { href: "/dashboard/menu", label: "Menu" },
-    ...(tierHasFeature(tier, "inventory") ? [{ href: "/dashboard/inventory", label: "Inventory", badge: lowStockCount }] : []),
-    ...(tierHasFeature(tier, "kot") ? [{ href: "/dashboard/kot", label: "KOT" }] : []),
-    ...(tierHasFeature(tier, "kitchen") ? [{ href: "/dashboard/kitchen", label: "Kitchen" }] : []),
+    ...(tenantHasFeature(tenant, "inventory") ? [{ href: "/dashboard/inventory", label: "Inventory", badge: lowStockCount }] : []),
+    ...(tenantHasFeature(tenant, "kot") ? [{ href: "/dashboard/kot", label: "KOT" }] : []),
+    ...(tenantHasFeature(tenant, "kitchen") ? [{ href: "/dashboard/kitchen", label: "Kitchen" }] : []),
     ...(isOwner
       ? [
           ...(showBusinessNav ? [{ href: "/dashboard/business", label: "Business" }] : []),
           { href: "/dashboard/invoices", label: "Invoices" },
-          ...(tierHasFeature(tier, "analytics") ? [{ href: "/dashboard/analytics", label: "Analytics" }] : []),
+          ...(tenantHasFeature(tenant, "analytics") ? [{ href: "/dashboard/analytics", label: "Analytics" }] : []),
           { href: "/dashboard/branding", label: "Settings" },
-          ...(tierHasFeature(tier, "coupons") ? [{ href: "/dashboard/coupons", label: "Coupons" }] : []),
+          ...(tenantHasFeature(tenant, "coupons") ? [{ href: "/dashboard/coupons", label: "Coupons" }] : []),
           { href: "/dashboard/tables/board", label: "Tables" },
-          ...(tierHasFeature(tier, "staff") ? [{ href: "/dashboard/staff", label: "Staff" }] : []),
-          ...(tierHasFeature(tier, "deliveryAggregator")
+          ...(tenantHasFeature(tenant, "staff") ? [{ href: "/dashboard/staff", label: "Staff" }] : []),
+          ...(tenantHasFeature(tenant, "deliveryAggregator")
             ? [{ href: "/dashboard/integrations", label: "Integrations" }]
             : []),
           { href: "/dashboard/billing", label: "Billing" },

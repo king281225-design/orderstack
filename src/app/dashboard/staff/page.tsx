@@ -3,14 +3,14 @@ import { listStaffForTenant } from "@/lib/data/staff";
 import { getTenantById } from "@/lib/data/tenants";
 import { AddStaffForm } from "@/components/staff/add-staff-form";
 import { deleteStaffAction } from "@/app/dashboard/staff/actions";
-import { tierHasFeature, PLAN_DEFINITIONS } from "@/lib/plans";
+import { tenantHasFeature, PLAN_DEFINITIONS } from "@/lib/plans";
 import { UpgradeRequired } from "@/components/upgrade-required";
 
 export default async function StaffPage() {
   const session = await requireOwnerSession();
   const tenant = await getTenantById(session.tenantId);
   if (!tenant) return null;
-  if (!tierHasFeature(tenant.planTier, "staff")) {
+  if (!tenantHasFeature(tenant, "staff")) {
     return <UpgradeRequired feature="Staff logins" requiredPlanLabel={PLAN_DEFINITIONS.BUSINESS.label} />;
   }
 

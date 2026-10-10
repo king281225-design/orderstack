@@ -8,7 +8,7 @@ import {
   listCategoriesForTenants,
   rangeForPreset,
 } from "@/lib/data/analytics";
-import { tierHasFeature } from "@/lib/plans";
+import { tenantHasFeature } from "@/lib/plans";
 import { PAYMENT_SOURCE_LABEL } from "@/lib/payment-sources";
 import { buildAnalyticsPdf } from "@/lib/reports/analytics-pdf";
 import { resolveStoreScope, verifyActiveStoreAccess } from "@/lib/data/business";
@@ -33,7 +33,7 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
   const tenant = await getTenantById(session.tenantId);
-  if (!tenant || !tierHasFeature(tenant.planTier, "analytics")) {
+  if (!tenant || !tenantHasFeature(tenant, "analytics")) {
     return NextResponse.json({ error: "Analytics is not included in this plan." }, { status: 403 });
   }
 

@@ -4,7 +4,7 @@ import { getTenantById } from "@/lib/data/tenants";
 import { AutoRefresh } from "@/components/auto-refresh";
 import { KitchenAdvanceButton } from "@/components/orders/kitchen-advance-button";
 import { nowMs } from "@/lib/time";
-import { tierHasFeature, PLAN_DEFINITIONS } from "@/lib/plans";
+import { tenantHasFeature, PLAN_DEFINITIONS } from "@/lib/plans";
 import { UpgradeRequired } from "@/components/upgrade-required";
 import type { Order, OrderItem, OrderStatus } from "@prisma/client";
 
@@ -37,7 +37,7 @@ export default async function KitchenDisplayPage() {
   const session = await requireTenantSession();
   const tenant = await getTenantById(session.tenantId);
   if (!tenant) return null;
-  if (!tierHasFeature(tenant.planTier, "kitchen")) {
+  if (!tenantHasFeature(tenant, "kitchen")) {
     return <UpgradeRequired feature="Kitchen display" requiredPlanLabel={PLAN_DEFINITIONS.BUSINESS.label} />;
   }
 

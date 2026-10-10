@@ -1,7 +1,7 @@
 import "server-only";
 import { prisma } from "@/lib/prisma";
 import { isValidSlug, SlugTakenError } from "@/lib/data/tenants";
-import { tierHasFeature } from "@/lib/plans";
+import { tenantHasFeature } from "@/lib/plans";
 
 /**
  * Multi-store (Business plan) access control.
@@ -100,10 +100,10 @@ export async function createStoreForBusiness(
 ) {
   const active = await prisma.tenant.findUnique({
     where: { id: activeTenantId },
-    select: { id: true, name: true, planTier: true, businessId: true },
+    select: { id: true, name: true, planTier: true, businessId: true, featureOverrides: true },
   });
   if (!active) throw new BusinessAccessError("Store not found.");
-  if (!tierHasFeature(active.planTier, "multiStore")) {
+  if (!tenantHasFeature(active, "multiStore")) {
     throw new MultiStoreNotAllowedError("Adding stores needs the Advanced or Business plan.");
   }
   const name = input.name.trim();

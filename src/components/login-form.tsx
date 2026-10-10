@@ -3,6 +3,7 @@
 import { useActionState } from "react";
 import Link from "next/link";
 import { loginAction, type LoginState } from "@/app/login/actions";
+import { PasswordInput } from "@/components/password-input";
 
 const initialState: LoginState = { error: null };
 
@@ -33,10 +34,9 @@ export function LoginForm() {
             Forgot password?
           </Link>
         </div>
-        <input
+        <PasswordInput
           id="password"
           name="password"
-          type="password"
           required
           autoComplete="current-password"
           className="rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-indigo-600 focus:outline-none"

@@ -18,7 +18,7 @@ export function BillingPeriodSelect({ tenantId, period }: { tenantId: string; pe
           await setTenantBillingPeriodAction(tenantId, next);
         });
       }}
-      className="rounded-md border border-gray-300 px-2 py-1 text-xs focus:border-indigo-600 focus:outline-none"
+      className="min-h-9 w-full touch-manipulation cursor-pointer rounded-md border border-gray-300 bg-white px-2.5 py-1.5 text-xs focus:border-indigo-600 focus:outline-none disabled:cursor-wait disabled:opacity-60 dark:bg-[#241d17]"
     >
       <option value="">Billing: not set</option>
       <option value="MONTHLY">Monthly</option>

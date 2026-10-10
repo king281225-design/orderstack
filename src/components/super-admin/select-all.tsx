@@ -6,7 +6,7 @@ export function SelectAllCheckbox() {
     <input
       type="checkbox"
       aria-label="Select all restaurants on this page"
-      className="h-4 w-4 cursor-pointer accent-indigo-600"
+      className="h-5 w-5 touch-manipulation cursor-pointer accent-indigo-600"
       onChange={(e) => {
         document
           .querySelectorAll<HTMLInputElement>('input[type="checkbox"][name="id"]')

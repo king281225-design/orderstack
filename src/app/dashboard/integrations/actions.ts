@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { requireOwnerSession } from "@/lib/auth";
 import { getTenantById } from "@/lib/data/tenants";
-import { tierHasFeature } from "@/lib/plans";
+import { tenantHasFeature } from "@/lib/plans";
 import { setDynoRestaurantLink, removeDynoRestaurantLink, DynoRestaurantIdTakenError } from "@/lib/data/dyno-connections";
 import type { DeliveryPlatform } from "@prisma/client";
 
@@ -13,7 +13,7 @@ const ok: DynoConnectionState = { error: null, success: true };
 async function requireAggregatorAccess() {
   const session = await requireOwnerSession();
   const tenant = await getTenantById(session.tenantId);
-  if (!tenant || !tierHasFeature(tenant.planTier, "deliveryAggregator")) {
+  if (!tenant || !tenantHasFeature(tenant, "deliveryAggregator")) {
     throw new Error("Delivery-platform integration isn't included on your current plan.");
   }
   return session;

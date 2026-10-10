@@ -3,19 +3,33 @@ import type { BillingPeriod, PlanTier } from "@prisma/client";
 /** Free dashboard trial length — measured from the tenant's createdAt (see src/proxy.ts). */
 export const TRIAL_DAYS = 7;
 export const TRIAL_MS = TRIAL_DAYS * 24 * 60 * 60 * 1000;
+/** Bounds for the super-admin's per-tenant trial-length override (Tenant.trialDays). */
+export const TRIAL_DAYS_MIN = 1;
+export const TRIAL_DAYS_MAX = 365;
+
+/**
+ * Trial length in ms for one tenant — TRIAL_DAYS unless the super-admin has
+ * set a per-tenant override (Tenant.trialDays, null = platform default).
+ */
+export function trialMsFor(trialDays: number | null | undefined): number {
+  const days = trialDays && trialDays > 0 ? trialDays : TRIAL_DAYS;
+  return days * 24 * 60 * 60 * 1000;
+}
 
 /**
  * Where a tenant stands against the free trial (same rule src/proxy.ts and
  * the owner dashboard use): a paid/overridden tenant (subscriptionStatus
- * ACTIVE) has no trial clock; otherwise it runs TRIAL_DAYS from createdAt.
+ * ACTIVE) has no trial clock; otherwise it runs trialMsFor(trialDays) from
+ * createdAt.
  */
 export function trialState(
   createdAt: Date,
   subscriptionStatus: string,
   now: number,
+  trialDays?: number | null,
 ): { kind: "full" } | { kind: "trial"; daysLeft: number } | { kind: "ended" } {
   if (subscriptionStatus === "ACTIVE") return { kind: "full" };
-  const msLeft = createdAt.getTime() + TRIAL_MS - now;
+  const msLeft = createdAt.getTime() + trialMsFor(trialDays) - now;
   return msLeft > 0 ? { kind: "trial", daysLeft: Math.ceil(msLeft / 86_400_000) } : { kind: "ended" };
 }
 
@@ -147,6 +161,39 @@ export type Feature =
   | "deliveryAggregator"
   | "multiStore";
 
+/** Every gateable feature, in the order the super-admin's per-tenant override panel shows them. */
+export const ALL_FEATURES: Feature[] = [
+  "menu",
+  "orders",
+  "tables",
+  "billing",
+  "inventory",
+  "kot",
+  "coupons",
+  "loyalty",
+  "analytics",
+  "kitchen",
+  "staff",
+  "deliveryAggregator",
+  "multiStore",
+];
+
+export const FEATURE_LABELS: Record<Feature, string> = {
+  menu: "Menu management",
+  orders: "Order management & billing",
+  tables: "QR table ordering",
+  billing: "Billing / printable invoices",
+  inventory: "Inventory & stock tracking",
+  kot: "KOT (kitchen ticket) screen",
+  coupons: "Coupons",
+  loyalty: "Loyalty points & win-back offers",
+  analytics: "Analytics dashboard",
+  kitchen: "Kitchen display system",
+  staff: "Staff logins",
+  deliveryAggregator: "Zomato / Swiggy integration",
+  multiStore: "Multi-store (several outlets, one account)",
+};
+
 const FEATURES_BY_TIER: Record<PlanTier, ReadonlySet<Feature>> = {
   STARTER: new Set(["menu", "orders", "tables", "billing", "inventory", "kot"]),
   ADVANCED: new Set(["menu", "orders", "tables", "billing", "inventory", "kot", "coupons", "loyalty", "analytics", "multiStore"]),
@@ -169,4 +216,38 @@ const FEATURES_BY_TIER: Record<PlanTier, ReadonlySet<Feature>> = {
 
 export function tierHasFeature(tier: PlanTier, feature: Feature): boolean {
   return FEATURES_BY_TIER[tier].has(feature);
+}
+
+/** Lowest tier that normally includes a feature — shown in the super-admin override panel as a hint (e.g. "Advanced+"). */
+export function defaultTierFor(feature: Feature): PlanTier {
+  return PLAN_TIERS.find((tier) => FEATURES_BY_TIER[tier].has(feature)) ?? "BUSINESS";
+}
+
+/** Tenant.featureOverrides' shape once parsed: Feature -> explicit grant (true) or revoke (false). */
+export type FeatureOverrides = Partial<Record<Feature, boolean>>;
+
+/** Safely coerces Tenant.featureOverrides' raw JSON (untrusted — came back from the database) into a typed partial record, dropping anything unrecognized. */
+export function parseFeatureOverrides(value: unknown): FeatureOverrides {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return {};
+  const out: FeatureOverrides = {};
+  for (const feature of ALL_FEATURES) {
+    const v = (value as Record<string, unknown>)[feature];
+    if (typeof v === "boolean") out[feature] = v;
+  }
+  return out;
+}
+
+/**
+ * The real, per-tenant gate — used everywhere tierHasFeature used to be
+ * called directly. An explicit super-admin override (Tenant.featureOverrides,
+ * set from /super-admin) always wins; otherwise falls back to the plan
+ * tier's normal set.
+ */
+export function tenantHasFeature(
+  tenant: { planTier: PlanTier; featureOverrides?: unknown },
+  feature: Feature,
+): boolean {
+  const overrides = parseFeatureOverrides(tenant.featureOverrides);
+  if (feature in overrides) return Boolean(overrides[feature]);
+  return tierHasFeature(tenant.planTier, feature);
 }

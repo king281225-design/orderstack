@@ -3,7 +3,7 @@ import { verifySessionToken } from "@/lib/auth";
 import { getTenantByCustomDomain, getTenantTrialStatus } from "@/lib/data/tenants";
 import { isSessionStillActive } from "@/lib/data/sessions";
 import { verifyActiveStoreAccess } from "@/lib/data/business";
-import { TRIAL_MS } from "@/lib/plans";
+import { trialMsFor } from "@/lib/plans";
 
 const COOKIE_NAME = "os_session";
 
@@ -91,7 +91,7 @@ export async function proxy(request: NextRequest) {
       if (
         tenant &&
         tenant.subscriptionStatus !== "ACTIVE" &&
-        Date.now() - tenant.createdAt.getTime() > TRIAL_MS
+        Date.now() - tenant.createdAt.getTime() > trialMsFor(tenant.trialDays)
       ) {
         return NextResponse.redirect(new URL(`${BILLING_PATH}?trialExpired=1`, request.url));
       }

@@ -9,9 +9,12 @@ import {
   setTenantStatus,
   setTenantPlan,
   setTenantSubscriptionOverride,
+  setTenantTrialDays,
+  setTenantFeatureOverride,
   setTenantBilling,
   deleteTenants,
 } from "@/lib/data/tenants";
+import { ALL_FEATURES, type Feature } from "@/lib/plans";
 import type { PlanTier } from "@prisma/client";
 
 export type CreateRestaurantState = { error: string | null; success: boolean };
@@ -69,8 +72,41 @@ export async function setTenantSubscriptionOverrideAction(tenantId: string, acti
   revalidatePath("/super-admin");
 }
 
+/** Per-tenant trial-length override — see setTenantTrialDays's own comment. */
+export async function setTenantTrialDaysAction(tenantId: string, days: number) {
+  await requireRole("SUPER_ADMIN");
+  await setTenantTrialDays(tenantId, days);
+  revalidatePath("/super-admin");
+  revalidatePath(`/super-admin/restaurants/${tenantId}`);
+}
+
+/**
+ * Per-tenant feature grant/revoke — see setTenantFeatureOverride's own
+ * comment. `mode: "default"` clears the override (follow the plan tier
+ * again); "on"/"off" force-grants or force-revokes it regardless of tier.
+ */
+export async function setTenantFeatureOverrideAction(tenantId: string, feature: string, mode: "default" | "on" | "off") {
+  await requireRole("SUPER_ADMIN");
+  if (!ALL_FEATURES.includes(feature as Feature)) throw new Error("Unknown feature.");
+  await setTenantFeatureOverride(tenantId, feature as Feature, mode === "default" ? null : mode === "on");
+  revalidatePath("/super-admin");
+  revalidatePath(`/super-admin/restaurants/${tenantId}`);
+}
+
 // Where "Manage" may land — bound arguments are client-visible, so never redirect to a raw value.
-const MANAGE_LANDING_PATHS = ["/dashboard", "/dashboard/menu", "/dashboard/branding"];
+// Kept in sync with MANAGE_DESTINATIONS in src/components/super-admin/tenant-controls.tsx.
+const MANAGE_LANDING_PATHS = [
+  "/dashboard",
+  "/dashboard/orders",
+  "/dashboard/menu",
+  "/dashboard/branding",
+  "/dashboard/billing",
+  "/dashboard/analytics",
+  "/dashboard/inventory",
+  "/dashboard/tables",
+  "/dashboard/staff",
+  "/dashboard/coupons",
+];
 
 /**
  * "Manage this restaurant": swaps the super-admin's session for an owner-level

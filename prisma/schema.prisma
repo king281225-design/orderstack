@@ -237,6 +237,17 @@ model Tenant {
   // purely as a display fallback, not as a free grant.
   planTier                PlanTier           @default(STARTER)
   subscriptionStatus      SubscriptionStatus @default(NONE)
+  // Per-tenant override of the free dashboard trial length (see TRIAL_DAYS in
+  // src/lib/plans.ts). Null means "use the platform default" — only set once
+  // the super-admin explicitly adjusts this tenant's trial from /super-admin.
+  trialDays               Int?
+  // Per-tenant feature grants/revokes layered on top of planTier's normal
+  // set (see FEATURES_BY_TIER/tenantHasFeature in src/lib/plans.ts). A JSON
+  // object of Feature key -> boolean; a key present and true force-grants
+  // that feature regardless of tier, present and false force-revokes it,
+  // and an absent key just follows the plan tier as before. Null/empty = no
+  // overrides at all (the common case). Set from /super-admin.
+  featureOverrides        Json?
   razorpaySubscriptionId  String?
   // Set the moment the owner clicks Subscribe on a specific tier's card
   // (src/lib/data/tenants.ts startTenantSubscription), before any payment

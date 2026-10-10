@@ -1,7 +1,7 @@
 import { requireOwnerSession } from "@/lib/auth";
 import { getTenantById } from "@/lib/data/tenants";
 import { listDynoRestaurantLinks } from "@/lib/data/dyno-connections";
-import { tierHasFeature, PLAN_DEFINITIONS } from "@/lib/plans";
+import { tenantHasFeature, PLAN_DEFINITIONS } from "@/lib/plans";
 import { UpgradeRequired } from "@/components/upgrade-required";
 import { DynoConnectionForm } from "@/components/integrations/dyno-connection-form";
 import { PlatformCard } from "@/components/integrations/platform-card";
@@ -35,7 +35,7 @@ export default async function IntegrationsPage() {
   const session = await requireOwnerSession();
   const tenant = await getTenantById(session.tenantId);
   if (!tenant) return null;
-  if (!tierHasFeature(tenant.planTier, "deliveryAggregator")) {
+  if (!tenantHasFeature(tenant, "deliveryAggregator")) {
     return <UpgradeRequired feature="Delivery-platform integration" requiredPlanLabel={PLAN_DEFINITIONS.BUSINESS.label} />;
   }
 
