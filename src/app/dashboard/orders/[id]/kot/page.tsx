@@ -3,10 +3,10 @@ import { requireTenantSession } from "@/lib/auth";
 import { getOrderForPrint } from "@/lib/data/orders";
 import { getTenantById } from "@/lib/data/tenants";
 import { KotPrintControls } from "@/components/orders/kot-print-controls";
-import { AutoPrintOnMount } from "@/components/orders/auto-print";
+import { ThermalTicketFrame } from "@/components/orders/thermal-ticket-frame";
 import { kotCode } from "@/lib/kot";
 import { formatINR } from "@/lib/money";
-import { DEFAULT_THERMAL_WIDTH, isThermalWidth, thermalContentWidthMm, thermalPageCss } from "@/lib/print-prefs";
+import { DEFAULT_THERMAL_WIDTH, isThermalWidth, thermalContentWidthMm } from "@/lib/print-prefs";
 
 /**
  * Kitchen Order Ticket slip — an 80mm (or ?width=58, see print-prefs.ts)
@@ -44,68 +44,66 @@ export default async function KotSlipPage({
     ...(showPrices ? { prices: "0" } : {}),
     width: paperWidth,
   }).toString()}`;
-  const pageCss = thermalPageCss(paperWidth);
-
   return (
-    <div className="kot-ticket mx-auto" style={{ maxWidth: `${thermalContentWidthMm(paperWidth)}mm`, fontSize: 16 }}>
-      <style>{`@page { size: ${pageCss.size}; margin: ${pageCss.margin}; }`}</style>
-      <AutoPrintOnMount enabled={autoprint === "1"} />
+    <div className="mx-auto" style={{ maxWidth: `${thermalContentWidthMm(paperWidth)}mm` }}>
       <KotPrintControls
         billHref={`/dashboard/orders/${id}/print?width=${paperWidth}`}
         pricesHref={pricesHref}
         showPrices={showPrices}
         width={paperWidth}
       />
-      <div className="text-center">
-        <p className="text-base font-bold">{tenant.name}</p>
-        <p className="text-lg font-bold">KOT {kotCode(tenant.name, order.orderNumber)}</p>
-        {stationLabel && <p className="font-semibold uppercase">Station: {stationLabel}</p>}
-        <p className="text-xs">{order.createdAt.toLocaleString("en-IN")}</p>
-      </div>
-      <hr className="my-2 border-dashed border-gray-500" />
-      <p className="font-semibold">
-        {order.fulfillmentType === "DINE_IN"
-          ? `DINE-IN${order.tableLabel ? ` — TABLE ${order.tableLabel}` : ""}`
-          : order.fulfillmentType === "DELIVERY"
-            ? "DELIVERY"
-            : "TAKEAWAY"}
-      </p>
-      <hr className="my-2 border-dashed border-gray-500" />
-      <ul className="flex flex-col gap-1">
-        {items.map((i) => (
-          <li key={i.id} className="flex gap-2 text-sm font-semibold">
-            <span className="w-8 shrink-0">{i.quantity} ×</span>
-            <span className="flex-1">{i.nameSnapshot}</span>
-            {showPrices && <span className="shrink-0">{formatINR(i.priceCentsSnapshot * i.quantity)}</span>}
-          </li>
-        ))}
-      </ul>
-      {order.notes && (
-        <>
-          <hr className="my-2 border-dashed border-gray-500" />
-          <p className="text-sm">Note: {order.notes}</p>
-        </>
-      )}
-      {showPrices && (
-        <>
-          <hr className="my-2 border-dashed border-gray-500" />
-          {station && (
-            <p className="flex justify-between text-sm">
-              <span>Station subtotal</span>
-              <span>{formatINR(itemsSubtotal)}</span>
+      <ThermalTicketFrame width={paperWidth} className="kot-ticket" style={{ fontSize: 16 }} autoPrint={autoprint === "1"}>
+        <div className="text-center">
+          <p className="text-base font-bold">{tenant.name}</p>
+          <p className="text-lg font-bold">KOT {kotCode(tenant.name, order.orderNumber)}</p>
+          {stationLabel && <p className="font-semibold uppercase">Station: {stationLabel}</p>}
+          <p className="text-xs">{order.createdAt.toLocaleString("en-IN")}</p>
+        </div>
+        <hr className="my-2 border-dashed border-gray-500" />
+        <p className="font-semibold">
+          {order.fulfillmentType === "DINE_IN"
+            ? `DINE-IN${order.tableLabel ? ` — TABLE ${order.tableLabel}` : ""}`
+            : order.fulfillmentType === "DELIVERY"
+              ? "DELIVERY"
+              : "TAKEAWAY"}
+        </p>
+        <hr className="my-2 border-dashed border-gray-500" />
+        <ul className="flex flex-col gap-1">
+          {items.map((i) => (
+            <li key={i.id} className="flex gap-2 text-sm font-semibold">
+              <span className="w-8 shrink-0">{i.quantity} ×</span>
+              <span className="flex-1">{i.nameSnapshot}</span>
+              {showPrices && <span className="shrink-0">{formatINR(i.priceCentsSnapshot * i.quantity)}</span>}
+            </li>
+          ))}
+        </ul>
+        {order.notes && (
+          <>
+            <hr className="my-2 border-dashed border-gray-500" />
+            <p className="text-sm">Note: {order.notes}</p>
+          </>
+        )}
+        {showPrices && (
+          <>
+            <hr className="my-2 border-dashed border-gray-500" />
+            {station && (
+              <p className="flex justify-between text-sm">
+                <span>Station subtotal</span>
+                <span>{formatINR(itemsSubtotal)}</span>
+              </p>
+            )}
+            <p className="flex justify-between text-sm font-bold">
+              <span>
+                Bill total
+                {order.taxCents > 0 ? " (incl. GST)" : ""}
+              </span>
+              <span>{formatINR(order.totalCents)}</span>
             </p>
-          )}
-          <p className="flex justify-between text-sm font-bold">
-            <span>
-              Bill total
-              {order.taxCents > 0 ? " (incl. GST)" : ""}
-            </span>
-            <span>{formatINR(order.totalCents)}</span>
-          </p>
-        </>
-      )}
-      <hr className="my-2 border-dashed border-gray-500" />
-      <p className="text-center text-xs">— end of ticket —</p>
+          </>
+        )}
+        <hr className="my-2 border-dashed border-gray-500" />
+        <p className="text-center text-xs">— end of ticket —</p>
+      </ThermalTicketFrame>
     </div>
   );
 }

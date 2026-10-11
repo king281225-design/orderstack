@@ -26,23 +26,27 @@ export function isThermalWidth(value: string | undefined): value is ThermalWidth
 }
 
 /**
- * @page size/margin for a given roll width. The height used to be the
- * keyword `auto` (`size: 48mm auto`) to mean "let the page grow to fit the
- * receipt" — but `<length> auto` is not a valid CSS @page `size` value (the
- * spec only allows one or two lengths, a page-size keyword, or `auto` on
- * its own). Confirmed directly against Chromium's print pipeline: with that
- * invalid value, Chrome silently discarded the whole rule and fell back to
- * a full US Letter page (612×792pt) — which is exactly what reading as
- * "margin cut off" / "footer jumps down the page onto blank space" would
- * look like, since real content sat in a narrow column on an oversized
- * page. A generous but explicit fixed height is valid CSS and gets applied
- * correctly; it only sets an upper bound; a short receipt doesn't actually
- * use all of it, since the printer driver itself trims trailing blank
- * paper and cuts right after the real content, same as it does on any
- * other continuous-roll receipt printer.
+ * @page size/margin for a given roll width and page height (in mm). The
+ * height used to be the keyword `auto` (`size: 48mm auto`) to mean "let the
+ * page grow to fit the receipt" — but `<length> auto` is not a valid CSS
+ * @page `size` value (the spec only allows one or two lengths, a page-size
+ * keyword, or `auto` on its own). Confirmed directly against Chromium's
+ * print pipeline: with that invalid value, Chrome silently discarded the
+ * whole rule and fell back to a full US Letter page (612×792pt) — which is
+ * exactly what reading as "margin cut off" / "footer jumps down the page
+ * onto blank space" would look like, since real content sat in a narrow
+ * column on an oversized page.
+ *
+ * A fixed height is valid CSS and does get applied correctly — but a
+ * generous guessed height (1000mm) turned out to be the wrong fix too: a
+ * real print preview showed one line of content followed by nearly a
+ * meter of blank page, meaning the printer driver does NOT reliably trim
+ * trailing blank paper the way a true continuous-roll driver would. The
+ * height passed in here should be the real measured content height (see
+ * useThermalPageHeightMm in print-prefs-client.ts), not a guess.
  */
-export function thermalPageCss(width: ThermalWidth) {
-  return { size: `${width}mm 1000mm`, margin: Number(width) <= 60 ? "2mm" : "3mm" };
+export function thermalPageCss(width: ThermalWidth, heightMm: number) {
+  return { size: `${width}mm ${heightMm}mm`, margin: Number(width) <= 60 ? "2mm" : "3mm" };
 }
 
 /** On-screen/print content width — the roll width minus margin on both sides. */

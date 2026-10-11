@@ -1,10 +1,13 @@
 "use client";
 
-import { useEffect, useState, useSyncExternalStore } from "react";
+import { useEffect, useRef, useState, useSyncExternalStore } from "react";
 import { formatINR } from "@/lib/money";
 import { PrintControls } from "@/components/orders/print-button";
 import { thermalContentWidthMm, thermalPageCss, type ThermalWidth } from "@/lib/print-prefs";
-import { setPersistedThermalWidth, useThermalWidthPref } from "@/lib/print-prefs-client";
+import { setPersistedThermalWidth, useThermalPageHeightMm, useThermalWidthPref } from "@/lib/print-prefs-client";
+
+/** Only a placeholder for the brief on-screen moment before the real content height is measured — see useThermalPageHeightMm. Auto-print waits for the real measurement and never prints against this. */
+const FALLBACK_THERMAL_HEIGHT_MM = 1000;
 
 type InvoiceLine = { id: string; nameSnapshot: string; priceCentsSnapshot: number; quantity: number };
 
@@ -156,19 +159,28 @@ export function InvoiceView({
     if (forceWidth) setPersistedThermalWidth(forceWidth);
   }, [forceThermal, forceWidth]);
 
-  useEffect(() => {
-    // forceThermal (from ?thermal=1) already applies from this component's
-    // very first render — it's a plain prop, not something read from
-    // localStorage, so there's no mount-timing gap to wait out here. This
-    // effect only fires the actual print once that already-correct layout
-    // has committed, which every effect runs after by the time it fires.
-    if (autoPrint) window.print();
-    // Deliberately once per mount: autoPrint is a static snapshot of the
-    // URL this page loaded with, not a value that changes afterwards.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  const contentRef = useRef<HTMLDivElement>(null);
+  const measuredHeightMm = useThermalPageHeightMm(contentRef);
 
-  const pageCss = thermal ? thermalPageCss(width) : { size: "A4", margin: "12mm" };
+  const hasAutoPrintedRef = useRef(false);
+  useEffect(() => {
+    if (!autoPrint || hasAutoPrintedRef.current) return;
+    // A4 doesn't depend on measuring anything — print immediately, same as
+    // before. Thermal mode has to wait for measuredHeightMm to actually
+    // resolve (not the FALLBACK_THERMAL_HEIGHT_MM placeholder) — printing
+    // one tick too early would fire window.print() against the same
+    // "huge blank page" bug this measurement exists to fix. In practice
+    // this resolves within a frame or two of mount; see
+    // useThermalPageHeightMm's own comment on why this can't be a plain
+    // setState-in-effect instead.
+    if (thermal && measuredHeightMm == null) return;
+    hasAutoPrintedRef.current = true;
+    window.print();
+  }, [autoPrint, thermal, measuredHeightMm]);
+
+  const pageCss = thermal
+    ? thermalPageCss(width, measuredHeightMm ?? FALLBACK_THERMAL_HEIGHT_MM)
+    : { size: "A4", margin: "12mm" };
 
   return (
     <div
@@ -186,7 +198,10 @@ export function InvoiceView({
       <style>{`@page { size: ${pageCss.size}; margin: ${pageCss.margin}; }`}</style>
       <PrintControls thermal={thermal} onThermalChange={setThermal} width={width} onWidthChange={setWidth} kotHref={kotHref} />
 
-      <div className="rounded-lg border border-gray-200 bg-white p-6 text-gray-900 print:rounded-none print:border-0 print:p-0">
+      <div
+        ref={contentRef}
+        className="rounded-lg border border-gray-200 bg-white p-6 text-gray-900 print:rounded-none print:border-0 print:p-0"
+      >
         <header className="mb-4 flex flex-col gap-1 border-b border-gray-200 pb-4">
           <h1 className="text-xl font-bold">{tenantName}</h1>
           {businessAddress && <p className="text-xs text-gray-600 whitespace-pre-line">{businessAddress}</p>}
