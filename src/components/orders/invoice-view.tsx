@@ -297,6 +297,7 @@ export function InvoiceView({
         <p className="mt-6 border-t border-gray-200 pt-4 text-center text-xs text-gray-400">
           Thank you for visiting {tenantName}.
         </p>
+        <p className="mt-1 text-center text-xs text-gray-400">Powered by bhejosetu.in</p>
       </div>
     </div>
   );

@@ -10,6 +10,21 @@ import type { ReactNode } from "react";
  * then runs inside the iframe's own window, and window.print() called from
  * inside an iframe prints exactly that iframe's content, the same as it
  * would in a popped-up tab — just with nothing visible flashing open first.
+ *
+ * The iframe's own box must be a real, finite size — not 0×0. Both print
+ * pages measure their *real rendered* content height on screen (see
+ * useThermalPageHeightMm) and feed that straight into the printed @page
+ * height. A 0×0 iframe collapses its document's containing block to zero
+ * width too, so every line of text was wrapping down to its narrowest
+ * possible column *during that on-screen measurement* — producing a wildly
+ * inflated height. Chrome's actual print pass then re-paginates the same
+ * content at the real, correct roll width (a handful of normal-width
+ * lines), leaving most of that over-tall page blank — exactly the "huge
+ * gap under a tiny-looking receipt" bug this caused. Giving the iframe a
+ * generous fixed size (wide enough for the largest supported roll, see
+ * MAX_MM in print-prefs.ts) makes the on-screen measurement match what
+ * actually prints. Kept off-screen via a large negative offset (not
+ * opacity/0-size) so it still never becomes visible or clickable.
  */
 export function SilentPrintButton({
   buildHref,
@@ -31,12 +46,13 @@ export function SilentPrintButton({
     iframe.tabIndex = -1;
     Object.assign(iframe.style, {
       position: "fixed",
-      right: "0",
-      bottom: "0",
-      width: "0",
-      height: "0",
+      top: "0",
+      left: "-10000px",
+      width: "500px",
+      height: "1500px",
       border: "0",
       opacity: "0",
+      pointerEvents: "none",
     });
 
     let cleaned = false;
