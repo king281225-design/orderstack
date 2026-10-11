@@ -50,9 +50,13 @@ export function OrderCardFooter({
 
   return (
     <>
-      <div className="flex items-center justify-between border-t border-dashed border-[var(--ds-border-soft)] pt-2">
+      <div className="flex flex-wrap items-center justify-between gap-y-1.5 border-t border-dashed border-[var(--ds-border-soft)] pt-2">
         <span className="ds-mono text-sm font-semibold">{totalText}</span>
-        <div className="flex items-center gap-1.5">
+        {/* flex-wrap, not nowrap — a fixed-width row silently clipped Cancel
+            off the right edge of the card once there were enough icons to
+            overflow it (see the icon-count comment below). Wrapping to a
+            second line keeps every icon reachable instead of cut off. */}
+        <div className="flex flex-wrap items-center justify-end gap-1.5">
           {paymentPending && (
             <button
               type="button"
@@ -79,11 +83,21 @@ export function OrderCardFooter({
               <path d="M12 7v5l3 2" />
             </svg>
           </Link>
+          {/*
+            One icon per action, not one-per-mode — a separate "preview"
+            icon alongside each "one click" icon (4 print icons total) once
+            overflowed the card on real data and pushed Cancel off the edge
+            entirely. Both icons below go straight to print; the full
+            manual preview (choose A4 vs. thermal, edit before printing) is
+            still reachable without a dedicated card icon via the Invoices
+            ledger's own print link (/dashboard/invoices), which is a bare
+            `/print` href with no forced query params.
+          */}
           <Link
-            href={`/dashboard/orders/${orderId}/print`}
+            href={`/dashboard/orders/${orderId}/print?thermal=1&autoprint=1`}
             target="_blank"
-            aria-label="Print bill (preview, choose A4/thermal)"
-            title="Print bill (preview, choose A4/thermal)"
+            aria-label="Print bill"
+            title="Print bill (one click, thermal)"
             className={iconBtn}
           >
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden>
@@ -93,42 +107,15 @@ export function OrderCardFooter({
             </svg>
           </Link>
           <Link
-            href={`/dashboard/orders/${orderId}/print?thermal=1&autoprint=1`}
-            target="_blank"
-            aria-label="Print thermal bill (one click)"
-            title="Print thermal bill (one click)"
-            className={iconBtn}
-          >
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
-              <rect x="4" y="2" width="16" height="7" rx="1" />
-              <path d="M6 9h12v10a2 2 0 01-2 2H8a2 2 0 01-2-2z" />
-              <path d="M9 13h6M9 16h4" />
-            </svg>
-          </Link>
-          <Link
-            href={`/dashboard/orders/${orderId}/kot`}
-            target="_blank"
-            aria-label="Print KOT (preview)"
-            title="Print KOT (preview)"
-            className={iconBtn}
-          >
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
-              <path d="M5 3h14v18l-3-2-2 2-2-2-2 2-2-2-3 2z" />
-              <path d="M9 8h6M9 12h6" />
-            </svg>
-          </Link>
-          <Link
             href={`/dashboard/orders/${orderId}/kot?autoprint=1`}
             target="_blank"
-            aria-label="Print KOT (one click)"
+            aria-label="Print KOT"
             title="Print KOT (one click)"
             className={iconBtn}
           >
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
               <path d="M5 3h14v18l-3-2-2 2-2-2-2 2-2-2-3 2z" />
               <path d="M9 8h6M9 12h6" />
-              <circle cx="18.5" cy="5.5" r="4" fill="currentColor" stroke="none" />
-              <path d="M17 5.5l1 1 1.8-1.8" stroke="white" strokeWidth="1.5" />
             </svg>
           </Link>
           {cancellable && (
