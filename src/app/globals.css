@@ -258,16 +258,26 @@
      text styled with a lighter gray utility (text-gray-400/500/600, used
      on-screen for phone numbers, timestamps, the subtotal/tax rows, the
      "thank you" footer) comes out as dithered, patchy, "blurry" dots even
-     in LIGHT mode, independent of the dark-mode fix above. Scoped to the
-     thermal layouts only (.invoice-thermal, the KOT ticket's own
-     .kot-ticket) — the A4 invoice keeps its normal softer grays, since
-     that's printed on ordinary printers or saved as a PDF, where real
-     grayscale renders fine. */
+     in LIGHT mode, independent of the dark-mode fix above. A thin/regular
+     font weight has the same problem even in pure black — fewer, finer
+     strokes mean less heat/ink density per character, which still reads as
+     faint on real thermal paper — so weight is forced up here too, not
+     just color. Scoped to the thermal layouts only (.invoice-thermal, the
+     KOT ticket's own .kot-ticket) — the A4 invoice keeps its normal
+     softer grays/weights, since that's printed on ordinary printers or
+     saved as a PDF, where real grayscale and thin strokes render fine.
+     !important on both, not just source order — Tailwind's own utility
+     classes (text-gray-500, font-normal) compile in from the top-of-file
+     @import and can tie this rule on specificity; see the dark-mode
+     palette comment above for why this file doesn't trust source order
+     alone to decide a tie (Turbopack's per-route CSS chunking can reorder
+     things in practice). */
   .invoice-thermal,
   .invoice-thermal *,
   .kot-ticket,
   .kot-ticket * {
     color: #000 !important;
+    font-weight: 700 !important;
   }
 }
 

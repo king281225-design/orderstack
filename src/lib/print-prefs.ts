@@ -44,9 +44,19 @@ export function isThermalWidth(value: string | undefined): value is ThermalWidth
  * trailing blank paper the way a true continuous-roll driver would. The
  * height passed in here should be the real measured content height (see
  * useThermalPageHeightMm in print-prefs-client.ts), not a guess.
+ *
+ * The height is floored to stay above the width — a page where width >
+ * height is, by definition, landscape-shaped. A short ticket (few items)
+ * can genuinely measure shorter than the roll width, and @page size with
+ * two explicit lengths has no separate `portrait`/`landscape` keyword to
+ * force orientation independently (that keyword only combines with a named
+ * page-size like "A4 portrait", not with explicit lengths) — the only way
+ * to guarantee portrait here is making sure the height we hand over is
+ * always taller than the width.
  */
 export function thermalPageCss(width: ThermalWidth, heightMm: number) {
-  return { size: `${width}mm ${heightMm}mm`, margin: Number(width) <= 60 ? "2mm" : "3mm" };
+  const safeHeightMm = Math.max(heightMm, Number(width) + 10);
+  return { size: `${width}mm ${safeHeightMm}mm`, margin: Number(width) <= 60 ? "2mm" : "3mm" };
 }
 
 /** On-screen/print content width — the roll width minus margin on both sides. */
