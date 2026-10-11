@@ -52,10 +52,14 @@ export function isThermalWidth(value: string | undefined): value is ThermalWidth
  * force orientation independently (that keyword only combines with a named
  * page-size like "A4 portrait", not with explicit lengths) — the only way
  * to guarantee portrait here is making sure the height we hand over is
- * always taller than the width.
+ * always taller than the width. Kept to the bare minimum (+1mm) on
+ * purpose: a real printed receipt showed a visible blank gap after the
+ * content, and padding every short receipt up to width+10mm (the original
+ * margin here) was real, needless wasted paper on top of that — this only
+ * needs to be larger than the width, not by much.
  */
 export function thermalPageCss(width: ThermalWidth, heightMm: number) {
-  const safeHeightMm = Math.max(heightMm, Number(width) + 10);
+  const safeHeightMm = Math.max(heightMm, Number(width) + 1);
   return { size: `${width}mm ${safeHeightMm}mm`, margin: Number(width) <= 60 ? "2mm" : "3mm" };
 }
 
