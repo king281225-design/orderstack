@@ -1,10 +1,39 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState, useSyncExternalStore } from "react";
 import { formatINR } from "@/lib/money";
 import { PrintControls } from "@/components/orders/print-button";
 
 type InvoiceLine = { id: string; nameSnapshot: string; priceCentsSnapshot: number; quantity: number };
+
+/** Remembers the thermal/A4 choice across visits — see the `thermal` state comment below. */
+const INVOICE_THERMAL_STORAGE_KEY = "bhojsetu-invoice-thermal";
+
+/**
+ * useSyncExternalStore, not a plain useEffect+setState — localStorage can't
+ * be read during SSR, and this project's own react-hooks/set-state-in-effect
+ * rule (see the delivery-radius feature's own note on this) forbids calling
+ * setState synchronously inside an effect just to "correct" a default after
+ * mount, which is also exactly the pattern that causes a visible flash and a
+ * hydration mismatch warning. This hook is React's own answer to reading an
+ * external store like localStorage: getServerSnapshot tells it what to
+ * render on the server/during hydration (false, i.e. A4 — nothing to read
+ * yet), and it re-syncs safely once the real client value is available.
+ */
+function subscribeThermalPref(onStoreChange: () => void) {
+  window.addEventListener("storage", onStoreChange);
+  return () => window.removeEventListener("storage", onStoreChange);
+}
+function getThermalPrefSnapshot() {
+  try {
+    return localStorage.getItem(INVOICE_THERMAL_STORAGE_KEY) === "true";
+  } catch {
+    return false;
+  }
+}
+function getThermalPrefServerSnapshot() {
+  return false;
+}
 
 export function InvoiceView({
   tenantName,
@@ -28,6 +57,8 @@ export function InvoiceView({
   paymentSource,
   upiQr,
   kotHref,
+  forceThermal,
+  autoPrint,
 }: {
   tenantName: string;
   businessAddress: string | null;
@@ -55,6 +86,10 @@ export function InvoiceView({
   upiQr?: { dataUrl: string; upiId: string; uri: string } | null;
   /** When set, the controls bar shows a "Print KOT" link to the order's kitchen ticket. */
   kotHref?: string;
+  /** From a one-click "print thermal" link (?thermal=1) — switches straight to the 80mm layout, overriding the persisted preference for this visit. */
+  forceThermal?: boolean;
+  /** From a one-click print link (?autoprint=1) — fires window.print() itself once the requested layout has actually rendered, no manual Print click needed. */
+  autoPrint?: boolean;
 }) {
   // A dine-in/walk-in customer is always in the same state as the
   // restaurant, so once a state is on file this is always an intra-state
@@ -67,7 +102,54 @@ export function InvoiceView({
   const sgstCents = showGstSplit ? Math.floor(taxCents / 2) : 0;
   const cgstCents = showGstSplit ? taxCents - sgstCents : 0;
 
-  const [thermal, setThermal] = useState(false);
+  const persistedThermal = useSyncExternalStore(
+    subscribeThermalPref,
+    getThermalPrefSnapshot,
+    getThermalPrefServerSnapshot,
+  );
+  // null = "no manual choice yet this visit" — follow forceThermal/the
+  // persisted preference. Set once the owner actually clicks the checkbox,
+  // which then wins outright for the rest of this visit.
+  const [override, setOverride] = useState<boolean | null>(null);
+  const thermal = override ?? ((forceThermal ?? false) || persistedThermal);
+
+  function setThermal(next: boolean) {
+    setOverride(next);
+    try {
+      localStorage.setItem(INVOICE_THERMAL_STORAGE_KEY, String(next));
+    } catch {
+      // Private-browsing/blocked storage — the choice just won't be
+      // remembered next visit, nothing else depends on it.
+    }
+  }
+
+  useEffect(() => {
+    // A one-click thermal print link is also the clearest possible signal
+    // of the owner's actual printer — remember it exactly like an explicit
+    // checkbox click would, so a later plain /print visit (opened from
+    // somewhere that doesn't know to force it) already defaults right. No
+    // setState here, just an external-system write, which is what this
+    // project's own react-hooks/set-state-in-effect rule allows effects to
+    // do — only a setState call directly inside an effect is disallowed.
+    if (!forceThermal) return;
+    try {
+      localStorage.setItem(INVOICE_THERMAL_STORAGE_KEY, "true");
+    } catch {
+      // Private-browsing/blocked storage — nothing else depends on this.
+    }
+  }, [forceThermal]);
+
+  useEffect(() => {
+    // forceThermal (from ?thermal=1) already applies from this component's
+    // very first render — it's a plain prop, not something read from
+    // localStorage, so there's no mount-timing gap to wait out here. This
+    // effect only fires the actual print once that already-correct layout
+    // has committed, which every effect runs after by the time it fires.
+    if (autoPrint) window.print();
+    // Deliberately once per mount: autoPrint is a static snapshot of the
+    // URL this page loaded with, not a value that changes afterwards.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   return (
     <div className={thermal ? "invoice-thermal mx-auto" : "mx-auto max-w-2xl"}>
@@ -80,7 +162,7 @@ export function InvoiceView({
           there. 3mm margin keeps content within the printer's actual 80mm
           print width rather than right at its edge. */}
       <style>{`@page { size: ${thermal ? "80mm auto" : "A4"}; margin: ${thermal ? "3mm" : "12mm"}; }`}</style>
-      <PrintControls onThermalChange={setThermal} kotHref={kotHref} />
+      <PrintControls thermal={thermal} onThermalChange={setThermal} kotHref={kotHref} />
 
       <div className="rounded-lg border border-gray-200 bg-white p-6 text-gray-900 print:rounded-none print:border-0 print:p-0">
         <header className="mb-4 flex flex-col gap-1 border-b border-gray-200 pb-4">

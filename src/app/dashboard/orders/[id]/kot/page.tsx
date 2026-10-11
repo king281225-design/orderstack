@@ -3,6 +3,7 @@ import { requireTenantSession } from "@/lib/auth";
 import { getOrderForPrint } from "@/lib/data/orders";
 import { getTenantById } from "@/lib/data/tenants";
 import { KotPrintControls } from "@/components/orders/kot-print-controls";
+import { AutoPrintOnMount } from "@/components/orders/auto-print";
 import { kotCode } from "@/lib/kot";
 import { formatINR } from "@/lib/money";
 
@@ -16,10 +17,10 @@ export default async function KotSlipPage({
   searchParams,
 }: {
   params: Promise<{ id: string }>;
-  searchParams: Promise<{ station?: string; prices?: string }>;
+  searchParams: Promise<{ station?: string; prices?: string; autoprint?: string }>;
 }) {
   const session = await requireTenantSession();
-  const [{ id }, { station, prices }] = await Promise.all([params, searchParams]);
+  const [{ id }, { station, prices, autoprint }] = await Promise.all([params, searchParams]);
   const showPrices = prices !== "0";
   const [order, tenant] = await Promise.all([
     getOrderForPrint(session.tenantId, id),
@@ -43,6 +44,7 @@ export default async function KotSlipPage({
   return (
     <div className="mx-auto" style={{ maxWidth: "74mm", fontSize: 13 }}>
       <style>{"@page { size: 80mm auto; margin: 3mm; }"}</style>
+      <AutoPrintOnMount enabled={autoprint === "1"} />
       <KotPrintControls billHref={`/dashboard/orders/${id}/print`} pricesHref={pricesHref} showPrices={showPrices} />
       <div className="text-center">
         <p className="text-base font-bold">{tenant.name}</p>

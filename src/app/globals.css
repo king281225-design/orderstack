@@ -226,6 +226,33 @@
   body {
     background: #fff !important;
   }
+
+  /* If the dashboard's dark-mode toggle (theme-init-script.tsx) is on,
+     [data-theme="dark"] above redefines --color-gray-900 (the invoice's own
+     text-gray-900) to a near-white cream (#f8f4ef) for on-screen use. The
+     rule above only forces the print *background* back to white — without
+     this, dark-mode text stays near-white on that forced-white page, which
+     prints as faint/washed-out (worse on a thermal printer, where light gray
+     renders as patchy, unclear dots) rather than a real printer defect.
+     Reset every custom property [data-theme="dark"] overrides back to its
+     :root light value so a printed invoice/KOT is always solid black-on-
+     white, regardless of which theme the dashboard is currently showing. */
+  :root,
+  [data-theme="dark"] {
+    color-scheme: light;
+    --background: #fffdf9;
+    --foreground: #171717;
+    --color-gray-50: #fffdf9;
+    --color-gray-100: #f5f1eb;
+    --color-gray-200: #e7e2dc;
+    --color-gray-300: #d6d0c8;
+    --color-gray-400: #a9a39b;
+    --color-gray-500: #6b6864;
+    --color-gray-600: #58544f;
+    --color-gray-700: #44413d;
+    --color-gray-800: #2e2b28;
+    --color-gray-900: #171717;
+  }
 }
 
 .invoice-thermal {

@@ -92,7 +92,8 @@ export default async function KotPage({ searchParams }: { searchParams: Promise<
             const elapsed = Math.max(0, Math.round((now - order.createdAt.getTime()) / 60000));
             const next = NEXT[order.status];
             const printHref =
-              `/dashboard/orders/${order.id}/kot` + (selected !== "all" ? `?station=${selected}` : "");
+              `/dashboard/orders/${order.id}/kot` +
+              (selected !== "all" ? `?station=${selected}&autoprint=1` : "?autoprint=1");
             return (
               <div key={order.id} className="flex flex-col gap-3 rounded-lg bg-gray-950 p-4 text-white">
                 <div className="flex items-start justify-between gap-2">

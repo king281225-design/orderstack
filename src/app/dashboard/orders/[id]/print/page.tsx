@@ -23,9 +23,15 @@ const PAYMENT_STATUS_LABEL: Record<string, string> = {
   REFUNDED: "Refunded",
 };
 
-export default async function PrintInvoicePage({ params }: { params: Promise<{ id: string }> }) {
+export default async function PrintInvoicePage({
+  params,
+  searchParams,
+}: {
+  params: Promise<{ id: string }>;
+  searchParams: Promise<{ thermal?: string; autoprint?: string }>;
+}) {
   const session = await requireTenantSession();
-  const { id } = await params;
+  const [{ id }, { thermal, autoprint }] = await Promise.all([params, searchParams]);
 
   // getOrderForPrint filters by tenantId — an order id from another
   // restaurant simply doesn't match and 404s, never leaking billing data
@@ -73,7 +79,9 @@ export default async function PrintInvoicePage({ params }: { params: Promise<{ i
       paymentStatus={PAYMENT_STATUS_LABEL[order.paymentStatus] ?? order.paymentStatus}
       paymentSource={order.paymentStatus === "PAID" && order.paymentSource ? paymentSourceDisplay(order) : null}
       upiQr={upiQr}
-      kotHref={`/dashboard/orders/${order.id}/kot`}
+      kotHref={`/dashboard/orders/${order.id}/kot?autoprint=1`}
+      forceThermal={thermal === "1"}
+      autoPrint={autoprint === "1"}
     />
   );
 }
