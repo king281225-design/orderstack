@@ -5,7 +5,13 @@ import { useRouter } from "next/navigation";
 
 export type PendingWaiterCall = { id: string; tableLabel: string };
 
-const MUTE_KEY = "bhojsetu_dashboard_sound_muted";
+// Two independent mute flags — order alerts and waiter-call alerts are
+// separate concerns (an owner might want the kitchen to stay quiet for
+// routine orders but still hear a customer waiting at a table, or vice
+// versa) — see orderMuted/waiterMuted below. ORDER_MUTE_KEY keeps its
+// original name so an owner's existing preference carries over unchanged.
+const ORDER_MUTE_KEY = "bhojsetu_dashboard_sound_muted";
+const WAITER_MUTE_KEY = "bhojsetu_waiter_sound_muted";
 // This component lives in the dashboard's shared layout (mounted on every
 // /dashboard/* page), so it runs its own poll rather than depending on
 // whichever page happens to render its own <AutoRefresh /> — Menu, Branding,
@@ -150,7 +156,8 @@ export function NotificationBell({
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
   const [open, setOpen] = useState(false);
-  const [muted, setMuted] = useState(false);
+  const [orderMuted, setOrderMuted] = useState(false);
+  const [waiterMuted, setWaiterMuted] = useState(false);
   const audioUnlocked = useRef(false);
   const prevOrderCount = useRef(pendingOrderCount);
   const prevWaiterIds = useRef(new Set(waiterCalls.map((c) => c.id)));
@@ -162,7 +169,8 @@ export function NotificationBell({
       // initializer instead. Same exception as CartProvider's own hydration
       // effect (src/lib/cart.tsx).
       // eslint-disable-next-line react-hooks/set-state-in-effect
-      setMuted(window.localStorage.getItem(MUTE_KEY) === "1");
+      setOrderMuted(window.localStorage.getItem(ORDER_MUTE_KEY) === "1");
+      setWaiterMuted(window.localStorage.getItem(WAITER_MUTE_KEY) === "1");
     } catch {
       // ignore blocked storage
     }
@@ -207,16 +215,16 @@ export function NotificationBell({
   }, []);
 
   useEffect(() => {
-    if (pendingOrderCount > prevOrderCount.current && !muted) {
+    if (pendingOrderCount > prevOrderCount.current && !orderMuted) {
       playOrderChime();
     }
     prevOrderCount.current = pendingOrderCount;
-  }, [pendingOrderCount, muted]);
+  }, [pendingOrderCount, orderMuted]);
 
   const waiterIdsKey = waiterCalls.map((c) => c.id).join(",");
   useEffect(() => {
     const hasNew = waiterCalls.some((c) => !prevWaiterIds.current.has(c.id));
-    if (hasNew && !muted) {
+    if (hasNew && !waiterMuted) {
       const ctx = getAudioContext();
       if (ctx) playWaiterChime(ctx);
     }
@@ -225,7 +233,7 @@ export function NotificationBell({
     // unchanged — comparing by its id list (waiterIdsKey) instead avoids
     // re-running this on every refresh tick.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [waiterIdsKey, muted]);
+  }, [waiterIdsKey, waiterMuted]);
 
   // An unaccepted order shouldn't go silent after one chime either — it
   // keeps ringing every few seconds for as long as at least one order is
@@ -235,13 +243,13 @@ export function NotificationBell({
   // identical even if they happen to land close together.
   const hasPendingOrders = pendingOrderCount > 0;
   useEffect(() => {
-    if (!hasPendingOrders || muted) {
+    if (!hasPendingOrders || orderMuted) {
       stopOrderAlertSound();
       return;
     }
     const id = setInterval(() => playOrderChime(), 8000);
     return () => clearInterval(id);
-  }, [hasPendingOrders, muted]);
+  }, [hasPendingOrders, orderMuted]);
 
   // A waiter call is a "come here now" request, not a background fact like
   // an unaccepted order — it keeps ringing every few seconds for as long as
@@ -251,19 +259,31 @@ export function NotificationBell({
   // time-sensitive than a kitchen ticket, so it nags faster.
   const hasPendingWaiterCalls = waiterCalls.length > 0;
   useEffect(() => {
-    if (!hasPendingWaiterCalls || muted) return;
+    if (!hasPendingWaiterCalls || waiterMuted) return;
     const id = setInterval(() => {
       const ctx = getAudioContext();
       if (ctx) playWaiterChime(ctx);
     }, 4000);
     return () => clearInterval(id);
-  }, [hasPendingWaiterCalls, muted]);
+  }, [hasPendingWaiterCalls, waiterMuted]);
 
-  function toggleMute() {
-    setMuted((m) => {
+  function toggleOrderMute() {
+    setOrderMuted((m) => {
       const next = !m;
       try {
-        window.localStorage.setItem(MUTE_KEY, next ? "1" : "0");
+        window.localStorage.setItem(ORDER_MUTE_KEY, next ? "1" : "0");
+      } catch {
+        // ignore blocked storage
+      }
+      return next;
+    });
+  }
+
+  function toggleWaiterMute() {
+    setWaiterMuted((m) => {
+      const next = !m;
+      try {
+        window.localStorage.setItem(WAITER_MUTE_KEY, next ? "1" : "0");
       } catch {
         // ignore blocked storage
       }
@@ -308,10 +328,25 @@ export function NotificationBell({
 
       {open && (
         <div className="absolute right-0 top-10 z-50 w-72 rounded-lg border border-gray-200 bg-white p-3 text-sm text-gray-900 shadow-xl">
-          <div className="mb-2 flex items-center justify-between">
-            <p className="font-semibold">Notifications</p>
-            <button type="button" onClick={toggleMute} className="text-xs font-medium text-gray-500 hover:text-gray-700">
-              {muted ? "🔇 Sound off" : "🔊 Sound on"}
+          <p className="mb-2 font-semibold">Notifications</p>
+
+          {/* Independent on/off for each alert — an owner may want one without the other. */}
+          <div className="mb-2 flex flex-col gap-1 rounded-md bg-gray-50 p-2">
+            <button
+              type="button"
+              onClick={toggleOrderMute}
+              className="flex items-center justify-between rounded px-1 py-0.5 text-xs font-medium text-gray-600 hover:bg-gray-100 hover:text-gray-900"
+            >
+              <span>New order sound</span>
+              <span className={orderMuted ? "text-gray-400" : "text-green-700"}>{orderMuted ? "🔇 Off" : "🔊 On"}</span>
+            </button>
+            <button
+              type="button"
+              onClick={toggleWaiterMute}
+              className="flex items-center justify-between rounded px-1 py-0.5 text-xs font-medium text-gray-600 hover:bg-gray-100 hover:text-gray-900"
+            >
+              <span>Call-waiter sound</span>
+              <span className={waiterMuted ? "text-gray-400" : "text-green-700"}>{waiterMuted ? "🔇 Off" : "🔊 On"}</span>
             </button>
           </div>
 
