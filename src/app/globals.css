@@ -272,11 +272,27 @@
 }
 
 .invoice-thermal {
-  /* 80mm roll minus the 3mm-per-side @page margin InvoiceView sets in
-     thermal mode, so the on-screen preview's width matches the printed
-     page exactly instead of narrowing to an arbitrary smaller number. */
-  max-width: 74mm;
-  font-size: 12px;
+  /* Actual max-width is set inline per the chosen roll width (see
+     invoice-view.tsx / print-prefs.ts); this is just the font size.
+     12px read as too small/hard-to-read on a real printed receipt —
+     screen-sized text looks fine on a monitor but needs to be noticeably
+     bigger once it's small thermal print read at arm's length. */
+  font-size: 15px;
+}
+
+/* Tailwind's text-xs/text-sm utilities set a fixed font-size of their own
+   (12px/14px) — they don't scale off a parent's font-size the way plain
+   inherited text does, so bumping .invoice-thermal/.kot-ticket above alone
+   only fixed the few un-classed text nodes. Scoped overrides here bump the
+   same utility classes specifically within the two thermal print layouts,
+   leaving every other use of text-xs/text-sm across the app untouched. */
+.invoice-thermal .text-xs,
+.kot-ticket .text-xs {
+  font-size: 13px;
+}
+.invoice-thermal .text-sm,
+.kot-ticket .text-sm {
+  font-size: 16px;
 }
 
 body {

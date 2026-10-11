@@ -47,13 +47,14 @@ export default async function KotSlipPage({
   const pageCss = thermalPageCss(paperWidth);
 
   return (
-    <div className="kot-ticket mx-auto" style={{ maxWidth: `${thermalContentWidthMm(paperWidth)}mm`, fontSize: 13 }}>
+    <div className="kot-ticket mx-auto" style={{ maxWidth: `${thermalContentWidthMm(paperWidth)}mm`, fontSize: 16 }}>
       <style>{`@page { size: ${pageCss.size}; margin: ${pageCss.margin}; }`}</style>
       <AutoPrintOnMount enabled={autoprint === "1"} />
       <KotPrintControls
         billHref={`/dashboard/orders/${id}/print?width=${paperWidth}`}
         pricesHref={pricesHref}
         showPrices={showPrices}
+        width={paperWidth}
       />
       <div className="text-center">
         <p className="text-base font-bold">{tenant.name}</p>
