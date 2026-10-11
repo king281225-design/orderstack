@@ -70,11 +70,12 @@ export function PrintControls({
             onBlur={() => {
               if (!isThermalWidth(draft)) setDraft(width);
             }}
-            className="w-16 rounded-md border border-gray-300 px-1.5 py-1 text-sm"
+            className="w-24 rounded-md border border-gray-300 px-2 py-1 text-base"
           />
           <datalist id="thermal-width-presets">
             <option value="50" />
             <option value="58" />
+            <option value="72" />
             <option value="80" />
           </datalist>
         </label>
