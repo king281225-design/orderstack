@@ -6,22 +6,25 @@ import { KotPrintControls } from "@/components/orders/kot-print-controls";
 import { AutoPrintOnMount } from "@/components/orders/auto-print";
 import { kotCode } from "@/lib/kot";
 import { formatINR } from "@/lib/money";
+import { isThermalWidth, thermalContentWidthMm, thermalPageCss } from "@/lib/print-prefs";
 
 /**
- * Kitchen Order Ticket slip — always an 80mm thermal roll layout, one per
- * station when ?station=<id|none> is given (only that station's items), or
- * the whole order otherwise. Tenant-scoped like the invoice print page.
+ * Kitchen Order Ticket slip — an 80mm (or ?width=58, see print-prefs.ts)
+ * thermal roll layout, one per station when ?station=<id|none> is given
+ * (only that station's items), or the whole order otherwise. Tenant-scoped
+ * like the invoice print page.
  */
 export default async function KotSlipPage({
   params,
   searchParams,
 }: {
   params: Promise<{ id: string }>;
-  searchParams: Promise<{ station?: string; prices?: string; autoprint?: string }>;
+  searchParams: Promise<{ station?: string; prices?: string; autoprint?: string; width?: string }>;
 }) {
   const session = await requireTenantSession();
-  const [{ id }, { station, prices, autoprint }] = await Promise.all([params, searchParams]);
+  const [{ id }, { station, prices, autoprint, width }] = await Promise.all([params, searchParams]);
   const showPrices = prices !== "0";
+  const paperWidth = isThermalWidth(width) ? width : "80";
   const [order, tenant] = await Promise.all([
     getOrderForPrint(session.tenantId, id),
     getTenantById(session.tenantId),
@@ -39,13 +42,19 @@ export default async function KotSlipPage({
   const pricesHref = `${base}?${new URLSearchParams({
     ...(station ? { station } : {}),
     ...(showPrices ? { prices: "0" } : {}),
+    width: paperWidth,
   }).toString()}`;
+  const pageCss = thermalPageCss(paperWidth);
 
   return (
-    <div className="mx-auto" style={{ maxWidth: "74mm", fontSize: 13 }}>
-      <style>{"@page { size: 80mm auto; margin: 3mm; }"}</style>
+    <div className="kot-ticket mx-auto" style={{ maxWidth: `${thermalContentWidthMm(paperWidth)}mm`, fontSize: 13 }}>
+      <style>{`@page { size: ${pageCss.size}; margin: ${pageCss.margin}; }`}</style>
       <AutoPrintOnMount enabled={autoprint === "1"} />
-      <KotPrintControls billHref={`/dashboard/orders/${id}/print`} pricesHref={pricesHref} showPrices={showPrices} />
+      <KotPrintControls
+        billHref={`/dashboard/orders/${id}/print?width=${paperWidth}`}
+        pricesHref={pricesHref}
+        showPrices={showPrices}
+      />
       <div className="text-center">
         <p className="text-base font-bold">{tenant.name}</p>
         <p className="text-lg font-bold">KOT {kotCode(tenant.name, order.orderNumber)}</p>

@@ -253,6 +253,22 @@
     --color-gray-800: #2e2b28;
     --color-gray-900: #171717;
   }
+
+  /* Thermal printheads are binary dot matrices, not true grayscale — any
+     text styled with a lighter gray utility (text-gray-400/500/600, used
+     on-screen for phone numbers, timestamps, the subtotal/tax rows, the
+     "thank you" footer) comes out as dithered, patchy, "blurry" dots even
+     in LIGHT mode, independent of the dark-mode fix above. Scoped to the
+     thermal layouts only (.invoice-thermal, the KOT ticket's own
+     .kot-ticket) — the A4 invoice keeps its normal softer grays, since
+     that's printed on ordinary printers or saved as a PDF, where real
+     grayscale renders fine. */
+  .invoice-thermal,
+  .invoice-thermal *,
+  .kot-ticket,
+  .kot-ticket * {
+    color: #000 !important;
+  }
 }
 
 .invoice-thermal {

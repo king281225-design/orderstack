@@ -3,6 +3,8 @@
 import { useEffect, useState, useSyncExternalStore } from "react";
 import { formatINR } from "@/lib/money";
 import { PrintControls } from "@/components/orders/print-button";
+import { thermalContentWidthMm, thermalPageCss, type ThermalWidth } from "@/lib/print-prefs";
+import { setPersistedThermalWidth, useThermalWidthPref } from "@/lib/print-prefs-client";
 
 type InvoiceLine = { id: string; nameSnapshot: string; priceCentsSnapshot: number; quantity: number };
 
@@ -59,6 +61,7 @@ export function InvoiceView({
   kotHref,
   forceThermal,
   autoPrint,
+  forceWidth,
 }: {
   tenantName: string;
   businessAddress: string | null;
@@ -90,6 +93,8 @@ export function InvoiceView({
   forceThermal?: boolean;
   /** From a one-click print link (?autoprint=1) — fires window.print() itself once the requested layout has actually rendered, no manual Print click needed. */
   autoPrint?: boolean;
+  /** From a one-click print link's ?width=58|80 — overrides the persisted roll-width preference for this visit, same relationship forceThermal has to the thermal preference. */
+  forceWidth?: ThermalWidth;
 }) {
   // A dine-in/walk-in customer is always in the same state as the
   // restaurant, so once a state is on file this is always an intra-state
@@ -123,6 +128,16 @@ export function InvoiceView({
     }
   }
 
+  // Same override-wins-over-persisted-preference shape as thermal above.
+  const persistedWidth = useThermalWidthPref();
+  const [widthOverride, setWidthOverride] = useState<ThermalWidth | null>(null);
+  const width = widthOverride ?? forceWidth ?? persistedWidth;
+
+  function setWidth(next: ThermalWidth) {
+    setWidthOverride(next);
+    setPersistedThermalWidth(next);
+  }
+
   useEffect(() => {
     // A one-click thermal print link is also the clearest possible signal
     // of the owner's actual printer — remember it exactly like an explicit
@@ -131,13 +146,15 @@ export function InvoiceView({
     // setState here, just an external-system write, which is what this
     // project's own react-hooks/set-state-in-effect rule allows effects to
     // do — only a setState call directly inside an effect is disallowed.
-    if (!forceThermal) return;
-    try {
-      localStorage.setItem(INVOICE_THERMAL_STORAGE_KEY, "true");
-    } catch {
-      // Private-browsing/blocked storage — nothing else depends on this.
+    if (forceThermal) {
+      try {
+        localStorage.setItem(INVOICE_THERMAL_STORAGE_KEY, "true");
+      } catch {
+        // Private-browsing/blocked storage — nothing else depends on this.
+      }
     }
-  }, [forceThermal]);
+    if (forceWidth) setPersistedThermalWidth(forceWidth);
+  }, [forceThermal, forceWidth]);
 
   useEffect(() => {
     // forceThermal (from ?thermal=1) already applies from this component's
@@ -151,18 +168,23 @@ export function InvoiceView({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  const pageCss = thermal ? thermalPageCss(width) : { size: "A4", margin: "12mm" };
+
   return (
-    <div className={thermal ? "invoice-thermal mx-auto" : "mx-auto max-w-2xl"}>
+    <div
+      className={thermal ? "invoice-thermal mx-auto" : "mx-auto max-w-2xl"}
+      style={thermal ? { maxWidth: `${thermalContentWidthMm(width)}mm` } : undefined}
+    >
       {/* The actual print/PDF page size — not just the on-screen width above —
-          has to change with the toggle too, or a real 80mm thermal printer
-          (e.g. a TVS RP 3160 Gold, max print width 80mm) still gets handed an
-          A4-shaped page. @page rules apply document-wide regardless of where
-          the <style> tag sits, so toggling this one is enough; see
-          globals.css's own comment for why this moved out of a static rule
-          there. 3mm margin keeps content within the printer's actual 80mm
-          print width rather than right at its edge. */}
-      <style>{`@page { size: ${thermal ? "80mm auto" : "A4"}; margin: ${thermal ? "3mm" : "12mm"}; }`}</style>
-      <PrintControls thermal={thermal} onThermalChange={setThermal} kotHref={kotHref} />
+          has to change with the toggle too, or a real thermal printer (e.g.
+          an 80mm TVS RP 3160 Gold, or a 58mm one — see print-prefs.ts; a
+          width mismatch here is exactly what reads as a receipt getting its
+          margin "cut off") still gets handed an A4-shaped page. @page rules
+          apply document-wide regardless of where the <style> tag sits, so
+          toggling this one is enough; see globals.css's own comment for why
+          this moved out of a static rule there. */}
+      <style>{`@page { size: ${pageCss.size}; margin: ${pageCss.margin}; }`}</style>
+      <PrintControls thermal={thermal} onThermalChange={setThermal} width={width} onWidthChange={setWidth} kotHref={kotHref} />
 
       <div className="rounded-lg border border-gray-200 bg-white p-6 text-gray-900 print:rounded-none print:border-0 print:p-0">
         <header className="mb-4 flex flex-col gap-1 border-b border-gray-200 pb-4">

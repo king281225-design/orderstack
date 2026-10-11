@@ -4,6 +4,7 @@ import { listOrdersForTenant } from "@/lib/data/orders";
 import { listStations } from "@/lib/data/inventory";
 import { AutoRefresh } from "@/components/auto-refresh";
 import { KitchenAdvanceButton } from "@/components/orders/kitchen-advance-button";
+import { PrintKotBoardButton } from "@/components/orders/print-kot-board-button";
 import { getTenantById } from "@/lib/data/tenants";
 import { kotCode } from "@/lib/kot";
 import { formatINR } from "@/lib/money";
@@ -140,13 +141,7 @@ export default async function KotPage({ searchParams }: { searchParams: Promise<
                 </div>
                 {order.notes && <p className="text-sm text-amber-300">Note: {order.notes}</p>}
                 <div className="flex items-center gap-2">
-                  <Link
-                    href={printHref}
-                    target="_blank"
-                    className="rounded-md border border-white/30 px-3 py-2 text-sm font-medium hover:bg-white/10"
-                  >
-                    Print KOT
-                  </Link>
+                  <PrintKotBoardButton printHref={printHref} />
                   <Link
                     href={`/dashboard/orders/${order.id}/print`}
                     target="_blank"

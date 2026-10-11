@@ -6,6 +6,8 @@ import type { OrderStatus } from "@prisma/client";
 import { PAYMENT_SOURCES } from "@/lib/payment-sources";
 import { advanceOrderStatusAction, markOrderPaidAction } from "@/app/dashboard/actions";
 import { stopOrderAlertSound } from "@/components/dashboard/notification-bell";
+import { SilentPrintButton } from "@/components/orders/silent-print-button";
+import { getPersistedThermalWidth } from "@/lib/print-prefs-client";
 
 /**
  * The bottom of an order card in the Orders board: total, the small icon
@@ -93,10 +95,9 @@ export function OrderCardFooter({
             ledger's own print link (/dashboard/invoices), which is a bare
             `/print` href with no forced query params.
           */}
-          <Link
-            href={`/dashboard/orders/${orderId}/print?thermal=1&autoprint=1`}
-            target="_blank"
-            aria-label="Print bill"
+          <SilentPrintButton
+            buildHref={() => `/dashboard/orders/${orderId}/print?thermal=1&autoprint=1&width=${getPersistedThermalWidth()}`}
+            ariaLabel="Print bill"
             title="Print bill (one click, thermal)"
             className={iconBtn}
           >
@@ -105,11 +106,10 @@ export function OrderCardFooter({
               <path d="M6 18H4a2 2 0 01-2-2v-5a2 2 0 012-2h16a2 2 0 012 2v5a2 2 0 01-2 2h-2" />
               <rect x="6" y="14" width="12" height="8" />
             </svg>
-          </Link>
-          <Link
-            href={`/dashboard/orders/${orderId}/kot?autoprint=1`}
-            target="_blank"
-            aria-label="Print KOT"
+          </SilentPrintButton>
+          <SilentPrintButton
+            buildHref={() => `/dashboard/orders/${orderId}/kot?autoprint=1&width=${getPersistedThermalWidth()}`}
+            ariaLabel="Print KOT"
             title="Print KOT (one click)"
             className={iconBtn}
           >
@@ -117,7 +117,7 @@ export function OrderCardFooter({
               <path d="M5 3h14v18l-3-2-2 2-2-2-2 2-2-2-3 2z" />
               <path d="M9 8h6M9 12h6" />
             </svg>
-          </Link>
+          </SilentPrintButton>
           {cancellable && (
             <button
               type="button"
