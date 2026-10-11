@@ -125,14 +125,18 @@ export async function createManualOrderAction(
   // thermal-ticket-frame.tsx) instead of just landing on a preview that
   // still needs its own Print button clicked — from the owner's own report,
   // without this the two buttons read as doing the same (neither one
-  // actually printed anything). Thermal vs A4 and the roll width aren't
-  // forced here — a server action can't read localStorage — so each page
-  // falls back to whatever thermal/width preference is already remembered
-  // from an earlier visit, same as a plain unforced /print or /kot visit.
+  // actually printed anything). thermal=1 on the bill matches the order
+  // card's own one-click "Print bill" icon: a tenant that has never once
+  // touched the thermal checkbox on this browser otherwise defaults to A4,
+  // where a short bill just sits near the top-left of a big page instead
+  // of a properly centered, content-sized receipt — reported directly as
+  // "not in the center". The roll width itself still isn't forced here (a
+  // server action can't read localStorage), so it falls back to whatever's
+  // already remembered, same as the order card icon.
   const intent = String(formData.get("intent") ?? "bill");
   if (intent === "kot") redirect(`/dashboard/orders/${order.id}/kot?autoprint=1`);
   if (intent === "save") redirect("/dashboard");
-  redirect(`/dashboard/orders/${order.id}/print?autoprint=1`);
+  redirect(`/dashboard/orders/${order.id}/print?thermal=1&autoprint=1`);
 }
 
 /**
