@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { useCart } from "@/lib/cart";
+import { useCart, cartLineKey, type CartLine } from "@/lib/cart";
 import { formatINR } from "@/lib/money";
 
 type PublicVariant = { label: string; priceCents: number };
@@ -40,15 +40,27 @@ function VegDot({ isVeg }: { isVeg: boolean | null | undefined }) {
   );
 }
 
+/**
+ * A size (Small/Large, Half/Full, ...) and/or an add-on combo is a genuinely
+ * different order, not an edit to the same one — so an item with variants
+ * never collapses down to one "this item's quantity" number. The variant
+ * picker stays visible even after adding one size, the big Add/stepper
+ * tracks whichever combo is currently selected, and any OTHER combo of this
+ * same item already in the cart gets its own small row with its own +/−
+ * directly below — exactly the "small now, large later, independently
+ * adjustable" flow this is for. Plain items with no variants/add-ons behave
+ * exactly as before (one combo is the only combo there can ever be).
+ */
 function ItemCard({
   item,
-  qty,
+  cartLines,
   staggerDelayMs,
   onAdd,
   onSetQuantity,
 }: {
   item: PublicItem;
-  qty: number;
+  /** Every cart line that belongs to this item (any variant/add-on combo), not just one quantity. */
+  cartLines: CartLine[];
   staggerDelayMs: number;
   onAdd: (args: {
     itemId: string;
@@ -58,7 +70,8 @@ function ItemCard({
     variantLabel?: string | null;
     addOnIds?: string[] | null;
   }) => void;
-  onSetQuantity: (itemId: string, quantity: number) => void;
+  /** Targets one specific line by cartLineKey — see src/lib/cart.tsx. */
+  onSetQuantity: (lineKey: string, quantity: number) => void;
 }) {
   const variants = item.variants && item.variants.length > 0 ? item.variants : null;
   const addOns = item.addOns && item.addOns.length > 0 ? item.addOns : null;
@@ -69,143 +82,203 @@ function ItemCard({
   const effectivePriceCents = basePriceCents + selectedAddOns.reduce((sum, a) => sum + a.priceCents, 0);
   const effectiveLabel = variants ? variants[selectedVariant].label : null;
 
+  const currentKey = cartLineKey({
+    itemId: item.id,
+    variantLabel: effectiveLabel,
+    addOnIds: selectedAddOnIds.length > 0 ? selectedAddOnIds : null,
+  });
+  const currentLine = cartLines.find((l) => cartLineKey(l) === currentKey);
+  const qty = currentLine?.quantity ?? 0;
+  // Other sizes/combos of this same item already in the cart — shown as
+  // their own adjustable rows so switching sizes above never loses track of
+  // (or silently overwrites) what's already been added.
+  const otherLines = cartLines.filter((l) => cartLineKey(l) !== currentKey);
+
   function toggleAddOn(id: string) {
     setSelectedAddOnIds((prev) => (prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]));
   }
 
+  function lineLabel(line: CartLine) {
+    const variantPart = line.variantLabel || "Regular";
+    const addOnNames = (line.addOnIds ?? [])
+      .map((id) => addOns?.find((a) => a.id === id)?.name)
+      .filter((n): n is string => Boolean(n));
+    return addOnNames.length > 0 ? `${variantPart} + ${addOnNames.join(", ")}` : variantPart;
+  }
+
   return (
     <div
-      className="animate-fade-in-up flex items-center gap-3 p-3 transition-colors hover:bg-black/[0.03]"
+      className="animate-fade-in-up flex flex-col gap-2 p-3 transition-colors hover:bg-black/[0.03]"
       style={{
         borderColor: "color-mix(in srgb, var(--brand-card-bg) 85%, black)",
         animationDelay: `${staggerDelayMs}ms`,
       }}
     >
-      {item.imageUrl ? (
-        // eslint-disable-next-line @next/next/no-img-element
-        <img src={item.imageUrl} alt={item.name} className="h-14 w-14 shrink-0 rounded-md object-cover" />
-      ) : (
-        <div
-          className="h-14 w-14 shrink-0 rounded-md"
-          style={{ backgroundColor: "color-mix(in srgb, var(--brand-card-bg) 88%, black)" }}
-        />
-      )}
-      <div className="min-w-0 flex-1">
-        <div className="flex items-center gap-1.5">
-          <VegDot isVeg={item.isVeg} />
-          <p className="truncate text-sm font-medium text-gray-900">{item.name}</p>
-        </div>
-        {item.description && <p className="truncate text-xs text-gray-500">{item.description}</p>}
-        {item.tags && item.tags.length > 0 && (
-          <div className="mt-1 flex flex-wrap gap-1">
-            {item.tags.map((tag) => (
-              <span
-                key={tag}
-                className="rounded px-1.5 py-0.5 text-[10px] font-semibold"
-                style={{
-                  backgroundColor: "color-mix(in srgb, var(--brand-primary) 12%, transparent)",
-                  color: "var(--brand-primary)",
-                }}
-              >
-                {tag}
-              </span>
-            ))}
-          </div>
+      <div className="flex items-center gap-3">
+        {item.imageUrl ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img src={item.imageUrl} alt={item.name} className="h-14 w-14 shrink-0 rounded-md object-cover" />
+        ) : (
+          <div
+            className="h-14 w-14 shrink-0 rounded-md"
+            style={{ backgroundColor: "color-mix(in srgb, var(--brand-card-bg) 88%, black)" }}
+          />
         )}
-        {variants && qty === 0 && (
-          <div className="mt-1 flex flex-wrap gap-1">
-            {variants.map((v, i) => (
-              <button
-                key={v.label}
-                type="button"
-                onClick={() => setSelectedVariant(i)}
-                className="rounded-full border px-2 py-0.5 text-[11px] font-medium"
-                style={
-                  i === selectedVariant
-                    ? { backgroundColor: "var(--brand-secondary)", borderColor: "var(--brand-secondary)", color: "white" }
-                    : { borderColor: "var(--brand-secondary)", color: "var(--brand-secondary)" }
-                }
-              >
-                {v.label} · {formatINR(v.priceCents)}
-              </button>
-            ))}
+        <div className="min-w-0 flex-1">
+          <div className="flex items-center gap-1.5">
+            <VegDot isVeg={item.isVeg} />
+            <p className="truncate text-sm font-medium text-gray-900">{item.name}</p>
           </div>
-        )}
-        {addOns && qty === 0 && (
-          <div className="mt-1 flex flex-wrap gap-2">
-            {addOns.map((a) => {
-              const checked = selectedAddOnIds.includes(a.id);
-              return (
-                <label
-                  key={a.id}
-                  className="flex cursor-pointer items-center gap-1 rounded-full border px-2 py-0.5 text-[11px] font-medium"
+          {item.description && <p className="truncate text-xs text-gray-500">{item.description}</p>}
+          {item.tags && item.tags.length > 0 && (
+            <div className="mt-1 flex flex-wrap gap-1">
+              {item.tags.map((tag) => (
+                <span
+                  key={tag}
+                  className="rounded px-1.5 py-0.5 text-[10px] font-semibold"
+                  style={{
+                    backgroundColor: "color-mix(in srgb, var(--brand-primary) 12%, transparent)",
+                    color: "var(--brand-primary)",
+                  }}
+                >
+                  {tag}
+                </span>
+              ))}
+            </div>
+          )}
+          {variants && (
+            <div className="mt-1 flex flex-wrap gap-1">
+              {variants.map((v, i) => (
+                <button
+                  key={v.label}
+                  type="button"
+                  onClick={() => setSelectedVariant(i)}
+                  className="rounded-full border px-2 py-0.5 text-[11px] font-medium"
                   style={
-                    checked
+                    i === selectedVariant
                       ? { backgroundColor: "var(--brand-secondary)", borderColor: "var(--brand-secondary)", color: "white" }
                       : { borderColor: "var(--brand-secondary)", color: "var(--brand-secondary)" }
                   }
                 >
-                  <input
-                    type="checkbox"
-                    checked={checked}
-                    onChange={() => toggleAddOn(a.id)}
-                    className="sr-only"
-                  />
-                  + {a.name} ({formatINR(a.priceCents)})
-                </label>
-              );
-            })}
+                  {v.label} · {formatINR(v.priceCents)}
+                </button>
+              ))}
+            </div>
+          )}
+          {addOns && (
+            <div className="mt-1 flex flex-wrap gap-2">
+              {addOns.map((a) => {
+                const checked = selectedAddOnIds.includes(a.id);
+                return (
+                  <label
+                    key={a.id}
+                    className="flex cursor-pointer items-center gap-1 rounded-full border px-2 py-0.5 text-[11px] font-medium"
+                    style={
+                      checked
+                        ? { backgroundColor: "var(--brand-secondary)", borderColor: "var(--brand-secondary)", color: "white" }
+                        : { borderColor: "var(--brand-secondary)", color: "var(--brand-secondary)" }
+                    }
+                  >
+                    <input
+                      type="checkbox"
+                      checked={checked}
+                      onChange={() => toggleAddOn(a.id)}
+                      className="sr-only"
+                    />
+                    + {a.name} ({formatINR(a.priceCents)})
+                  </label>
+                );
+              })}
+            </div>
+          )}
+          <span
+            className="mt-1 inline-block rounded px-1.5 py-0.5 text-xs font-semibold"
+            style={{
+              backgroundColor: "color-mix(in srgb, var(--brand-secondary) 15%, transparent)",
+              color: "var(--brand-secondary)",
+            }}
+          >
+            {formatINR(effectivePriceCents)}
+          </span>
+        </div>
+
+        {qty === 0 ? (
+          <button
+            onClick={() => {
+              const baseName = effectiveLabel ? `${item.name} (${effectiveLabel})` : item.name;
+              const name = selectedAddOns.length > 0 ? `${baseName} + ${selectedAddOns.map((a) => a.name).join(", ")}` : baseName;
+              onAdd({
+                itemId: item.id,
+                name,
+                priceCents: effectivePriceCents,
+                imageUrl: item.imageUrl,
+                variantLabel: effectiveLabel,
+                addOnIds: selectedAddOnIds.length > 0 ? selectedAddOnIds : null,
+              });
+            }}
+            className="shrink-0 rounded-md px-3 py-1.5 text-sm font-semibold text-white"
+            style={{ backgroundColor: "var(--brand-primary)" }}
+          >
+            {effectiveLabel ? `Add ${effectiveLabel}` : "Add"}
+          </button>
+        ) : (
+          <div className="flex shrink-0 items-center gap-2">
+            <button
+              onClick={() => onSetQuantity(currentKey, qty - 1)}
+              className="h-7 w-7 rounded-md border text-sm font-semibold"
+              style={{ borderColor: "var(--brand-secondary)", color: "var(--brand-secondary)" }}
+              aria-label={`Remove one ${item.name}${effectiveLabel ? ` (${effectiveLabel})` : ""}`}
+            >
+              −
+            </button>
+            <span className="w-4 text-center text-sm font-medium">{qty}</span>
+            <button
+              onClick={() => onSetQuantity(currentKey, qty + 1)}
+              className="h-7 w-7 rounded-md border text-sm font-semibold"
+              style={{ borderColor: "var(--brand-secondary)", color: "var(--brand-secondary)" }}
+              aria-label={`Add one more ${item.name}${effectiveLabel ? ` (${effectiveLabel})` : ""}`}
+            >
+              +
+            </button>
           </div>
         )}
-        <span
-          className="mt-1 inline-block rounded px-1.5 py-0.5 text-xs font-semibold"
-          style={{
-            backgroundColor: "color-mix(in srgb, var(--brand-secondary) 15%, transparent)",
-            color: "var(--brand-secondary)",
-          }}
-        >
-          {formatINR(effectivePriceCents)}
-        </span>
       </div>
 
-      {qty === 0 ? (
-        <button
-          onClick={() => {
-            const baseName = effectiveLabel ? `${item.name} (${effectiveLabel})` : item.name;
-            const name = selectedAddOns.length > 0 ? `${baseName} + ${selectedAddOns.map((a) => a.name).join(", ")}` : baseName;
-            onAdd({
-              itemId: item.id,
-              name,
-              priceCents: effectivePriceCents,
-              imageUrl: item.imageUrl,
-              variantLabel: effectiveLabel,
-              addOnIds: selectedAddOnIds.length > 0 ? selectedAddOnIds : null,
-            });
-          }}
-          className="shrink-0 rounded-md px-3 py-1.5 text-sm font-semibold text-white"
-          style={{ backgroundColor: "var(--brand-primary)" }}
-        >
-          Add
-        </button>
-      ) : (
-        <div className="flex shrink-0 items-center gap-2">
-          <button
-            onClick={() => onSetQuantity(item.id, qty - 1)}
-            className="h-7 w-7 rounded-md border text-sm font-semibold"
-            style={{ borderColor: "var(--brand-secondary)", color: "var(--brand-secondary)" }}
-            aria-label={`Remove one ${item.name}`}
-          >
-            −
-          </button>
-          <span className="w-4 text-center text-sm font-medium">{qty}</span>
-          <button
-            onClick={() => onSetQuantity(item.id, qty + 1)}
-            className="h-7 w-7 rounded-md border text-sm font-semibold"
-            style={{ borderColor: "var(--brand-secondary)", color: "var(--brand-secondary)" }}
-            aria-label={`Add one more ${item.name}`}
-          >
-            +
-          </button>
+      {otherLines.length > 0 && (
+        <div className="ml-[4.25rem] flex flex-col gap-1">
+          {otherLines.map((line) => {
+            const key = cartLineKey(line);
+            return (
+              <div
+                key={key}
+                className="flex items-center justify-between gap-2 rounded-md px-2 py-1 text-xs"
+                style={{ backgroundColor: "color-mix(in srgb, var(--brand-secondary) 8%, transparent)" }}
+              >
+                <span className="truncate font-medium" style={{ color: "var(--brand-secondary)" }}>
+                  In cart: {lineLabel(line)}
+                </span>
+                <div className="flex shrink-0 items-center gap-1.5">
+                  <button
+                    onClick={() => onSetQuantity(key, line.quantity - 1)}
+                    className="h-6 w-6 rounded border text-xs font-semibold"
+                    style={{ borderColor: "var(--brand-secondary)", color: "var(--brand-secondary)" }}
+                    aria-label={`Remove one ${item.name} (${lineLabel(line)})`}
+                  >
+                    −
+                  </button>
+                  <span className="w-3 text-center font-medium">{line.quantity}</span>
+                  <button
+                    onClick={() => onSetQuantity(key, line.quantity + 1)}
+                    className="h-6 w-6 rounded border text-xs font-semibold"
+                    style={{ borderColor: "var(--brand-secondary)", color: "var(--brand-secondary)" }}
+                    aria-label={`Add one more ${item.name} (${lineLabel(line)})`}
+                  >
+                    +
+                  </button>
+                </div>
+              </div>
+            );
+          })}
         </div>
       )}
     </div>
@@ -214,7 +287,7 @@ function ItemCard({
 
 export function MenuBrowser({ categories }: { categories: PublicCategory[] }) {
   const { lines, addItem, setQuantity } = useCart();
-  const quantityFor = (itemId: string) => lines.find((l) => l.itemId === itemId)?.quantity ?? 0;
+  const linesForItem = (itemId: string) => lines.filter((l) => l.itemId === itemId);
 
   const [query, setQuery] = useState("");
   const [activeCategoryId, setActiveCategoryId] = useState<string | null>(null);
@@ -310,7 +383,7 @@ export function MenuBrowser({ categories }: { categories: PublicCategory[] }) {
                 <ItemCard
                   key={item.id}
                   item={item}
-                  qty={quantityFor(item.id)}
+                  cartLines={linesForItem(item.id)}
                   staggerDelayMs={nextStaggerDelay()}
                   onAdd={addItem}
                   onSetQuantity={setQuantity}
@@ -333,7 +406,7 @@ export function MenuBrowser({ categories }: { categories: PublicCategory[] }) {
                   <ItemCard
                     key={item.id}
                     item={item}
-                    qty={quantityFor(item.id)}
+                    cartLines={linesForItem(item.id)}
                     staggerDelayMs={nextStaggerDelay()}
                     onAdd={addItem}
                     onSetQuantity={setQuantity}

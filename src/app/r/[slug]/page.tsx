@@ -54,15 +54,28 @@ export default async function StorefrontPage({
   if (!tenant || tenant.status === "SUSPENDED") notFound();
 
   const rawCategories = await listPublicMenu(tenant.id);
-  // Prisma's Json columns (tags/variants) come back typed as generic
-  // JsonValue — cast to the shapes createItem/updateItem actually ever
-  // write (see menu-import wizard's publish action), rather than widening
-  // MenuBrowser's own prop types to accept arbitrary JSON.
+  // Explicit allowlist, not a spread of the raw Prisma row — Item also
+  // carries stockQty/lowStockThreshold (Prisma.Decimal, for direct-stock
+  // tracking) and other owner-only fields that aren't plain serializable
+  // objects, which React rejects when crossing the server->client boundary
+  // into MenuBrowser (a Client Component). Same fix already applied to the
+  // dashboard menu page's own toDisplayItem for the same reason. Prisma's
+  // Json columns (tags/variants) also come back typed as generic JsonValue —
+  // cast to the shapes createItem/updateItem actually ever write (see
+  // menu-import wizard's publish action), rather than widening MenuBrowser's
+  // own prop types to accept arbitrary JSON.
   const toPublicItems = (items: (typeof rawCategories)[number]["items"]) =>
     items.map((item) => ({
-      ...item,
+      id: item.id,
+      name: item.name,
+      description: item.description,
+      priceCents: item.priceCents,
+      imageUrl: item.imageUrl,
+      isVeg: item.isVeg,
+      isAvailable: item.isAvailable,
       tags: (item.tags as string[] | null) ?? null,
       variants: (item.variants as { label: string; priceCents: number }[] | null) ?? null,
+      addOns: item.addOns.map((a) => ({ id: a.id, name: a.name, priceCents: a.priceCents })),
     }));
   const categories = rawCategories.map((c) => ({
     ...c,

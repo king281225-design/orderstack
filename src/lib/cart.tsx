@@ -14,13 +14,29 @@ export type CartLine = {
   addOnIds?: string[] | null;
 };
 
+/**
+ * A line's real identity in the cart: same item but a different size (e.g.
+ * Small vs Large) — or a different add-on combo — is a genuinely different
+ * line, not the same one with its price silently overwritten. itemId alone
+ * used to be the (buggy) key; this is what addItem/setQuantity/removeItem
+ * actually match on now. Exported so any UI that lists/edits cart lines
+ * (menu browser, checkout summary) can build a stable React key / target a
+ * specific line the same way.
+ */
+export function cartLineKey(line: { itemId: string; variantLabel?: string | null; addOnIds?: string[] | null }): string {
+  const addOns = [...(line.addOnIds ?? [])].sort().join(",");
+  return `${line.itemId}::${line.variantLabel ?? ""}::${addOns}`;
+}
+
 type CartContextValue = {
   lines: CartLine[];
   totalCents: number;
   itemCount: number;
+  /** Adds one of this exact item+variant+add-ons combo — a new cart line if this combo isn't already present, otherwise +1 on the existing one (never overwrites a different combo already in the cart). */
   addItem: (item: Omit<CartLine, "quantity">) => void;
-  setQuantity: (itemId: string, quantity: number) => void;
-  removeItem: (itemId: string) => void;
+  /** Targets one specific line by cartLineKey(line) — not just itemId, so two sizes of the same item can be adjusted independently. 0 or less removes that line. */
+  setQuantity: (lineKey: string, quantity: number) => void;
+  removeItem: (lineKey: string) => void;
   clear: () => void;
   /** Set once from the ?table=<label> a table's QR code links to (see CaptureTableParam) — survives the hop to /checkout via localStorage, same as the cart itself. */
   tableLabel: string | null;
@@ -84,25 +100,24 @@ export function CartProvider({ slug, children }: { slug: string; children: React
   const value = useMemo<CartContextValue>(() => {
     const addItem: CartContextValue["addItem"] = (item) => {
       setLines((prev) => {
-        const existing = prev.find((l) => l.itemId === item.itemId);
+        const key = cartLineKey(item);
+        const existing = prev.find((l) => cartLineKey(l) === key);
         if (existing) {
-          return prev.map((l) =>
-            l.itemId === item.itemId ? { ...l, quantity: l.quantity + 1 } : l,
-          );
+          return prev.map((l) => (cartLineKey(l) === key ? { ...l, quantity: l.quantity + 1 } : l));
         }
         return [...prev, { ...item, quantity: 1 }];
       });
     };
 
-    const setQuantity: CartContextValue["setQuantity"] = (itemId, quantity) => {
+    const setQuantity: CartContextValue["setQuantity"] = (lineKey, quantity) => {
       setLines((prev) => {
-        if (quantity <= 0) return prev.filter((l) => l.itemId !== itemId);
-        return prev.map((l) => (l.itemId === itemId ? { ...l, quantity } : l));
+        if (quantity <= 0) return prev.filter((l) => cartLineKey(l) !== lineKey);
+        return prev.map((l) => (cartLineKey(l) === lineKey ? { ...l, quantity } : l));
       });
     };
 
-    const removeItem: CartContextValue["removeItem"] = (itemId) => {
-      setLines((prev) => prev.filter((l) => l.itemId !== itemId));
+    const removeItem: CartContextValue["removeItem"] = (lineKey) => {
+      setLines((prev) => prev.filter((l) => cartLineKey(l) !== lineKey));
     };
 
     const clear = () => setLines([]);

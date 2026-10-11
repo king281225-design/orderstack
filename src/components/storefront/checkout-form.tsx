@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { useCart } from "@/lib/cart";
+import { useCart, cartLineKey } from "@/lib/cart";
 import { formatINR } from "@/lib/money";
 import { placeOrderAction, previewCouponAction, verifyRazorpayPaymentAction } from "@/app/r/[slug]/actions";
 import { loadRazorpayCheckout, openRazorpayCheckout, PREFER_UPI_METHOD } from "@/lib/razorpay-client";
@@ -247,7 +247,7 @@ export function CheckoutForm({
         <h2 className="mb-2 text-sm font-semibold text-gray-900">Your order</h2>
         <ul className="flex flex-col divide-y divide-gray-100 text-sm">
           {lines.map((l) => (
-            <li key={l.itemId} className="flex justify-between py-1.5">
+            <li key={cartLineKey(l)} className="flex justify-between py-1.5">
               <span>
                 {l.quantity} × {l.name}
               </span>
