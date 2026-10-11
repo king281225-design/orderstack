@@ -25,9 +25,24 @@ export function isThermalWidth(value: string | undefined): value is ThermalWidth
   return Number.isFinite(n) && Number.isInteger(n) && n >= MIN_MM && n <= MAX_MM;
 }
 
-/** @page size/margin for a given roll width — narrow paper has less usable width, so a smaller margin keeps more of it for content. */
+/**
+ * @page size/margin for a given roll width. The height used to be the
+ * keyword `auto` (`size: 48mm auto`) to mean "let the page grow to fit the
+ * receipt" — but `<length> auto` is not a valid CSS @page `size` value (the
+ * spec only allows one or two lengths, a page-size keyword, or `auto` on
+ * its own). Confirmed directly against Chromium's print pipeline: with that
+ * invalid value, Chrome silently discarded the whole rule and fell back to
+ * a full US Letter page (612×792pt) — which is exactly what reading as
+ * "margin cut off" / "footer jumps down the page onto blank space" would
+ * look like, since real content sat in a narrow column on an oversized
+ * page. A generous but explicit fixed height is valid CSS and gets applied
+ * correctly; it only sets an upper bound; a short receipt doesn't actually
+ * use all of it, since the printer driver itself trims trailing blank
+ * paper and cuts right after the real content, same as it does on any
+ * other continuous-roll receipt printer.
+ */
 export function thermalPageCss(width: ThermalWidth) {
-  return { size: `${width}mm auto`, margin: Number(width) <= 60 ? "2mm" : "3mm" };
+  return { size: `${width}mm 1000mm`, margin: Number(width) <= 60 ? "2mm" : "3mm" };
 }
 
 /** On-screen/print content width — the roll width minus margin on both sides. */
