@@ -1,7 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import type { ThermalWidth } from "@/lib/print-prefs";
+import { useState } from "react";
+import { isThermalWidth, type ThermalWidth } from "@/lib/print-prefs";
 
 /**
  * print:hidden controls — never rendered on the actual printed page.
@@ -24,6 +25,13 @@ export function PrintControls({
   onWidthChange: (width: ThermalWidth) => void;
   kotHref?: string;
 }) {
+  // A free-typed mm value, not a draft of `width` itself — typing "5" on the
+  // way to "50" is briefly out of the valid 30-120mm range, and committing
+  // every keystroke straight to the live @page size would flash the page
+  // through nonsense layouts. Only a value that actually parses gets
+  // propagated; losing focus with an invalid value snaps back to `width`.
+  const [draft, setDraft] = useState(width);
+
   return (
     <div className="mb-4 flex flex-wrap items-center gap-3 print:hidden">
       <button
@@ -47,15 +55,28 @@ export function PrintControls({
       </label>
       {thermal && (
         <label className="flex items-center gap-1.5 text-sm text-gray-600">
-          Roll width
-          <select
-            value={width}
-            onChange={(e) => onWidthChange(e.target.value as ThermalWidth)}
-            className="rounded-md border border-gray-300 px-1.5 py-1 text-sm"
-          >
-            <option value="80">80mm</option>
-            <option value="58">58mm</option>
-          </select>
+          Roll width (mm) — check your printer&apos;s spec, e.g. 50/58/80
+          <input
+            type="number"
+            list="thermal-width-presets"
+            min={30}
+            max={120}
+            step={1}
+            value={draft}
+            onChange={(e) => {
+              setDraft(e.target.value);
+              if (isThermalWidth(e.target.value)) onWidthChange(e.target.value);
+            }}
+            onBlur={() => {
+              if (!isThermalWidth(draft)) setDraft(width);
+            }}
+            className="w-16 rounded-md border border-gray-300 px-1.5 py-1 text-sm"
+          />
+          <datalist id="thermal-width-presets">
+            <option value="50" />
+            <option value="58" />
+            <option value="80" />
+          </datalist>
         </label>
       )}
     </div>

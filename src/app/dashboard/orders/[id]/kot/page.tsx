@@ -6,7 +6,7 @@ import { KotPrintControls } from "@/components/orders/kot-print-controls";
 import { AutoPrintOnMount } from "@/components/orders/auto-print";
 import { kotCode } from "@/lib/kot";
 import { formatINR } from "@/lib/money";
-import { isThermalWidth, thermalContentWidthMm, thermalPageCss } from "@/lib/print-prefs";
+import { DEFAULT_THERMAL_WIDTH, isThermalWidth, thermalContentWidthMm, thermalPageCss } from "@/lib/print-prefs";
 
 /**
  * Kitchen Order Ticket slip — an 80mm (or ?width=58, see print-prefs.ts)
@@ -24,7 +24,7 @@ export default async function KotSlipPage({
   const session = await requireTenantSession();
   const [{ id }, { station, prices, autoprint, width }] = await Promise.all([params, searchParams]);
   const showPrices = prices !== "0";
-  const paperWidth = isThermalWidth(width) ? width : "80";
+  const paperWidth = isThermalWidth(width) ? width : DEFAULT_THERMAL_WIDTH;
   const [order, tenant] = await Promise.all([
     getOrderForPrint(session.tenantId, id),
     getTenantById(session.tenantId),

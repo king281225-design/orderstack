@@ -1,7 +1,7 @@
 "use client";
 
 import { useSyncExternalStore } from "react";
-import { type ThermalWidth, isThermalWidth } from "@/lib/print-prefs";
+import { type ThermalWidth, DEFAULT_THERMAL_WIDTH, isThermalWidth } from "@/lib/print-prefs";
 
 /**
  * Persisted across visits, read at the moment a print is triggered (bill or
@@ -13,9 +13,9 @@ const THERMAL_WIDTH_KEY = "bhojsetu-thermal-width";
 export function getPersistedThermalWidth(): ThermalWidth {
   try {
     const v = localStorage.getItem(THERMAL_WIDTH_KEY) ?? undefined;
-    return isThermalWidth(v) ? v : "80";
+    return isThermalWidth(v) ? v : DEFAULT_THERMAL_WIDTH;
   } catch {
-    return "80";
+    return DEFAULT_THERMAL_WIDTH;
   }
 }
 
@@ -33,7 +33,7 @@ function subscribeWidthPref(onStoreChange: () => void) {
   return () => window.removeEventListener("storage", onStoreChange);
 }
 function getWidthPrefServerSnapshot(): ThermalWidth {
-  return "80";
+  return DEFAULT_THERMAL_WIDTH;
 }
 
 /**
