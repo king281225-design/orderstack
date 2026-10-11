@@ -118,11 +118,21 @@ export async function createManualOrderAction(
   }
 
   revalidateOrderPaths();
-  // Which button was clicked: plain save, save & print the bill, or save & print the KOT.
+  // Which button was clicked: plain save, save & print the bill, or save &
+  // print the KOT. autoprint=1 makes "Save & print bill"/"Save & print KOT"
+  // actually print on arrival (same gated-on-measurement auto-print every
+  // one-click link elsewhere already uses — see invoice-view.tsx /
+  // thermal-ticket-frame.tsx) instead of just landing on a preview that
+  // still needs its own Print button clicked — from the owner's own report,
+  // without this the two buttons read as doing the same (neither one
+  // actually printed anything). Thermal vs A4 and the roll width aren't
+  // forced here — a server action can't read localStorage — so each page
+  // falls back to whatever thermal/width preference is already remembered
+  // from an earlier visit, same as a plain unforced /print or /kot visit.
   const intent = String(formData.get("intent") ?? "bill");
-  if (intent === "kot") redirect(`/dashboard/orders/${order.id}/kot`);
+  if (intent === "kot") redirect(`/dashboard/orders/${order.id}/kot?autoprint=1`);
   if (intent === "save") redirect("/dashboard");
-  redirect(`/dashboard/orders/${order.id}/print`);
+  redirect(`/dashboard/orders/${order.id}/print?autoprint=1`);
 }
 
 /**

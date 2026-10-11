@@ -232,7 +232,11 @@ export function InvoiceView({
             {lines.map((l) => (
               <div key={l.id} className="border-b border-gray-100 py-1.5">
                 <div className="flex items-baseline justify-between gap-2">
-                  <span>{l.nameSnapshot}</span>
+                  {/* min-w-0 is load-bearing here — see the identical
+                      comment on the KOT ticket's item row. Without it, a
+                      long item name doesn't wrap against the price column,
+                      it overflows the receipt's edge instead. */}
+                  <span className="min-w-0 break-words">{l.nameSnapshot}</span>
                   <span className="shrink-0">{formatINR(l.priceCentsSnapshot * l.quantity)}</span>
                 </div>
                 <p className="text-xs text-gray-500">

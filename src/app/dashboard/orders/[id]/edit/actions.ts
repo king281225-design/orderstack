@@ -87,8 +87,10 @@ export async function updateOrderItemsAction(
   revalidatePath("/dashboard/tables/board");
   revalidatePath(`/dashboard/orders/${orderId}/history`);
   revalidatePath("/dashboard/orders/history");
+  // autoprint=1 — see the identical note on the new-order action in
+  // src/app/dashboard/orders/new/actions.ts.
   const intent = String(formData.get("intent") ?? "bill");
-  if (intent === "kot") redirect(`/dashboard/orders/${orderId}/kot`);
+  if (intent === "kot") redirect(`/dashboard/orders/${orderId}/kot?autoprint=1`);
   if (intent === "save") redirect("/dashboard");
-  redirect(`/dashboard/orders/${orderId}/print`);
+  redirect(`/dashboard/orders/${orderId}/print?autoprint=1`);
 }

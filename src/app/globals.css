@@ -286,23 +286,38 @@
      invoice-view.tsx / print-prefs.ts); this is just the font size.
      12px read as too small/hard-to-read on a real printed receipt —
      screen-sized text looks fine on a monitor but needs to be noticeably
-     bigger once it's small thermal print read at arm's length. */
-  font-size: 15px;
+     bigger once it's small thermal print read at arm's length. Sized
+     bigger still than the first pass at the owner's own request — safe to
+     keep raising since the @page height is measured from the real
+     rendered content (see useThermalPageHeightMm), so a taller receipt
+     from bigger text just means a taller printed page, never clipped
+     content. The one real overflow risk is horizontal, not vertical — see
+     the KOT quantity column's width bump in kot/page.tsx. */
+  font-size: 18px;
 }
 
-/* Tailwind's text-xs/text-sm utilities set a fixed font-size of their own
-   (12px/14px) — they don't scale off a parent's font-size the way plain
-   inherited text does, so bumping .invoice-thermal/.kot-ticket above alone
-   only fixed the few un-classed text nodes. Scoped overrides here bump the
-   same utility classes specifically within the two thermal print layouts,
-   leaving every other use of text-xs/text-sm across the app untouched. */
+/* Tailwind's text-xs/text-sm/text-base/text-lg utilities set a fixed
+   font-size of their own — they don't scale off a parent's font-size the
+   way plain inherited text does, so bumping .invoice-thermal/.kot-ticket
+   above alone only fixed the few un-classed text nodes. Scoped overrides
+   here bump the same utility classes specifically within the two thermal
+   print layouts, leaving every other use of these classes across the app
+   untouched. */
 .invoice-thermal .text-xs,
 .kot-ticket .text-xs {
-  font-size: 13px;
+  font-size: 15px;
 }
 .invoice-thermal .text-sm,
 .kot-ticket .text-sm {
-  font-size: 16px;
+  font-size: 18px;
+}
+.invoice-thermal .text-base,
+.kot-ticket .text-base {
+  font-size: 19px;
+}
+.invoice-thermal .text-lg,
+.kot-ticket .text-lg {
+  font-size: 21px;
 }
 
 body {

@@ -52,7 +52,7 @@ export default async function KotSlipPage({
         showPrices={showPrices}
         width={paperWidth}
       />
-      <ThermalTicketFrame width={paperWidth} className="kot-ticket" style={{ fontSize: 16 }} autoPrint={autoprint === "1"}>
+      <ThermalTicketFrame width={paperWidth} className="kot-ticket" style={{ fontSize: 18 }} autoPrint={autoprint === "1"}>
         <div className="text-center">
           <p className="text-base font-bold">{tenant.name}</p>
           <p className="text-lg font-bold">KOT {kotCode(tenant.name, order.orderNumber)}</p>
@@ -71,8 +71,17 @@ export default async function KotSlipPage({
         <ul className="flex flex-col gap-1">
           {items.map((i) => (
             <li key={i.id} className="flex gap-2 text-sm font-semibold">
-              <span className="w-8 shrink-0">{i.quantity} ×</span>
-              <span className="flex-1">{i.nameSnapshot}</span>
+              {/* w-10 (not w-8) — a bigger font (see globals.css's thermal
+                  overrides) needs more room for a 2-digit quantity like
+                  "12 ×" to not clip against this fixed-width column. */}
+              <span className="w-10 shrink-0">{i.quantity} ×</span>
+              {/* min-w-0 is load-bearing: a flex item's default min-width
+                  is its own content width, not 0 — without this, a long
+                  name + a wide quantity/price combo doesn't wrap, it pushes
+                  the whole row past the paper's edge instead. break-words
+                  covers the rarer case where even a single word alone is
+                  wider than the space left for it. */}
+              <span className="min-w-0 flex-1 break-words">{i.nameSnapshot}</span>
               {showPrices && <span className="shrink-0">{formatINR(i.priceCentsSnapshot * i.quantity)}</span>}
             </li>
           ))}
