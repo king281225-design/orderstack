@@ -321,14 +321,15 @@
 }
 
 /* KOT item names only — the qty/price columns next to them (see
-   kot/page.tsx) stay at the thermal text-sm size above; only the name
-   itself shrinks. At the bumped 18px .text-sm size, a real dish name
-   ("Veg Spring Rolls") didn't fit the narrow space left after the
-   fixed qty column and the price column, wrapping one word per line
-   and even splitting mid-word ("Sprin"/"g"). Smaller here so a normal
-   dish name fits on one line instead. */
+   kot/page.tsx) stay at the thermal text-sm size above (18px); only
+   the name itself shrinks, and noticeably so (not just a couple of
+   px), so it's clearly a smaller, secondary label next to the price
+   rather than reading as "the same size". Paired with kot/page.tsx's
+   `truncate` (not wrap) on the same span, this is what actually keeps
+   a dish name ("Veg Spring Rolls") on one line instead of wrapping
+   one word per line down the receipt. */
 .kot-ticket .kot-item-name {
-  font-size: 13px;
+  font-size: 11px;
 }
 
 body {

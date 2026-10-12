@@ -77,11 +77,12 @@ export default async function KotSlipPage({
               <span className="w-10 shrink-0">{i.quantity} ×</span>
               {/* min-w-0 is load-bearing: a flex item's default min-width
                   is its own content width, not 0 — without this, a long
-                  name + a wide quantity/price combo doesn't wrap, it pushes
-                  the whole row past the paper's edge instead. break-words
-                  covers the rarer case where even a single word alone is
-                  wider than the space left for it. */}
-              <span className="kot-item-name min-w-0 flex-1 break-words">{i.nameSnapshot}</span>
+                  name + a wide quantity/price combo doesn't push onto a
+                  second line, it pushes the whole row past the paper's
+                  edge instead. truncate (not break-words/wrap) forces the
+                  name onto exactly one line as asked — a name too long for
+                  the column ends in "…" rather than wrapping to 2-3 lines. */}
+              <span className="kot-item-name min-w-0 flex-1 truncate">{i.nameSnapshot}</span>
               {showPrices && <span className="shrink-0">{formatINR(i.priceCentsSnapshot * i.quantity)}</span>}
             </li>
           ))}
