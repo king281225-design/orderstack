@@ -81,7 +81,7 @@ export default async function KotSlipPage({
                   the whole row past the paper's edge instead. break-words
                   covers the rarer case where even a single word alone is
                   wider than the space left for it. */}
-              <span className="min-w-0 flex-1 break-words">{i.nameSnapshot}</span>
+              <span className="kot-item-name min-w-0 flex-1 break-words">{i.nameSnapshot}</span>
               {showPrices && <span className="shrink-0">{formatINR(i.priceCentsSnapshot * i.quantity)}</span>}
             </li>
           ))}

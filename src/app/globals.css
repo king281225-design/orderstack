@@ -320,6 +320,17 @@
   font-size: 21px;
 }
 
+/* KOT item names only — the qty/price columns next to them (see
+   kot/page.tsx) stay at the thermal text-sm size above; only the name
+   itself shrinks. At the bumped 18px .text-sm size, a real dish name
+   ("Veg Spring Rolls") didn't fit the narrow space left after the
+   fixed qty column and the price column, wrapping one word per line
+   and even splitting mid-word ("Sprin"/"g"). Smaller here so a normal
+   dish name fits on one line instead. */
+.kot-ticket .kot-item-name {
+  font-size: 13px;
+}
+
 body {
   background: var(--background);
   color: var(--foreground);
