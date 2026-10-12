@@ -68,22 +68,20 @@ export default async function KotSlipPage({
               : "TAKEAWAY"}
         </p>
         <hr className="my-2 border-dashed border-gray-500" />
-        <ul className="flex flex-col gap-1">
+        {/* Name gets its own full-width line (same text-sm size as the
+            rest of the ticket, not a separate smaller/truncated style) —
+            squeezing name+qty+price into one row left too little room for
+            a real dish name and either cut it off or shrank it to look
+            mismatched against the price. Qty on its own line below reads
+            clearly for the kitchen regardless of how long the name is. */}
+        <ul className="flex flex-col gap-2">
           {items.map((i) => (
-            <li key={i.id} className="flex gap-2 text-sm font-semibold">
-              {/* w-10 (not w-8) — a bigger font (see globals.css's thermal
-                  overrides) needs more room for a 2-digit quantity like
-                  "12 ×" to not clip against this fixed-width column. */}
-              <span className="w-10 shrink-0">{i.quantity} ×</span>
-              {/* min-w-0 is load-bearing: a flex item's default min-width
-                  is its own content width, not 0 — without this, a long
-                  name + a wide quantity/price combo doesn't push onto a
-                  second line, it pushes the whole row past the paper's
-                  edge instead. truncate (not break-words/wrap) forces the
-                  name onto exactly one line as asked — a name too long for
-                  the column ends in "…" rather than wrapping to 2-3 lines. */}
-              <span className="kot-item-name min-w-0 flex-1 truncate">{i.nameSnapshot}</span>
-              {showPrices && <span className="shrink-0">{formatINR(i.priceCentsSnapshot * i.quantity)}</span>}
+            <li key={i.id} className="border-b border-dashed border-gray-300 pb-2 text-sm font-semibold">
+              <div className="flex items-baseline justify-between gap-2">
+                <span className="min-w-0 break-words">{i.nameSnapshot}</span>
+                {showPrices && <span className="shrink-0">{formatINR(i.priceCentsSnapshot * i.quantity)}</span>}
+              </div>
+              <p>Qty: {i.quantity}</p>
             </li>
           ))}
         </ul>
