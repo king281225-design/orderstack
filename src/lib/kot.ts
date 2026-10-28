@@ -22,3 +22,14 @@ export function kotCode(tenantName: string, orderNumber: number): string {
 export function invoiceCode(tenantName: string, orderNumber: number): string {
   return `${restaurantInitials(tenantName)}-INV-${orderNumber}`;
 }
+
+/** "DD/MM/YY H:MM AM/PM" — matches the printed-KOT-slip timestamp format. */
+export function formatKotTimestamp(date: Date): string {
+  const dd = String(date.getDate()).padStart(2, "0");
+  const mm = String(date.getMonth() + 1).padStart(2, "0");
+  const yy = String(date.getFullYear()).slice(-2);
+  const minutes = String(date.getMinutes()).padStart(2, "0");
+  const ampm = date.getHours() >= 12 ? "PM" : "AM";
+  const hours12 = date.getHours() % 12 || 12;
+  return `${dd}/${mm}/${yy} ${hours12}:${minutes} ${ampm}`;
+}

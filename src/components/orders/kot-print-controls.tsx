@@ -5,13 +5,9 @@ import Link from "next/link";
 /** print:hidden controls — never rendered on the printed ticket itself. */
 export function KotPrintControls({
   billHref,
-  pricesHref,
-  showPrices,
   width,
 }: {
   billHref: string;
-  pricesHref: string;
-  showPrices: boolean;
   /** The actual configured roll width (see print-prefs.ts) — this used to be hardcoded "80mm" regardless of what was actually set. */
   width: string;
 }) {
@@ -29,13 +25,6 @@ export function KotPrintControls({
         className="rounded-md border border-gray-300 px-3 py-2 text-sm font-semibold text-gray-700 hover:bg-gray-50"
       >
         Go to bill
-      </Link>
-      <Link
-        href={pricesHref}
-        replace
-        className="rounded-md border border-gray-300 px-3 py-2 text-sm font-semibold text-gray-700 hover:bg-gray-50"
-      >
-        {showPrices ? "Hide prices" : "Show prices"}
       </Link>
     </div>
   );
