@@ -14,8 +14,9 @@
  * installed, not running, or a genuinely unsupported browser), so nothing
  * changes for a restaurant that hasn't set it up.
  */
-const AGENT_URL = "http://127.0.0.1:9123/print";
-const AGENT_TIMEOUT_MS = 1500;
+const AGENT_URL = "http://127.0.0.1:9124/print";
+/** Generous margin — the agent's persistent worker (see print-agent/rawprint-server.ps1) is fast after its one-time startup compile, but a cold worker restart or a slow PC can still take a couple of seconds. */
+const AGENT_TIMEOUT_MS = 5000;
 
 async function tryLocalAgentPrint(escPosBase64: string | undefined): Promise<boolean> {
   if (!escPosBase64) return false;

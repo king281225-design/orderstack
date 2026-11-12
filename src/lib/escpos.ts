@@ -52,6 +52,20 @@ class EscPosBuilder {
     return this;
   }
 
+  /**
+   * Word-wraps free-form text to `cols` and emits one line() per wrapped
+   * line — a plain line() of text longer than the printer's physical width
+   * isn't wrapped by every clone printer's firmware the way a real terminal
+   * would; some just silently drop (truncate) whatever doesn't fit,
+   * especially mid-centered text. Any line this builder can't guarantee
+   * fits cols (a business name, an address, the footer) should go through
+   * this instead of line() directly.
+   */
+  wrapped(s: string, cols: number) {
+    for (const l of wrapText(s, cols)) this.line(l);
+    return this;
+  }
+
   feed(lines = 1) {
     for (let i = 0; i < lines; i++) this.bytes.push(0x0a);
     return this;
@@ -79,6 +93,11 @@ function rupees(cents: number): string {
   return `Rs ${(cents / 100).toFixed(2)}`;
 }
 
+/** Same as rupees() but without the "Rs" prefix — used inside the tabular item columns, where the amount header column already establishes it's money. */
+function plainAmount(cents: number): string {
+  return (cents / 100).toFixed(2);
+}
+
 /**
  * Characters-per-line for a given roll width, calibrated against the two
  * widths nearly every thermal printer actually uses (58mm → 32 cols, 80mm →
@@ -101,6 +120,62 @@ function twoCol(b: EscPosBuilder, left: string, right: string, cols: number) {
     b.line(left);
     b.line(" ".repeat(Math.max(0, cols - right.length)) + right);
   }
+}
+
+/** Plain word-wrap; a single word longer than cols on its own is hard-broken rather than left overflowing. */
+function wrapText(text: string, cols: number): string[] {
+  if (text.length <= cols) return [text];
+  const lines: string[] = [];
+  let cur = "";
+  for (const word of text.split(" ")) {
+    let w = word;
+    while (w.length > cols) {
+      if (cur.length > 0) {
+        lines.push(cur);
+        cur = "";
+      }
+      lines.push(w.slice(0, cols));
+      w = w.slice(cols);
+    }
+    if (cur.length === 0) {
+      cur = w;
+    } else if (cur.length + 1 + w.length <= cols) {
+      cur += " " + w;
+    } else {
+      lines.push(cur);
+      cur = w;
+    }
+  }
+  if (cur.length > 0) lines.push(cur);
+  return lines;
+}
+
+function padRight(s: string, w: number): string {
+  const t = s.length > w ? s.slice(0, w) : s;
+  return t + " ".repeat(w - t.length);
+}
+function padLeft(s: string, w: number): string {
+  const t = s.length > w ? s.slice(0, w) : s;
+  return " ".repeat(w - t.length) + t;
+}
+
+/**
+ * Fixed-width columns (Product / Qty / Rate / Amount, one line per item) —
+ * matching a clean billing-software receipt layout a restaurant owner sent
+ * as a reference, rather than this file's original two-line-per-item style
+ * (name + total on one line, qty × rate below). Long item names are
+ * truncated rather than wrapped, so every item stays on exactly one line.
+ */
+function itemColumns(cols: number) {
+  const qty = 4;
+  const rate = 7;
+  const amount = 8;
+  const product = Math.max(6, cols - qty - rate - amount);
+  return { product, qty, rate, amount };
+}
+
+function itemRow(w: ReturnType<typeof itemColumns>, name: string, qty: string, rate: string, amount: string): string {
+  return padRight(name, w.product) + padLeft(qty, w.qty) + padLeft(rate, w.rate) + padLeft(amount, w.amount);
 }
 
 export function buildKotEscPos(input: {
@@ -128,12 +203,12 @@ export function buildKotEscPos(input: {
   b.hr(cols);
   b.bold(true);
   for (const item of input.items) {
-    b.line(`${item.nameSnapshot} (${item.quantity})`);
+    b.wrapped(`${item.nameSnapshot} (${item.quantity})`, cols);
   }
   b.bold(false);
   if (input.notes) {
     b.hr(cols);
-    b.line(`Note: ${input.notes}`);
+    b.wrapped(`Note: ${input.notes}`, cols);
   }
   b.cut();
   return b.toBytes();
@@ -171,23 +246,35 @@ export function buildInvoiceEscPos(input: {
 
   b.center(true);
   b.bold(true);
-  b.line(input.tenantName);
+  b.wrapped(input.tenantName, cols);
   b.bold(false);
-  if (input.businessAddress) for (const l of input.businessAddress.split("\n")) b.line(l);
-  if (input.gstin) b.line(`GSTIN: ${input.gstin}`);
-  if (input.businessState) b.line(`Place of supply: ${input.businessState}`);
+  if (input.businessAddress) for (const l of input.businessAddress.split("\n")) b.wrapped(l, cols);
+  if (input.gstin) b.wrapped(`GSTIN: ${input.gstin}`, cols);
+  if (input.businessState) b.wrapped(`Place of supply: ${input.businessState}`, cols);
   b.center(false);
   b.hr(cols);
 
   b.line(`Invoice ${input.invoiceNumber}`);
   b.line(input.createdAt);
-  b.line(`Bill to: ${input.customerName}`);
+  b.wrapped(`Bill to: ${input.customerName}`, cols);
   if (input.customerPhone) b.line(input.customerPhone);
   b.hr(cols);
 
+  const cw = itemColumns(cols);
+  b.bold(true);
+  b.line(itemRow(cw, "Product", "Qty", "Rate", "Amount"));
+  b.bold(false);
+  b.hr(cols);
   for (const l of input.lines) {
-    twoCol(b, l.nameSnapshot, rupees(l.priceCentsSnapshot * l.quantity), cols);
-    b.line(`  ${l.quantity} x ${rupees(l.priceCentsSnapshot)}`);
+    b.line(
+      itemRow(
+        cw,
+        l.nameSnapshot,
+        String(l.quantity),
+        plainAmount(l.priceCentsSnapshot),
+        plainAmount(l.priceCentsSnapshot * l.quantity),
+      ),
+    );
   }
   b.hr(cols);
 
@@ -212,13 +299,13 @@ export function buildInvoiceEscPos(input: {
   if (input.upiId) {
     b.hr(cols);
     b.center(true);
-    b.line(`Scan to pay via UPI: ${input.upiId}`);
+    b.wrapped(`Scan to pay via UPI: ${input.upiId}`, cols);
     b.center(false);
   }
 
   b.hr(cols);
   b.center(true);
-  b.line(`Thank you for visiting ${input.tenantName}.`);
+  b.wrapped(`Thank you for visiting ${input.tenantName}.`, cols);
   b.line("Powered by bhojsetu.in");
   b.center(false);
   b.cut();

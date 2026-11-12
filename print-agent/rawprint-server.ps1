@@ -1,12 +1,12 @@
-# Sends a file of raw bytes straight to a Windows printer queue as a RAW
-# print job (datatype "RAW") via the Win32 spooler API — bypasses GDI page
-# rendering and paper-size matching entirely, so a printer whose driver only
-# supports a handful of fixed paper sizes still accepts it. Verified against
-# a real printer before this file was written.
-param(
-    [Parameter(Mandatory = $true)][string]$PrinterName,
-    [Parameter(Mandatory = $true)][string]$FilePath
-)
+# Long-running print worker — compiles the raw-print helper ONCE at
+# startup (Add-Type / the C# compiler is slow, ~1-3s), then reads one
+# print job per line from stdin for as long as this process lives, so
+# every job after the first is fast. agent.mjs spawns exactly one of
+# these and keeps it running for the whole life of the agent, instead of
+# spawning (and recompiling) a fresh one per print request.
+#
+# Protocol: each stdin line is a JSON object {"printerName":"...","filePath":"..."}.
+# Each stdout line is "OK" or "FAILED: <message>".
 
 Add-Type -TypeDefinition @"
 using System;
@@ -56,6 +56,19 @@ public class RawPrinterHelper {
 }
 "@
 
-$bytes = [System.IO.File]::ReadAllBytes($FilePath)
-$ok = [RawPrinterHelper]::SendBytesToPrinter($PrinterName, $bytes)
-if ($ok) { Write-Output "OK" } else { Write-Output "FAILED"; exit 1 }
+Write-Output "READY"
+
+while ($true) {
+    $line = [Console]::In.ReadLine()
+    if ($null -eq $line) { break }
+    if ($line.Trim().Length -eq 0) { continue }
+    try {
+        $job = $line | ConvertFrom-Json
+        $bytes = [System.IO.File]::ReadAllBytes($job.filePath)
+        $ok = [RawPrinterHelper]::SendBytesToPrinter($job.printerName, $bytes)
+        if ($ok) { Write-Output "OK" } else { Write-Output "FAILED: SendBytesToPrinter returned false" }
+    } catch {
+        Write-Output "FAILED: $($_.Exception.Message)"
+    }
+    [Console]::Out.Flush()
+}

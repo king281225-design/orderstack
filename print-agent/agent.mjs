@@ -2,12 +2,20 @@
 // PC and listens on 127.0.0.1 only. The BhojSetu dashboard (running in the
 // browser, even on the live bhojsetu.in domain) posts pre-built ESC/POS
 // bytes here; this agent sends them straight to the printer as a RAW print
-// job (see rawprint.ps1), bypassing Windows' print dialog and paper-size
-// matching entirely. See src/lib/local-print-agent.ts for the browser side
-// and src/lib/escpos.ts for how the bytes are built.
+// job (see rawprint-server.ps1), bypassing Windows' print dialog and paper
+// size matching entirely. See src/lib/local-print-agent.ts for the browser
+// side and src/lib/escpos.ts for how the bytes are built.
 //
 // Entirely optional — the dashboard falls back to the normal browser print
 // dialog whenever this isn't running. Nothing breaks by not running this.
+//
+// The actual Win32 printing runs in ONE persistent PowerShell process
+// (rawprint-server.ps1), started once below and kept alive for as long as
+// this agent runs. An earlier version spawned a fresh PowerShell + recompiled
+// its C# helper via Add-Type on every single print request, which could take
+// 1-3+ seconds and caused real timeouts/duplicate prints — compiling once at
+// startup and reusing the same process for every job after that avoids all
+// of that.
 
 import { createServer } from "node:http";
 import { readFileSync, writeFileSync, unlinkSync } from "node:fs";
@@ -16,10 +24,11 @@ import { join, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
 import { randomUUID } from "node:crypto";
 import { spawn } from "node:child_process";
+import { createInterface } from "node:readline";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const config = JSON.parse(readFileSync(join(__dirname, "config.json"), "utf8"));
-const RAWPRINT_PS1 = join(__dirname, "rawprint.ps1");
+const WORKER_SCRIPT = join(__dirname, "rawprint-server.ps1");
 
 function corsHeaders(origin) {
   const allowed = config.allowedOrigins.includes(origin) ? origin : config.allowedOrigins[0];
@@ -34,34 +43,64 @@ function corsHeaders(origin) {
   };
 }
 
-function sendRaw(printerName, bytes) {
-  return new Promise((resolve) => {
-    const tmpFile = join(tmpdir(), `bhojsetu-print-${randomUUID()}.bin`);
-    writeFileSync(tmpFile, bytes);
-    const ps = spawn("powershell.exe", [
-      "-NoProfile",
-      "-ExecutionPolicy",
-      "Bypass",
-      "-File",
-      RAWPRINT_PS1,
-      "-PrinterName",
-      printerName,
-      "-FilePath",
-      tmpFile,
-    ]);
-    let out = "";
-    ps.stdout.on("data", (d) => (out += d.toString()));
-    ps.stderr.on("data", (d) => (out += d.toString()));
-    ps.on("close", (code) => {
-      try {
-        unlinkSync(tmpFile);
-      } catch {
-        // Best-effort cleanup — a leftover temp file isn't worth failing the request over.
-      }
-      resolve({ ok: code === 0 && out.includes("OK"), log: out.trim() });
+// --- Persistent print worker -------------------------------------------------
+
+let worker = null;
+let workerReady = null;
+let rl = null;
+/** Jobs are strictly serialized through this one process — one line in, one line out, in order — so concurrent requests never interleave on the same stdin/stdout pipe. */
+let jobChain = Promise.resolve();
+
+function startWorker() {
+  worker = spawn("powershell.exe", ["-NoProfile", "-ExecutionPolicy", "Bypass", "-File", WORKER_SCRIPT]);
+  rl = createInterface({ input: worker.stdout });
+  workerReady = new Promise((resolve) => {
+    rl.once("line", (line) => {
+      if (line.trim() === "READY") resolve();
     });
   });
+  worker.stderr.on("data", (d) => console.error("[worker stderr]", d.toString().trim()));
+  worker.on("exit", (code) => {
+    console.error(`print worker exited (code ${code}) — restarting`);
+    startWorker();
+  });
 }
+startWorker();
+
+function sendJob(printerName, filePath) {
+  const run = () =>
+    workerReady.then(
+      () =>
+        new Promise((resolve) => {
+          const onLine = (line) => resolve(line.trim());
+          rl.once("line", onLine);
+          worker.stdin.write(JSON.stringify({ printerName, filePath }) + "\n");
+        }),
+    );
+  const result = jobChain.then(run, run);
+  jobChain = result.then(
+    () => {},
+    () => {},
+  );
+  return result;
+}
+
+async function sendRaw(printerName, bytes) {
+  const tmpFile = join(tmpdir(), `bhojsetu-print-${randomUUID()}.bin`);
+  writeFileSync(tmpFile, bytes);
+  try {
+    const line = await sendJob(printerName, tmpFile);
+    return { ok: line === "OK", log: line };
+  } finally {
+    try {
+      unlinkSync(tmpFile);
+    } catch {
+      // Best-effort cleanup — a leftover temp file isn't worth failing the request over.
+    }
+  }
+}
+
+// --- HTTP server --------------------------------------------------------
 
 const server = createServer((req, res) => {
   const origin = req.headers.origin ?? "";

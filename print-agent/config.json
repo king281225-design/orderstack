@@ -1,5 +1,5 @@
 {
-  "port": 9123,
+  "port": 9124,
   "printerName": "POS-58C",
   "allowedOrigins": ["https://www.bhojsetu.in", "https://bhojsetu.in", "http://localhost:3000"]
 }
