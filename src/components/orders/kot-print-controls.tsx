@@ -2,24 +2,30 @@
 
 import Link from "next/link";
 import { printOrFallback } from "@/lib/local-print-agent";
+import { kotEscPosBase64 } from "@/lib/escpos-client";
+import type { KotTicketData } from "@/lib/escpos";
+import type { ThermalWidth } from "@/lib/print-prefs";
+import { useThermalWidthPref } from "@/lib/print-prefs-client";
 
 /** print:hidden controls — never rendered on the printed ticket itself. */
 export function KotPrintControls({
   billHref,
-  width,
-  escPosBase64,
+  forceWidth,
+  kotData,
 }: {
   billHref: string;
-  /** The actual configured roll width (see print-prefs.ts) — this used to be hardcoded "80mm" regardless of what was actually set. */
-  width: string;
-  /** Pre-built raw ESC/POS bytes (base64) for the optional local print agent — see local-print-agent.ts. */
-  escPosBase64?: string;
+  /** From the URL's ?width= — wins over the roll width saved on this device, same precedence as invoice-view.tsx. */
+  forceWidth?: ThermalWidth;
+  /** Ticket content for the raw ESC/POS path (see escpos-client.ts); bytes are built at click time so the saved roll width is honored. */
+  kotData: KotTicketData;
 }) {
+  const persistedWidth = useThermalWidthPref();
+  const width = forceWidth ?? persistedWidth;
   return (
     <div className="mb-4 flex flex-wrap items-center gap-2 print:hidden">
       <button
         type="button"
-        onClick={() => void printOrFallback(escPosBase64)}
+        onClick={() => void printOrFallback(kotEscPosBase64(kotData, forceWidth))}
         className="rounded-md bg-indigo-600 px-4 py-2 text-sm font-semibold text-white hover:bg-indigo-700"
       >
         Print KOT ({width}mm)

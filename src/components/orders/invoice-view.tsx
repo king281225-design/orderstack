@@ -6,6 +6,7 @@ import { PrintControls } from "@/components/orders/print-button";
 import { thermalContentWidthMm, thermalPageCss, type ThermalWidth } from "@/lib/print-prefs";
 import { setPersistedThermalWidth, useThermalPageHeightMm, useThermalWidthPref } from "@/lib/print-prefs-client";
 import { printOrFallback } from "@/lib/local-print-agent";
+import { invoiceEscPosBase64 } from "@/lib/escpos-client";
 
 /** Only a placeholder for the brief on-screen moment before the real content height is measured — see useThermalPageHeightMm. Auto-print waits for the real measurement and never prints against this. */
 const FALLBACK_THERMAL_HEIGHT_MM = 1000;
@@ -66,7 +67,6 @@ export function InvoiceView({
   forceThermal,
   autoPrint,
   forceWidth,
-  escPosBase64,
 }: {
   tenantName: string;
   businessAddress: string | null;
@@ -100,8 +100,6 @@ export function InvoiceView({
   autoPrint?: boolean;
   /** From a one-click print link's ?width=58|80 — overrides the persisted roll-width preference for this visit, same relationship forceThermal has to the thermal preference. */
   forceWidth?: ThermalWidth;
-  /** Pre-built raw ESC/POS bytes (base64) for the optional local print agent — see local-print-agent.ts. Only meaningful in thermal mode; A4 always goes through window.print(). */
-  escPosBase64?: string;
 }) {
   // A dine-in/walk-in customer is always in the same state as the
   // restaurant, so once a state is on file this is always an intra-state
@@ -166,6 +164,37 @@ export function InvoiceView({
   const contentRef = useRef<HTMLDivElement>(null);
   const measuredHeightMm = useThermalPageHeightMm(contentRef);
 
+  // Raw ESC/POS payload for the optional local print agent (see
+  // escpos-client.ts) — built here from the live `width` state, so the roll
+  // width the owner just saved is what gets printed. Thermal mode only; A4
+  // always goes through window.print().
+  const escPosBase64 = thermal
+    ? invoiceEscPosBase64(
+        {
+          tenantName,
+          businessAddress,
+          businessState,
+          gstin,
+          invoiceNumber,
+          createdAt,
+          customerName,
+          customerPhone,
+          lines,
+          subtotalCents,
+          discountCents,
+          couponCode,
+          taxCents,
+          gstRatePercent,
+          totalCents,
+          paymentMethod,
+          paymentStatus,
+          paymentSource,
+          upiId: upiQr?.upiId ?? null,
+        },
+        width,
+      )
+    : undefined;
+
   const hasAutoPrintedRef = useRef(false);
   useEffect(() => {
     if (!autoPrint || hasAutoPrintedRef.current) return;
@@ -179,7 +208,7 @@ export function InvoiceView({
     // setState-in-effect instead.
     if (thermal && measuredHeightMm == null) return;
     hasAutoPrintedRef.current = true;
-    void printOrFallback(thermal ? escPosBase64 : undefined);
+    void printOrFallback(escPosBase64);
   }, [autoPrint, thermal, measuredHeightMm, escPosBase64]);
 
   const pageCss = thermal
@@ -206,7 +235,7 @@ export function InvoiceView({
         width={width}
         onWidthChange={setWidth}
         kotHref={kotHref}
-        escPosBase64={thermal ? escPosBase64 : undefined}
+        escPosBase64={escPosBase64}
       />
 
       <div

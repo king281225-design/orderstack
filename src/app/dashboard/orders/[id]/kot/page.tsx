@@ -6,7 +6,7 @@ import { KotPrintControls } from "@/components/orders/kot-print-controls";
 import { ThermalTicketFrame } from "@/components/orders/thermal-ticket-frame";
 import { formatKotTimestamp } from "@/lib/kot";
 import { DEFAULT_THERMAL_WIDTH, isThermalWidth, thermalContentWidthMm } from "@/lib/print-prefs";
-import { buildKotEscPos, bytesToBase64 } from "@/lib/escpos";
+import type { KotTicketData } from "@/lib/escpos";
 
 /**
  * Kitchen Order Ticket slip — an 80mm (or ?width=58, see print-prefs.ts)
@@ -37,32 +37,32 @@ export default async function KotSlipPage({
   if (items.length === 0) notFound();
   const stationLabel = station ? (station === "none" ? "Unassigned" : items[0].stationName ?? "Station") : null;
 
-  const escPosBase64 = bytesToBase64(
-    buildKotEscPos({
-      widthMm: Number(paperWidth),
-      orderNumber: order.orderNumber,
-      dateLabel: formatKotTimestamp(order.createdAt),
-      stationLabel,
-      fulfillmentType: order.fulfillmentType,
-      tableLabel: order.tableLabel,
-      items,
-      notes: order.notes,
-    }),
-  );
+  // Plain data only (no Dates/Prisma objects) — crosses into client components.
+  const kotData: KotTicketData = {
+    orderNumber: order.orderNumber,
+    dateLabel: formatKotTimestamp(order.createdAt),
+    stationLabel,
+    fulfillmentType: order.fulfillmentType,
+    tableLabel: order.tableLabel,
+    items: items.map((i) => ({ nameSnapshot: i.nameSnapshot, quantity: i.quantity })),
+    notes: order.notes,
+  };
+  const forceWidth = isThermalWidth(width) ? width : undefined;
 
   return (
     <div className="mx-auto" style={{ maxWidth: `${thermalContentWidthMm(paperWidth)}mm` }}>
       <KotPrintControls
         billHref={`/dashboard/orders/${id}/print?width=${paperWidth}`}
-        width={paperWidth}
-        escPosBase64={escPosBase64}
+        forceWidth={forceWidth}
+        kotData={kotData}
       />
       <ThermalTicketFrame
         width={paperWidth}
         className="kot-ticket"
         style={{ fontSize: 18 }}
         autoPrint={autoprint === "1"}
-        escPosBase64={escPosBase64}
+        forceWidth={forceWidth}
+        kotData={kotData}
       >
         {/* Plain "Label: value" header block + one "Name (qty)" line per
             item — matches the simple thermal-KOT layout restaurant owners

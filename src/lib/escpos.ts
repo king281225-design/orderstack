@@ -178,8 +178,8 @@ function itemRow(w: ReturnType<typeof itemColumns>, name: string, qty: string, r
   return padRight(name, w.product) + padLeft(qty, w.qty) + padLeft(rate, w.rate) + padLeft(amount, w.amount);
 }
 
-export function buildKotEscPos(input: {
-  widthMm: number;
+/** Everything a KOT ticket needs except the roll width — serializable, so a Server Component can hand it to the client components that build the bytes at print time (see escpos-client.ts). */
+export type KotTicketData = {
   orderNumber: number;
   dateLabel: string;
   stationLabel: string | null;
@@ -187,7 +187,9 @@ export function buildKotEscPos(input: {
   tableLabel: string | null;
   items: { nameSnapshot: string; quantity: number }[];
   notes: string | null;
-}): Uint8Array {
+};
+
+export function buildKotEscPos(input: KotTicketData & { widthMm: number }): Uint8Array {
   const cols = columnsForWidth(input.widthMm);
   const b = new EscPosBuilder().init();
 
@@ -214,8 +216,7 @@ export function buildKotEscPos(input: {
   return b.toBytes();
 }
 
-export function buildInvoiceEscPos(input: {
-  widthMm: number;
+export type InvoiceData = {
   tenantName: string;
   businessAddress: string | null;
   businessState: string | null;
@@ -235,7 +236,9 @@ export function buildInvoiceEscPos(input: {
   paymentStatus: string;
   paymentSource?: string | null;
   upiId?: string | null;
-}): Uint8Array {
+};
+
+export function buildInvoiceEscPos(input: InvoiceData & { widthMm: number }): Uint8Array {
   const cols = columnsForWidth(input.widthMm);
   const showGstSplit = input.taxCents > 0 && !!input.businessState && input.gstRatePercent != null;
   const halfRate = showGstSplit ? input.gstRatePercent! / 2 : 0;
