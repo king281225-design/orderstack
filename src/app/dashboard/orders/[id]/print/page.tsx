@@ -6,7 +6,8 @@ import { invoiceCode } from "@/lib/kot";
 import { InvoiceView } from "@/components/orders/invoice-view";
 import { buildUpiQr } from "@/lib/upi";
 import { paymentSourceDisplay } from "@/lib/payment-sources";
-import { isThermalWidth } from "@/lib/print-prefs";
+import { DEFAULT_THERMAL_WIDTH, isThermalWidth } from "@/lib/print-prefs";
+import { buildInvoiceEscPos, bytesToBase64 } from "@/lib/escpos";
 
 const PAYMENT_METHOD_LABEL: Record<string, string> = {
   UPI: "UPI",
@@ -58,6 +59,37 @@ export default async function PrintInvoicePage({
     upiQr = { dataUrl: qr.qrDataUrl, upiId: tenant.upiId, uri: qr.uri };
   }
 
+  // Built server-side from the same data rendered to HTML below, then
+  // shipped to the browser as a base64 prop — see escpos.ts and
+  // local-print-agent.ts. Only reflects the width from this request's own
+  // ?width= (or the default) — a persisted client-side width preference
+  // picked on a previous visit isn't known at render time, same gap the
+  // forceWidth prop below already has.
+  const escPosBase64 = bytesToBase64(
+    buildInvoiceEscPos({
+      widthMm: Number(isThermalWidth(width) ? width : DEFAULT_THERMAL_WIDTH),
+      tenantName: tenant.name,
+      businessAddress: tenant.businessAddress,
+      businessState: tenant.businessState,
+      gstin: tenant.gstin,
+      invoiceNumber: invoiceCode(tenant.name, order.orderNumber),
+      createdAt: order.createdAt.toLocaleString("en-IN"),
+      customerName: order.customerName,
+      customerPhone: order.customerPhone,
+      lines: order.items,
+      subtotalCents: order.subtotalCents,
+      discountCents: order.discountCents,
+      couponCode: order.couponCode,
+      taxCents: order.taxCents,
+      gstRatePercent: order.gstRatePercent,
+      totalCents: order.totalCents,
+      paymentMethod: PAYMENT_METHOD_LABEL[order.paymentMethod] ?? order.paymentMethod,
+      paymentStatus: PAYMENT_STATUS_LABEL[order.paymentStatus] ?? order.paymentStatus,
+      paymentSource: order.paymentStatus === "PAID" && order.paymentSource ? paymentSourceDisplay(order) : null,
+      upiId: upiQr?.upiId ?? null,
+    }),
+  );
+
   return (
     <InvoiceView
       tenantName={tenant.name}
@@ -84,6 +116,7 @@ export default async function PrintInvoicePage({
       forceThermal={thermal === "1"}
       autoPrint={autoprint === "1"}
       forceWidth={isThermalWidth(width) ? width : undefined}
+      escPosBase64={escPosBase64}
     />
   );
 }

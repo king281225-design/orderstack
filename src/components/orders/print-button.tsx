@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useState } from "react";
 import { isThermalWidth, type ThermalWidth } from "@/lib/print-prefs";
+import { printOrFallback } from "@/lib/local-print-agent";
 
 /**
  * print:hidden controls — never rendered on the actual printed page.
@@ -18,12 +19,15 @@ export function PrintControls({
   width,
   onWidthChange,
   kotHref,
+  escPosBase64,
 }: {
   thermal: boolean;
   onThermalChange: (thermal: boolean) => void;
   width: ThermalWidth;
   onWidthChange: (width: ThermalWidth) => void;
   kotHref?: string;
+  /** Pre-built raw ESC/POS bytes (base64) for the optional local print agent — see local-print-agent.ts. */
+  escPosBase64?: string;
 }) {
   // A free-typed mm value, not a draft of `width` itself — typing "5" on the
   // way to "50" is briefly out of the valid 30-120mm range, and committing
@@ -51,7 +55,7 @@ export function PrintControls({
     <div className="mb-4 flex flex-wrap items-center gap-3 print:hidden">
       <button
         type="button"
-        onClick={() => window.print()}
+        onClick={() => void printOrFallback(escPosBase64)}
         className="rounded-md bg-indigo-600 px-4 py-2 text-sm font-semibold text-white hover:bg-indigo-700"
       >
         Print / Save as PDF

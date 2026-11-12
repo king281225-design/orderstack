@@ -5,6 +5,7 @@ import { formatINR } from "@/lib/money";
 import { PrintControls } from "@/components/orders/print-button";
 import { thermalContentWidthMm, thermalPageCss, type ThermalWidth } from "@/lib/print-prefs";
 import { setPersistedThermalWidth, useThermalPageHeightMm, useThermalWidthPref } from "@/lib/print-prefs-client";
+import { printOrFallback } from "@/lib/local-print-agent";
 
 /** Only a placeholder for the brief on-screen moment before the real content height is measured — see useThermalPageHeightMm. Auto-print waits for the real measurement and never prints against this. */
 const FALLBACK_THERMAL_HEIGHT_MM = 1000;
@@ -65,6 +66,7 @@ export function InvoiceView({
   forceThermal,
   autoPrint,
   forceWidth,
+  escPosBase64,
 }: {
   tenantName: string;
   businessAddress: string | null;
@@ -98,6 +100,8 @@ export function InvoiceView({
   autoPrint?: boolean;
   /** From a one-click print link's ?width=58|80 — overrides the persisted roll-width preference for this visit, same relationship forceThermal has to the thermal preference. */
   forceWidth?: ThermalWidth;
+  /** Pre-built raw ESC/POS bytes (base64) for the optional local print agent — see local-print-agent.ts. Only meaningful in thermal mode; A4 always goes through window.print(). */
+  escPosBase64?: string;
 }) {
   // A dine-in/walk-in customer is always in the same state as the
   // restaurant, so once a state is on file this is always an intra-state
@@ -175,8 +179,8 @@ export function InvoiceView({
     // setState-in-effect instead.
     if (thermal && measuredHeightMm == null) return;
     hasAutoPrintedRef.current = true;
-    window.print();
-  }, [autoPrint, thermal, measuredHeightMm]);
+    void printOrFallback(thermal ? escPosBase64 : undefined);
+  }, [autoPrint, thermal, measuredHeightMm, escPosBase64]);
 
   const pageCss = thermal
     ? thermalPageCss(width, measuredHeightMm ?? FALLBACK_THERMAL_HEIGHT_MM)
@@ -196,7 +200,14 @@ export function InvoiceView({
           toggling this one is enough; see globals.css's own comment for why
           this moved out of a static rule there. */}
       <style>{`@page { size: ${pageCss.size}; margin: ${pageCss.margin}; }`}</style>
-      <PrintControls thermal={thermal} onThermalChange={setThermal} width={width} onWidthChange={setWidth} kotHref={kotHref} />
+      <PrintControls
+        thermal={thermal}
+        onThermalChange={setThermal}
+        width={width}
+        onWidthChange={setWidth}
+        kotHref={kotHref}
+        escPosBase64={thermal ? escPosBase64 : undefined}
+      />
 
       <div
         ref={contentRef}

@@ -6,6 +6,7 @@ import { KotPrintControls } from "@/components/orders/kot-print-controls";
 import { ThermalTicketFrame } from "@/components/orders/thermal-ticket-frame";
 import { formatKotTimestamp } from "@/lib/kot";
 import { DEFAULT_THERMAL_WIDTH, isThermalWidth, thermalContentWidthMm } from "@/lib/print-prefs";
+import { buildKotEscPos, bytesToBase64 } from "@/lib/escpos";
 
 /**
  * Kitchen Order Ticket slip — an 80mm (or ?width=58, see print-prefs.ts)
@@ -36,10 +37,33 @@ export default async function KotSlipPage({
   if (items.length === 0) notFound();
   const stationLabel = station ? (station === "none" ? "Unassigned" : items[0].stationName ?? "Station") : null;
 
+  const escPosBase64 = bytesToBase64(
+    buildKotEscPos({
+      widthMm: Number(paperWidth),
+      orderNumber: order.orderNumber,
+      dateLabel: formatKotTimestamp(order.createdAt),
+      stationLabel,
+      fulfillmentType: order.fulfillmentType,
+      tableLabel: order.tableLabel,
+      items,
+      notes: order.notes,
+    }),
+  );
+
   return (
     <div className="mx-auto" style={{ maxWidth: `${thermalContentWidthMm(paperWidth)}mm` }}>
-      <KotPrintControls billHref={`/dashboard/orders/${id}/print?width=${paperWidth}`} width={paperWidth} />
-      <ThermalTicketFrame width={paperWidth} className="kot-ticket" style={{ fontSize: 18 }} autoPrint={autoprint === "1"}>
+      <KotPrintControls
+        billHref={`/dashboard/orders/${id}/print?width=${paperWidth}`}
+        width={paperWidth}
+        escPosBase64={escPosBase64}
+      />
+      <ThermalTicketFrame
+        width={paperWidth}
+        className="kot-ticket"
+        style={{ fontSize: 18 }}
+        autoPrint={autoprint === "1"}
+        escPosBase64={escPosBase64}
+      >
         {/* Plain "Label: value" header block + one "Name (qty)" line per
             item — matches the simple thermal-KOT layout restaurant owners
             already know from other POS printers, rather than the earlier
