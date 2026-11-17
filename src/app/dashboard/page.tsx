@@ -471,6 +471,11 @@ function OrderCard({
             {order.couponCode ? `${order.couponCode} ` : "Discount "}−{formatINR(order.discountCents)}
           </span>
         )}
+        {order.loyaltyDiscountCents > 0 && (
+          <span className={`${chip} bg-[#fdf1ec] text-[#9a4a1f]`}>
+            {order.loyaltyPointsRedeemed} pts −{formatINR(order.loyaltyDiscountCents)}
+          </span>
+        )}
       </div>
 
       <div className="text-[12.5px] leading-normal text-[var(--ds-text-2)]">

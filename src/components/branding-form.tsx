@@ -1,13 +1,38 @@
 "use client";
 
-import { useActionState } from "react";
+import { useActionState, useRef } from "react";
 import { updateBrandingAction, type BrandingState } from "@/app/dashboard/branding/actions";
 import type { Tenant } from "@prisma/client";
 
 const initialState: BrandingState = { error: null, success: false };
 
+// One-click color bundles on top of the 5 manual pickers below — picking one
+// just fills in those same 5 fields (via the refs below), it doesn't replace
+// or bypass manual editing, and nothing is saved until "Save changes" runs.
+const THEME_PRESETS = [
+  { name: "Classic", primary: "#111827", secondary: "#f97316", accent: "#ffffff", headerText: "#ffffff", cardBg: "#ffffff" },
+  { name: "Elegant Dark", primary: "#1a1a2e", secondary: "#e94560", accent: "#0f0f1a", headerText: "#ffffff", cardBg: "#16213e" },
+  { name: "Minimal White", primary: "#ffffff", secondary: "#2d2d2d", accent: "#fafafa", headerText: "#1a1a1a", cardBg: "#ffffff" },
+  { name: "Festive Warm", primary: "#7a1f1f", secondary: "#d4af37", accent: "#fff8ee", headerText: "#fff8ee", cardBg: "#fffaf2" },
+  { name: "Street Vibrant", primary: "#ff5722", secondary: "#ffc107", accent: "#fff3e0", headerText: "#ffffff", cardBg: "#ffffff" },
+] as const;
+
 export function BrandingForm({ tenant }: { tenant: Tenant }) {
   const [state, formAction, pending] = useActionState(updateBrandingAction, initialState);
+
+  const primaryRef = useRef<HTMLInputElement>(null);
+  const secondaryRef = useRef<HTMLInputElement>(null);
+  const accentRef = useRef<HTMLInputElement>(null);
+  const headerTextRef = useRef<HTMLInputElement>(null);
+  const cardBgRef = useRef<HTMLInputElement>(null);
+
+  function applyPreset(preset: (typeof THEME_PRESETS)[number]) {
+    if (primaryRef.current) primaryRef.current.value = preset.primary;
+    if (secondaryRef.current) secondaryRef.current.value = preset.secondary;
+    if (accentRef.current) accentRef.current.value = preset.accent;
+    if (headerTextRef.current) headerTextRef.current.value = preset.headerText;
+    if (cardBgRef.current) cardBgRef.current.value = preset.cardBg;
+  }
 
   return (
     <form
@@ -43,16 +68,80 @@ export function BrandingForm({ tenant }: { tenant: Tenant }) {
         <input name="logo" type="file" accept="image/*" className="text-sm" />
       </label>
 
+      <label className="flex flex-col gap-1 text-sm font-medium text-gray-700">
+        Banner image
+        {tenant.bannerImageUrl && (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img src={tenant.bannerImageUrl} alt="Current banner" className="h-24 w-full rounded object-cover" />
+        )}
+        <input name="bannerImage" type="file" accept="image/*" className="text-sm" />
+        {tenant.bannerImageUrl && (
+          <span className="flex items-center gap-1.5 text-xs font-normal text-gray-500">
+            <input type="checkbox" name="removeBannerImage" />
+            Remove current banner
+          </span>
+        )}
+        <span className="text-xs font-normal text-gray-400">
+          A wide photo shown at the top of your menu page (e.g. your restaurant front, or a signature dish)
+        </span>
+      </label>
+
+      <label className="flex flex-col gap-1 text-sm font-medium text-gray-700">
+        Menu background image
+        {tenant.backgroundImageUrl && (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img
+            src={tenant.backgroundImageUrl}
+            alt="Current background"
+            className="h-24 w-full rounded object-cover"
+          />
+        )}
+        <input name="backgroundImage" type="file" accept="image/*" className="text-sm" />
+        {tenant.backgroundImageUrl && (
+          <span className="flex items-center gap-1.5 text-xs font-normal text-gray-500">
+            <input type="checkbox" name="removeBackgroundImage" />
+            Remove current background
+          </span>
+        )}
+        <span className="text-xs font-normal text-gray-400">
+          Shown faintly behind your whole menu page — pick something subtle so item text stays easy to read
+        </span>
+      </label>
+
       <div className="flex flex-col gap-1">
         <p className="text-sm font-medium text-gray-700">Menu colors</p>
         <p className="-mt-1 text-xs text-gray-500">
           Used across your storefront &amp; menu page — see the caption under each for exactly
           where.
         </p>
+
+        <div className="mb-1 flex flex-col gap-1.5">
+          <p className="text-xs font-medium text-gray-500">
+            Quick themes — fills in the 5 colors below, then Save to apply
+          </p>
+          <div className="flex flex-wrap gap-2">
+            {THEME_PRESETS.map((preset) => (
+              <button
+                key={preset.name}
+                type="button"
+                onClick={() => applyPreset(preset)}
+                className="flex items-center gap-1.5 rounded-full border border-gray-300 px-2.5 py-1 text-xs font-medium text-gray-700 hover:border-gray-400"
+              >
+                <span className="flex h-3.5 w-3.5 overflow-hidden rounded-full border border-black/10">
+                  <span className="h-full w-1/2" style={{ backgroundColor: preset.primary }} />
+                  <span className="h-full w-1/2" style={{ backgroundColor: preset.secondary }} />
+                </span>
+                {preset.name}
+              </button>
+            ))}
+          </div>
+        </div>
+
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
           <label className="flex flex-col gap-1 text-sm font-medium text-gray-700">
             Primary
             <input
+              ref={primaryRef}
               name="colorPrimary"
               type="color"
               defaultValue={tenant.colorPrimary}
@@ -63,6 +152,7 @@ export function BrandingForm({ tenant }: { tenant: Tenant }) {
           <label className="flex flex-col gap-1 text-sm font-medium text-gray-700">
             Secondary
             <input
+              ref={secondaryRef}
               name="colorSecondary"
               type="color"
               defaultValue={tenant.colorSecondary}
@@ -73,6 +163,7 @@ export function BrandingForm({ tenant }: { tenant: Tenant }) {
           <label className="flex flex-col gap-1 text-sm font-medium text-gray-700">
             Page background
             <input
+              ref={accentRef}
               name="colorAccent"
               type="color"
               defaultValue={tenant.colorAccent}
@@ -83,6 +174,7 @@ export function BrandingForm({ tenant }: { tenant: Tenant }) {
           <label className="flex flex-col gap-1 text-sm font-medium text-gray-700">
             Header text
             <input
+              ref={headerTextRef}
               name="colorHeaderText"
               type="color"
               defaultValue={tenant.colorHeaderText}
@@ -95,6 +187,7 @@ export function BrandingForm({ tenant }: { tenant: Tenant }) {
           <label className="flex flex-col gap-1 text-sm font-medium text-gray-700">
             Menu card background
             <input
+              ref={cardBgRef}
               name="colorCardBackground"
               type="color"
               defaultValue={tenant.colorCardBackground}

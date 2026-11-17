@@ -4,7 +4,12 @@ import { getItemsForOrder } from "@/lib/data/menu";
 import { validateCoupon, tryRedeemCoupon, CouponRedemptionLimitError } from "@/lib/data/coupons";
 import { deductStockForOrder, restoreStockForOrder, notifyLowStockItems } from "@/lib/data/inventory";
 import { markTableOccupiedFromOrder } from "@/lib/data/tables";
-import { upsertCustomerForOrder, adjustCustomerForOrderEdit } from "@/lib/data/customers";
+import {
+  upsertCustomerForOrder,
+  adjustCustomerForOrderEdit,
+  getCustomerLoyaltySnapshot,
+  redeemLoyaltyPoints,
+} from "@/lib/data/customers";
 import { DYNO_ACTION } from "@/lib/aggregator/dyno";
 import type { DeliveryPlatform, FulfillmentType, OrderStatus, PaymentMethod, PaymentStatus, Prisma } from "@prisma/client";
 
@@ -81,6 +86,14 @@ export async function createOrder(
     couponCode?: string | null;
     /** See the Order.deliveryDistanceKm schema comment — informational only, never validated or enforced here. */
     deliveryDistanceKm?: number | null;
+    /**
+     * How many loyalty points the customer asked to redeem — whatever the
+     * checkout page previewed client-side is never trusted here either:
+     * clamped to the customer's real, current pointsBalance and to what the
+     * order can actually absorb, then redeemed atomically. See
+     * redeemLoyaltyPoints's own race-guard comment.
+     */
+    redeemPoints?: number;
   },
 ) {
   const cart = input.cart.filter((l) => l.quantity > 0);
@@ -129,12 +142,34 @@ export async function createOrder(
     discountCents = computed;
   }
 
+  // Loyalty-points redemption, same "revalidate everything server-side"
+  // rule as the coupon above: whatever the checkout page previewed is
+  // reclamped against the customer's real, current pointsBalance and
+  // against what's left of the order after the coupon, then redeemed with
+  // an atomic UPDATE ... WHERE (see redeemLoyaltyPoints) so two concurrent
+  // checkouts from the same phone can't double-spend the same points.
+  let loyaltyPointsRedeemed = 0;
+  let loyaltyDiscountCents = 0;
+  const phoneForLoyalty = input.customerPhone.trim();
+  if (input.redeemPoints && input.redeemPoints > 0 && phoneForLoyalty) {
+    const snapshot = await getCustomerLoyaltySnapshot(tenantId, phoneForLoyalty);
+    if (snapshot) {
+      const remainingAfterCoupon = Math.max(0, subtotalCents - discountCents);
+      const maxPointsBySpend = Math.floor(remainingAfterCoupon / 100 / snapshot.rupeesPerPoint);
+      const requested = Math.min(Math.floor(input.redeemPoints), snapshot.pointsBalance, maxPointsBySpend);
+      if (requested > 0) {
+        loyaltyPointsRedeemed = await redeemLoyaltyPoints(tenantId, phoneForLoyalty, requested);
+        loyaltyDiscountCents = loyaltyPointsRedeemed * snapshot.rupeesPerPoint * 100;
+      }
+    }
+  }
+
   // GST on customer storefront orders, same rate/mechanism as manual bills
   // (createManualOrder below) — computed server-side from the tenant's own
   // configured rate, never trusted from the client's own order-summary
   // preview (checkout-form.tsx shows the same math for display only).
   const tenant = await prisma.tenant.findUnique({ where: { id: tenantId }, select: { gstRate: true } });
-  const taxableCents = Math.max(0, subtotalCents - discountCents);
+  const taxableCents = Math.max(0, subtotalCents - discountCents - loyaltyDiscountCents);
   const taxCents = tenant?.gstRate && tenant.gstRate > 0 ? Math.round((taxableCents * tenant.gstRate) / 100) : 0;
   const totalCents = taxableCents + taxCents;
 
@@ -158,6 +193,8 @@ export async function createOrder(
       couponId,
       couponCode,
       discountCents,
+      loyaltyPointsRedeemed,
+      loyaltyDiscountCents,
       items: { create: lines },
     },
     include: { items: true },

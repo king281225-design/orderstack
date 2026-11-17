@@ -2,25 +2,35 @@ import type { CSSProperties } from "react";
 
 export type Testimonial = {
   name: string;
-  location: string;
+  location?: string;
   quote: string;
   /**
    * Path under /public to a cropped logo mark, or null to fall back to a
-   * plain initials avatar. See TESTIMONIALS below for why this is null
-   * today.
+   * plain initials avatar.
    */
   logoUrl: string | null;
+  /** Backdrop behind the logo: "dark" for light-on-dark logos, "light" for dark-on-light ones. */
+  logoTone?: "dark" | "light";
 };
 
-// Exactly one real testimonial today — the brief explicitly says not to
-// fake more. Sized/laid out so a single card still reads as intentional
-// (see the section below), and scales cleanly once more are added.
+// Only list testimonials the restaurant has actually approved — the brief
+// says not to fake any. Sized/laid out so one or two cards still read as
+// intentional (see the section below).
 export const TESTIMONIALS: Testimonial[] = [
   {
     name: "Urban Bake House",
     location: "Hari Nagar, New Delhi",
     quote: "Your bhojsetu web app is easy to use and prices is very pocket friendly.",
     logoUrl: "/testimonials/urban-bake-house-logo.png",
+    logoTone: "dark",
+  },
+  {
+    // DRAFT WORDING — get the owner's OK before this goes live.
+    name: "Bake House by MS",
+    quote:
+      "BhojSetu gave our bakery its own beautiful ordering page in no time. Customers browse the menu, order and pay without any fuss, and we finally see every order in one place. Simple to run, honestly priced and a joy to use.",
+    logoUrl: "/testimonials/bake-house-by-ms-logo.png",
+    logoTone: "light",
   },
 ];
 
@@ -53,7 +63,11 @@ export function TestimonialsSection({ testimonials }: { testimonials: Testimonia
       </h2>
       <div
         className={`grid gap-4 ${
-          testimonials.length === 1 ? "mx-auto max-w-sm grid-cols-1" : "sm:grid-cols-2 lg:grid-cols-3"
+          testimonials.length === 1
+            ? "mx-auto max-w-sm grid-cols-1"
+            : testimonials.length === 2
+              ? "mx-auto max-w-3xl sm:grid-cols-2"
+              : "sm:grid-cols-2 lg:grid-cols-3"
         }`}
       >
         {testimonials.map((t, i) => (
@@ -63,14 +77,15 @@ export function TestimonialsSection({ testimonials }: { testimonials: Testimonia
             style={{ "--reveal-delay": `${i * 100}ms` } as CSSProperties}
           >
             {t.logoUrl && (
-              // The source is a wide storefront-sign logo (white/orange text
-              // on a dark, mostly-transparent backdrop) — a dark strip keeps
-              // it legible instead of near-invisible on a white card.
+              // A dark strip keeps light-on-dark logos legible; dark-on-light
+              // logos get a warm cream strip instead.
               // eslint-disable-next-line @next/next/no-img-element -- small static logo asset, not worth next/image config here
               <img
                 src={t.logoUrl}
                 alt={`${t.name} logo`}
-                className="h-20 w-full bg-gray-900 object-contain p-2"
+                className={`h-28 w-full object-contain p-2 ${
+                  t.logoTone === "light" ? "bg-white" : "bg-gray-900"
+                }`}
               />
             )}
             <div className="flex flex-1 flex-col gap-3 p-5 pt-0">
@@ -79,7 +94,7 @@ export function TestimonialsSection({ testimonials }: { testimonials: Testimonia
                 {!t.logoUrl && <InitialsAvatar name={t.name} />}
                 <div>
                   <p className="text-sm font-semibold text-gray-900 dark:text-white">{t.name}</p>
-                  <p className="text-xs text-gray-500">{t.location}</p>
+                  {t.location && <p className="text-xs text-gray-500">{t.location}</p>}
                 </div>
               </div>
             </div>

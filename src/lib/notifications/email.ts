@@ -154,7 +154,10 @@ export async function sendCustomerOrderConfirmationEmail(
   }
 }
 
-function escapeHtml(s: string): string {
+/** Shared sender for sibling notification modules (same backend selection as everything here). */
+export { send as sendEmailRaw };
+
+export function escapeHtml(s: string): string {
   return s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
 }
 

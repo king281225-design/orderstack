@@ -5,7 +5,12 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { useCart, cartLineKey } from "@/lib/cart";
 import { formatINR } from "@/lib/money";
-import { placeOrderAction, previewCouponAction, verifyRazorpayPaymentAction } from "@/app/r/[slug]/actions";
+import {
+  placeOrderAction,
+  previewCouponAction,
+  previewLoyaltyAction,
+  verifyRazorpayPaymentAction,
+} from "@/app/r/[slug]/actions";
 import { loadRazorpayCheckout, openRazorpayCheckout, PREFER_UPI_METHOD } from "@/lib/razorpay-client";
 import { haversineDistanceKm } from "@/lib/geo";
 
@@ -107,6 +112,26 @@ export function CheckoutForm({
   const [couponError, setCouponError] = useState<string | null>(null);
   const [isApplyingCoupon, startCouponTransition] = useTransition();
 
+  // Loyalty points — checked on demand (not auto-looked-up as the customer
+  // types) so a stray keystroke in the phone field never fires a lookup.
+  const phoneRef = useRef<HTMLInputElement>(null);
+  const [loyalty, setLoyalty] = useState<{ pointsBalance: number; rupeesPerPoint: number } | null>(null);
+  const [loyaltyChecked, setLoyaltyChecked] = useState(false);
+  const [useLoyaltyPoints, setUseLoyaltyPoints] = useState(false);
+  const [isCheckingLoyalty, startLoyaltyTransition] = useTransition();
+
+  function handleCheckLoyalty() {
+    const phone = phoneRef.current?.value.trim();
+    if (!phone) return;
+    startLoyaltyTransition(async () => {
+      const result = await previewLoyaltyAction(slug, phone);
+      setLoyalty(result);
+      setLoyaltyChecked(true);
+      setUseLoyaltyPoints(Boolean(result));
+    });
+  }
+
+
   function handleApplyCoupon() {
     setCouponError(null);
     if (!couponInput.trim()) return;
@@ -128,7 +153,11 @@ export function CheckoutForm({
   }
 
   const discountCents = appliedCoupon?.discountCents ?? 0;
-  const taxableCents = Math.max(0, totalCents - discountCents);
+  const loyaltyDiscountCents =
+    useLoyaltyPoints && loyalty
+      ? Math.min(loyalty.pointsBalance * loyalty.rupeesPerPoint * 100, Math.max(0, totalCents - discountCents))
+      : 0;
+  const taxableCents = Math.max(0, totalCents - discountCents - loyaltyDiscountCents);
   // Preview only, for the customer's own benefit before they submit — the
   // actual charge is always recomputed from the tenant's live gstRate
   // inside createOrder itself, same "never trust the client" rule as the
@@ -139,7 +168,7 @@ export function CheckoutForm({
   const sgstCents = showGstSplit ? Math.floor(taxCents / 2) : 0;
   const cgstCents = showGstSplit ? taxCents - sgstCents : 0;
   const payableCents = taxableCents + taxCents;
-  const showTotalRow = Boolean(appliedCoupon) || taxCents > 0;
+  const showTotalRow = Boolean(appliedCoupon) || loyaltyDiscountCents > 0 || taxCents > 0;
 
   if (lines.length === 0) {
     return (
@@ -167,6 +196,7 @@ export function CheckoutForm({
       paymentMethod,
       notes: String(formData.get("notes") ?? ""),
       couponCode: appliedCoupon?.code ?? "",
+      redeemPoints: useLoyaltyPoints && loyalty ? loyalty.pointsBalance : 0,
     };
     const cart = lines.map((l) => ({
       itemId: l.itemId,
@@ -268,6 +298,12 @@ export function CheckoutForm({
               <span>−{formatINR(discountCents)}</span>
             </div>
           )}
+          {loyaltyDiscountCents > 0 && (
+            <div className="flex justify-between text-amber-700">
+              <span>Loyalty points</span>
+              <span>−{formatINR(loyaltyDiscountCents)}</span>
+            </div>
+          )}
           {taxCents > 0 && !showGstSplit && (
             <div className="flex justify-between text-gray-500">
               <span>Tax / GST</span>
@@ -342,12 +378,49 @@ export function CheckoutForm({
       <label className="flex flex-col gap-1 text-sm font-medium text-gray-700">
         Phone number
         <input
+          ref={phoneRef}
           name="customerPhone"
           type="tel"
           required
+          onChange={() => {
+            if (loyaltyChecked) {
+              setLoyaltyChecked(false);
+              setLoyalty(null);
+              setUseLoyaltyPoints(false);
+            }
+          }}
           className="rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-gray-900 focus:outline-none"
         />
       </label>
+
+      {loyaltyChecked ? (
+        loyalty ? (
+          <label className="flex items-start gap-2 rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-900">
+            <input
+              type="checkbox"
+              checked={useLoyaltyPoints}
+              onChange={(e) => setUseLoyaltyPoints(e.target.checked)}
+              className="mt-0.5"
+            />
+            <span>
+              You have <strong>{loyalty.pointsBalance} points</strong> (worth{" "}
+              {formatINR(loyalty.pointsBalance * loyalty.rupeesPerPoint * 100)}) — redeem them for a discount on
+              this order?
+            </span>
+          </label>
+        ) : (
+          <p className="-mt-1 text-xs text-gray-400">No loyalty points on this number yet — they add up as you order.</p>
+        )
+      ) : (
+        <button
+          type="button"
+          onClick={handleCheckLoyalty}
+          disabled={isCheckingLoyalty}
+          className="-mt-1 w-fit text-xs font-medium text-gray-600 underline disabled:opacity-50"
+        >
+          {isCheckingLoyalty ? "Checking…" : "Have loyalty points? Check your balance"}
+        </button>
+      )}
 
       <label className="flex flex-col gap-1 text-sm font-medium text-gray-700">
         Email (optional — for an order confirmation)

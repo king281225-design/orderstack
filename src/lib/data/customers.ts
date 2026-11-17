@@ -106,6 +106,53 @@ export async function adjustCustomerForOrderEdit(
   });
 }
 
+/**
+ * Looked up by phone at checkout (see previewLoyaltyAction) so a customer
+ * can see their own points balance before deciding whether to redeem it —
+ * no login needed, same "no new auth system" spirit as the order-status
+ * page's phone-based order lookup. Returns null when there's no Customer row
+ * yet for this phone (never ordered before, or no points earned).
+ */
+export async function getCustomerLoyaltySnapshot(
+  tenantId: string,
+  phone: string,
+): Promise<{ pointsBalance: number; rupeesPerPoint: number } | null> {
+  const trimmed = phone.trim();
+  if (!trimmed) return null;
+
+  const [tenant, customer] = await Promise.all([
+    prisma.tenant.findUnique({ where: { id: tenantId }, select: { loyaltyRupeesPerPoint: true } }),
+    prisma.customer.findUnique({ where: { tenantId_phone: { tenantId, phone: trimmed } } }),
+  ]);
+  if (!customer || customer.pointsBalance <= 0) return null;
+
+  return {
+    pointsBalance: customer.pointsBalance,
+    rupeesPerPoint: tenant?.loyaltyRupeesPerPoint ?? 10,
+  };
+}
+
+/**
+ * Atomically decrements a customer's points balance only if they still have
+ * at least as many as requested — same "UPDATE ... WHERE" race-guard
+ * pattern as tryRedeemCoupon, so two concurrent checkouts against the same
+ * phone can't both redeem the same points twice. Returns the number
+ * actually redeemed (0 if the customer doesn't exist, or the race check
+ * finds fewer points than requested) — the caller should treat 0 as
+ * "nothing to redeem" rather than fail the whole order over it.
+ */
+export async function redeemLoyaltyPoints(tenantId: string, phone: string, points: number): Promise<number> {
+  if (!Number.isFinite(points) || points <= 0) return 0;
+  const trimmed = phone.trim();
+  if (!trimmed) return 0;
+
+  const result = await prisma.customer.updateMany({
+    where: { tenantId, phone: trimmed, pointsBalance: { gte: points } },
+    data: { pointsBalance: { decrement: points } },
+  });
+  return result.count === 1 ? points : 0;
+}
+
 /** Always scoped by tenantId — one restaurant's customers never leak into another's list. */
 export async function listCustomersForTenant(tenantId: string) {
   const customers = await prisma.customer.findMany({

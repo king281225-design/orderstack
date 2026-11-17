@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { getTenantBySlug } from "@/lib/data/tenants";
 import { getOrderForTenant } from "@/lib/data/orders";
+import { getCustomerLoyaltySnapshot } from "@/lib/data/customers";
 import { buildUpiQr } from "@/lib/upi";
 import { formatINR } from "@/lib/money";
 import { getRazorpayKeyId } from "@/lib/payments/razorpay";
@@ -38,6 +39,11 @@ export default async function OrderStatusPage({
 
   const order = await getOrderForTenant(tenant.id, orderId);
   if (!order) notFound();
+
+  // Shown as a small "here's where you stand" note below the order —
+  // reflects the balance AFTER this order's own redemption/earning already
+  // landed (see createOrder), not a stale pre-order snapshot.
+  const loyalty = await getCustomerLoyaltySnapshot(tenant.id, order.customerPhone);
 
   // Same rule as the manual-bill printed invoice (invoice-view.tsx): a
   // customer is always in the same state as the restaurant they're
@@ -128,6 +134,12 @@ export default async function OrderStatusPage({
               <span>−{formatINR(order.discountCents)}</span>
             </div>
           )}
+          {order.loyaltyDiscountCents > 0 && (
+            <div className="flex justify-between text-amber-700">
+              <span>Loyalty points ({order.loyaltyPointsRedeemed})</span>
+              <span>−{formatINR(order.loyaltyDiscountCents)}</span>
+            </div>
+          )}
           {order.taxCents > 0 && !showGstSplit && (
             <div className="flex justify-between text-gray-500">
               <span>Tax / GST</span>
@@ -162,6 +174,13 @@ export default async function OrderStatusPage({
             ` (${order.paymentStatus === "PAID" ? "paid" : order.paymentStatus === "FAILED" ? "failed" : "pending"})`}
         </p>
       </section>
+
+      {loyalty && (
+        <p className="text-center text-xs text-gray-500">
+          You have <strong>{loyalty.pointsBalance} loyalty points</strong> with {tenant.name} (worth{" "}
+          {formatINR(loyalty.pointsBalance * loyalty.rupeesPerPoint * 100)}) — use them on your next order.
+        </p>
+      )}
     </div>
   );
 }

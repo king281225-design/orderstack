@@ -6,6 +6,7 @@ import { CartProvider } from "@/lib/cart";
 import { CartBar } from "@/components/storefront/cart-bar";
 import { PromoBar } from "@/components/storefront/promo-bar";
 import { WaiterCallButton } from "@/components/storefront/waiter-call-button";
+import { StorefrontFooter } from "@/components/storefront/storefront-footer";
 
 // Always render at request time — this reads live tenant/menu/order data
 // from Postgres, which build-time static generation has no access to.
@@ -34,7 +35,21 @@ export default async function StorefrontLayout({
 
   return (
     <CartProvider slug={slug}>
-      <div style={themeVars} className="flex min-h-screen flex-col bg-[var(--brand-accent)]">
+      <div
+        style={{
+          ...themeVars,
+          ...(tenant.backgroundImageUrl
+            ? {
+                backgroundImage: `linear-gradient(color-mix(in srgb, var(--brand-accent) 88%, transparent), color-mix(in srgb, var(--brand-accent) 88%, transparent)), url(${tenant.backgroundImageUrl})`,
+                backgroundSize: "cover",
+                backgroundPosition: "top center",
+                backgroundRepeat: "no-repeat",
+                backgroundAttachment: "fixed",
+              }
+            : {}),
+        }}
+        className="flex min-h-screen flex-col bg-[var(--brand-accent)]"
+      >
         {/* Depth via a gradient + shadow derived from the tenant's own colorPrimary
             (color-mix, not a hardcoded color) rather than a flat fill — richer
             without overriding what the owner actually picked in branding. */}
@@ -73,7 +88,17 @@ export default async function StorefrontLayout({
 
         <PromoBar coupons={activeCoupons} />
 
-        <div className="flex-1 pb-20">{children}</div>
+        <div className="flex-1 pb-20">
+          {children}
+          <StorefrontFooter
+            name={tenant.name}
+            tagline={tenant.tagline}
+            businessAddress={tenant.businessAddress}
+            instagramUrl={tenant.instagramUrl}
+            facebookUrl={tenant.facebookUrl}
+            googleReviewUrl={tenant.googleReviewUrl}
+          />
+        </div>
 
         <WaiterCallButton slug={slug} />
         <CartBar slug={slug} isOpen={tenant.isOpen} />

@@ -29,6 +29,10 @@ export async function updateBrandingAction(
   const colorCardBackground = String(formData.get("colorCardBackground") ?? "#ffffff");
   const upiId = String(formData.get("upiId") ?? "").trim();
   const logo = formData.get("logo");
+  const backgroundImage = formData.get("backgroundImage");
+  const bannerImage = formData.get("bannerImage");
+  const removeBackgroundImage = formData.get("removeBackgroundImage") === "on";
+  const removeBannerImage = formData.get("removeBannerImage") === "on";
   const googleReviewUrl = String(formData.get("googleReviewUrl") ?? "").trim();
   const googleRatingRaw = String(formData.get("googleRating") ?? "").trim();
   const googleReviewCountRaw = String(formData.get("googleReviewCount") ?? "").trim();
@@ -55,6 +59,20 @@ export async function updateBrandingAction(
   if (logo instanceof File && logo.size > 0) {
     logoUrl = await saveUpload(logo, "logos");
   }
+  // A new upload always wins over "remove" (ticking remove then changing
+  // your mind and picking a file shouldn't need two separate saves).
+  let backgroundImageUrl: string | null | undefined;
+  if (backgroundImage instanceof File && backgroundImage.size > 0) {
+    backgroundImageUrl = await saveUpload(backgroundImage, "branding");
+  } else if (removeBackgroundImage) {
+    backgroundImageUrl = null;
+  }
+  let bannerImageUrl: string | null | undefined;
+  if (bannerImage instanceof File && bannerImage.size > 0) {
+    bannerImageUrl = await saveUpload(bannerImage, "branding");
+  } else if (removeBannerImage) {
+    bannerImageUrl = null;
+  }
 
   await updateTenantBranding(session.tenantId, {
     name,
@@ -73,6 +91,8 @@ export async function updateBrandingAction(
     instagramUrl: instagramUrl || null,
     facebookUrl: facebookUrl || null,
     ...(logoUrl ? { logoUrl } : {}),
+    ...(backgroundImageUrl !== undefined ? { backgroundImageUrl } : {}),
+    ...(bannerImageUrl !== undefined ? { bannerImageUrl } : {}),
   });
 
   revalidatePath("/dashboard/branding");

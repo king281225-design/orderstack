@@ -19,6 +19,7 @@ import {
   CouponRedemptionLimitError,
   CouponMinOrderError,
 } from "@/lib/data/coupons";
+import { getCustomerLoyaltySnapshot } from "@/lib/data/customers";
 import { formatINR } from "@/lib/money";
 import {
   createRazorpayOrder,
@@ -53,6 +54,10 @@ const checkoutSchema = z.object({
   paymentMethod: z.enum(["UPI", "COD", "RAZORPAY"]),
   notes: z.string().optional(),
   couponCode: z.string().optional(),
+  // Loyalty points the customer asked to redeem — a live preview only, same
+  // "never trust the client" rule as couponCode; createOrder reclamps this
+  // against the customer's real balance.
+  redeemPoints: z.number().int().nonnegative().optional(),
 });
 
 export type PlaceOrderResult = {
@@ -63,6 +68,20 @@ export type PlaceOrderResult = {
 };
 
 export type PreviewCouponResult = { error?: string; discountCents?: number; code?: string };
+
+export type PreviewLoyaltyResult = { pointsBalance: number; rupeesPerPoint: number } | null;
+
+/**
+ * Live preview only, called when the customer asks to check their points
+ * balance at checkout — never trusted for the actual charge. createOrder
+ * reclamps whatever points are "used" here against the customer's real,
+ * current balance at order time.
+ */
+export async function previewLoyaltyAction(slug: string, phone: string): Promise<PreviewLoyaltyResult> {
+  const tenant = await getTenantBySlug(slug);
+  if (!tenant) return null;
+  return getCustomerLoyaltySnapshot(tenant.id, phone);
+}
 
 function couponErrorMessage(err: unknown): string {
   if (err instanceof CouponNotFoundError) return "That coupon code doesn't exist.";
@@ -151,6 +170,7 @@ export async function placeOrderAction(
       paymentMethod: data.paymentMethod,
       notes: data.notes?.trim() || null,
       couponCode: data.couponCode?.trim() || null,
+      redeemPoints: data.redeemPoints ?? 0,
     });
 
     // Fire-and-forget: never let an email problem block or fail the order

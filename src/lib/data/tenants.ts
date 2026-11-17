@@ -481,6 +481,8 @@ export async function updateTenantBranding(
     name?: string;
     tagline?: string | null;
     logoUrl?: string | null;
+    backgroundImageUrl?: string | null;
+    bannerImageUrl?: string | null;
     colorPrimary?: string;
     colorSecondary?: string;
     colorAccent?: string;

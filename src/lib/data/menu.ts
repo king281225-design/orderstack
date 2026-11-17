@@ -52,6 +52,28 @@ export async function listPublicMenu(tenantId: string) {
     .filter((c) => c.items.length > 0 || c.subcategories.length > 0);
 }
 
+/**
+ * Top N item ids by quantity actually sold in the last 30 days, tenant-
+ * scoped, excluding cancelled orders — feeds the storefront's "Bestseller"
+ * badge (see r/[slug]/page.tsx). Always computed fresh from real OrderItem
+ * rows, never a manually-set flag, so it can't advertise something that
+ * isn't actually true of recent sales.
+ */
+export async function getBestsellerItemIds(tenantId: string, limit = 3): Promise<string[]> {
+  const since = new Date(Date.now() - 30 * 86_400_000);
+  const grouped = await prisma.orderItem.groupBy({
+    by: ["itemId"],
+    where: {
+      itemId: { not: null },
+      order: { tenantId, createdAt: { gte: since }, status: { not: "CANCELLED" } },
+    },
+    _sum: { quantity: true },
+    orderBy: { _sum: { quantity: "desc" } },
+    take: limit,
+  });
+  return grouped.map((g) => g.itemId).filter((id): id is string => Boolean(id));
+}
+
 export async function createCategory(
   tenantId: string,
   name: string,
