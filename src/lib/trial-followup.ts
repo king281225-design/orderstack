@@ -89,5 +89,10 @@ export function decideFollowUp(
   if (latestDue === -1) return { action: "none" };
   const overdueMs = now.getTime() - followUpDueAt(latestDue, createdAt, trialDays).getTime();
   if (overdueMs > TRIAL_FOLLOW_UP_STALE_DAYS * DAY_MS) return { action: "skip", toStep: latestDue + 1 };
+  // "This is our last email" only makes sense after at least one earlier
+  // follow-up — never send it as a restaurant's very first message.
+  if (TRIAL_FOLLOW_UP_STEPS[latestDue].id === "last_note" && sentSteps === 0) {
+    return { action: "skip", toStep: latestDue + 1 };
+  }
   return { action: "send", stepIndex: latestDue };
 }
