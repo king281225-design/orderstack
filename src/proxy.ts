@@ -51,8 +51,8 @@ export async function proxy(request: NextRequest) {
     return NextResponse.redirect(new URL("/login", request.url));
   }
 
-  // Single-device-login enforcement (Starter/Advanced tenants — see
-  // src/lib/data/sessions.ts; Business tenants are exempt). Checked before
+  // Single-device-login enforcement (Starter tenants only — see
+  // src/lib/data/sessions.ts; Advanced and Business tenants are exempt). Checked before
   // the trial gate and on every dashboard path including /dashboard/billing
   // itself, since a superseded session shouldn't be able to reach anything,
   // not even to pay. Clears the now-invalid cookie so the redirect doesn't

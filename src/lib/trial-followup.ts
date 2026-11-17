@@ -37,6 +37,17 @@ export const TRIAL_FOLLOW_UP_STEPS: {
   { id: "last_note", anchor: "end", offsetDays: 30 },
 ];
 
+export const TRIAL_FOLLOW_UP_LABELS: Record<TrialFollowUpStepId, string> = {
+  setup_menu: "Set up your menu",
+  first_orders: "Get your first order",
+  two_days_left: "2 days left",
+  trial_ended: "Trial ended",
+  welcome_offer: "₹100 welcome offer",
+  need_help: "Need help?",
+  plans_recap: "Plans recap",
+  last_note: "Last note",
+};
+
 /** A step that is overdue by more than this is skipped rather than sent late. */
 export const TRIAL_FOLLOW_UP_STALE_DAYS = 6;
 

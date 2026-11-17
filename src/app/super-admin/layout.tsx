@@ -53,6 +53,9 @@ export default async function SuperAdminLayout({ children }: { children: React.R
             <span className="ml-1.5 rounded-full bg-red-600 px-1.5 text-[11px] font-bold text-white">{activeTickets}</span>
           )}
         </Link>
+        <Link href="/super-admin/follow-ups" className="rounded-full border border-gray-300 bg-white px-3 py-1 text-gray-700 hover:border-indigo-400 dark:bg-[#241d17]">
+          Follow-ups
+        </Link>
       </nav>
       <main className="mx-auto max-w-7xl px-4 py-6">{children}</main>
     </div>

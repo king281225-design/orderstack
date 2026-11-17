@@ -50,7 +50,7 @@ export function trialState(
  * in sync when either changes. As of 2026-10-03 Advanced and Business include real
  * multi-store support (the "multiStore" feature: a Business account with a
  * store switcher and a central dashboard, src/lib/data/business.ts); the
- * "no device limit" behaviour (src/lib/data/sessions.ts) is separate.
+ * "no device limit" behaviour (src/lib/data/sessions.ts — Advanced and Business) is separate.
  */
 export const PLAN_DEFINITIONS: Record<
   PlanTier,
@@ -95,7 +95,7 @@ export const PLAN_DEFINITIONS: Record<
       "Loyalty points & WhatsApp win-back offers",
       "Analytics dashboard",
       "Multi-store: manage several outlets from one account with a central dashboard",
-      "1 device logged in at a time",
+      "Log in from as many devices as you need",
     ],
   },
   BUSINESS: {

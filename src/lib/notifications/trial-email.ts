@@ -54,7 +54,7 @@ export function buildTrialFollowUpEmail(input: TrialFollowUpEmailInput): { subje
   const storefront = `${input.origin}/r/${input.slug}`;
   const hasMenu = input.menuItemCount > 0;
   const offer = input.welcomeOfferAvailable
-    ? `<p>Use code <strong>WELCOME100</strong> on your Billing page for <strong>₹100 off</strong> your first ${starter.label} plan purchase — a one-time offer for new restaurants.</p>`
+    ? `<p>Use code <strong>WELCOME100</strong> on your Billing page for <strong>₹100 off</strong> your first plan purchase (any plan) — a one-time offer for new restaurants.</p>`
     : "";
 
   let subject: string;
@@ -111,7 +111,7 @@ export function buildTrialFollowUpEmail(input: TrialFollowUpEmailInput): { subje
       heading = input.welcomeOfferAvailable ? "₹100 off your first month" : "Your restaurant is waiting";
       body = `<p>We've saved <strong>${name}</strong>'s menu and settings for you.</p>${
         input.welcomeOfferAvailable
-          ? `<p>Use code <strong>WELCOME100</strong> on the Billing page — <strong>₹100 off</strong> your first ${starter.label} plan purchase (${price}/month), valid once.</p>`
+          ? `<p>Use code <strong>WELCOME100</strong> on the Billing page — <strong>₹100 off</strong> your first plan purchase (any plan, from ${price}/month), valid once.</p>`
           : `<p>Pick a plan from ${price}/month and your ordering page, billing and KOT are back instantly.</p>`
       }`;
       ctaLabel = "Go to Billing";

@@ -4,6 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { DEMO_STOREFRONT_SLUG } from "@/lib/contact";
 import {
   decideFollowUp,
+  followUpDueAt,
   TRIAL_FOLLOW_UP_STEPS,
   type TrialFollowUpStepId,
 } from "@/lib/trial-followup";
@@ -140,4 +141,66 @@ export async function runTrialFollowUps(opts: {
   }
 
   return result;
+}
+
+export async function resumeTrialFollowUps(tenantId: string): Promise<void> {
+  await prisma.tenant.update({ where: { id: tenantId }, data: { trialFollowUpsStoppedAt: null } });
+}
+
+export type FollowUpRow = {
+  id: string;
+  name: string;
+  slug: string;
+  ownerEmail: string | null;
+  createdAt: Date;
+  trial: { kind: "trial"; daysLeft: number } | { kind: "ended" };
+  stepsSent: number;
+  lastSentAt: Date | null;
+  /** Next email still to go out, or null if the sequence is finished/stopped. */
+  next: { id: TrialFollowUpStepId; dueAt: Date } | null;
+  state: "ACTIVE" | "STOPPED" | "COMPLETED";
+};
+
+/** Super-admin overview: every unpaid restaurant and where it is in the sequence. */
+export async function listFollowUpOverview(): Promise<{ rows: FollowUpRow[]; paidCount: number }> {
+  const [tenants, paidCount] = await Promise.all([
+    prisma.tenant.findMany({
+      where: { status: "ACTIVE", subscriptionStatus: { not: "ACTIVE" }, slug: { not: DEMO_STOREFRONT_SLUG } },
+      orderBy: { createdAt: "desc" },
+      take: 300,
+      select: {
+        id: true, name: true, slug: true, createdAt: true, trialDays: true,
+        trialFollowUpStep: true, trialFollowUpSentAt: true, trialFollowUpsStoppedAt: true,
+      },
+    }),
+    prisma.tenant.count({ where: { subscriptionStatus: "ACTIVE", slug: { not: DEMO_STOREFRONT_SLUG } } }),
+  ]);
+  const owners = await prisma.user.findMany({
+    where: { role: "OWNER", tenantId: { in: tenants.map((t) => t.id) } },
+    select: { tenantId: true, email: true },
+  });
+  const ownerByTenant = new Map(owners.map((o) => [o.tenantId, o.email]));
+  const nowMs = Date.now();
+
+  const rows = tenants.map((t): FollowUpRow => {
+    const st = trialState(t.createdAt, "NONE", nowMs, t.trialDays);
+    const done = t.trialFollowUpStep >= TRIAL_FOLLOW_UP_STEPS.length;
+    const state: FollowUpRow["state"] = t.trialFollowUpsStoppedAt ? "STOPPED" : done ? "COMPLETED" : "ACTIVE";
+    return {
+      id: t.id,
+      name: t.name,
+      slug: t.slug,
+      ownerEmail: ownerByTenant.get(t.id) ?? null,
+      createdAt: t.createdAt,
+      trial: st.kind === "trial" ? st : { kind: "ended" },
+      stepsSent: t.trialFollowUpStep,
+      lastSentAt: t.trialFollowUpSentAt,
+      next:
+        done || t.trialFollowUpsStoppedAt
+          ? null
+          : { id: TRIAL_FOLLOW_UP_STEPS[t.trialFollowUpStep].id, dueAt: followUpDueAt(t.trialFollowUpStep, t.createdAt, t.trialDays) },
+      state,
+    };
+  });
+  return { rows, paidCount };
 }

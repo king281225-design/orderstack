@@ -22,7 +22,7 @@ export async function loginAction(_prev: LoginState, formData: FormData): Promis
     return { error: "Incorrect email or password." };
   }
 
-  // Single-device enforcement (Starter/Advanced tenants — see
+  // Single-device enforcement (Starter tenants — see
   // src/lib/data/sessions.ts): this login becomes the account's one valid
   // session from here on, silently superseding any older login elsewhere.
   const sid = generateSessionId();

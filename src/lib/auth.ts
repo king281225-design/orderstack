@@ -25,7 +25,7 @@ export type SessionPayload = {
   role: Role;
   tenantId: string | null;
   email: string;
-  // Single-device-login enforcement for Starter/Advanced tenants (see
+  // Single-device-login enforcement for Starter tenants (see
   // src/lib/data/sessions.ts and src/proxy.ts) — a fresh random id minted on
   // every login. A session whose sid no longer matches the user's
   // currentSessionId in the database has been superseded by a newer login
