@@ -52,6 +52,12 @@ const nextConfig: NextConfig = {
     // statically traceable, so both are force-included for that route only.
     "/api/dashboard/analytics/report": ["node_modules/pdfkit/**/*", "node_modules/fontkit/**/*", "assets/fonts/**/*"],
     "/*": [
+      // pdf-parse -> pdfjs-dist loads its worker (pdf.worker.mjs) by a runtime
+      // path the file tracer can't see; without these the standalone output on
+      // Hostinger fails with "Cannot find module .../pdf.worker.mjs".
+      "node_modules/pdfjs-dist/**/*",
+      "node_modules/pdf-parse/**/*",
+      "node_modules/@napi-rs/**/*",
       "node_modules/tesseract.js/**/*",
       "node_modules/tesseract.js-core/**/*",
       "node_modules/bmp-js/**/*",
