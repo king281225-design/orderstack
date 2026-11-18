@@ -64,6 +64,12 @@ const nextConfig: NextConfig = {
     ],
   },
   experimental: {
+    // Managed hosts (Hostinger) report the physical server's CPU count (63 on
+    // the staging box), so Next starts that many build workers and the host
+    // kills them (SIGABRT, "Collecting page data using 63 workers"). Setting
+    // NEXT_BUILD_CPUS in the host's env vars caps it. Unset = Next's default,
+    // so Vercel/local builds are unchanged.
+    ...(process.env.NEXT_BUILD_CPUS ? { cpus: Number(process.env.NEXT_BUILD_CPUS) } : {}),
     serverActions: {
       // Menu-photo/logo/hardcopy-menu-document uploads all go through Server
       // Actions as multipart/form-data (see src/lib/storage.ts) — the 1MB
