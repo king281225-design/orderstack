@@ -405,9 +405,11 @@ export const BLOG_POSTS: BlogPost[] = [
     description:
       "Petpooja too heavy or quote-only for your cafe? Compare the real alternatives, including BhojSetu's flat-price plans, before you decide.",
     publishedAt: "2026-10-06",
+    updatedAt: "2026-11-18",
     intro: [
       "Petpooja is a genuinely capable restaurant POS platform, widely used across India — but it's built around a dedicated POS terminal, a sales-assisted demo-call onboarding, and pricing that isn't published, which is a fit for some restaurants and real friction for others, especially a smaller single-outlet place that just wants to start taking orders.",
       "If you're looking at Petpooja and wondering what else is out there, here's an honest map of the actual alternatives, not just a list of names.",
+      "This page is the wide view of the field. If you only want a line-by-line comparison of BhojSetu and Petpooja, our dedicated comparison page covers that directly.",
     ],
     sections: [
       {
@@ -434,6 +436,32 @@ export const BLOG_POSTS: BlogPost[] = [
           "If your restaurant's actual pain point is just \"I need a proper GST invoice, not a full POS project,\" myBillBook's restaurant mode covers GST-compliant billing, basic inventory alerts, and a QR menu — lighter-weight than a full platform, closer to billing software with a restaurant layer than a ground-up restaurant system.",
         ],
       },
+      {
+        heading: "How to choose between them",
+        paragraphs: [
+          "Rather than comparing feature lists line by line, start from what actually hurts today. The right alternative depends on which of these is closest to your situation:",
+        ],
+        list: [
+          "You want to see real pricing before talking to anyone: favour a platform that publishes its plans openly",
+          "You do not want to buy a billing terminal: look for browser-based software that runs on phones you already own",
+          "You mainly want customers to order directly from a link or table QR code: choose a platform built around ordering, not only billing",
+          "You run several outlets or need payroll and vendor management: you are looking at an enterprise-tier platform, not a lighter alternative",
+          "You only need clean GST invoices: a billing-first tool may be all you need",
+        ],
+      },
+      {
+        heading: "Before you switch: a short checklist",
+        paragraphs: [
+          "Moving off any restaurant system is mostly about not losing information on the way out. Before you cancel, do these:",
+        ],
+        list: [
+          "Export your menu, including item names, categories, and prices, so you can rebuild it in the new tool",
+          "Download your past invoices and sales reports for your own accounting records",
+          "Check your current agreement for any notice period or lock-in",
+          "Run the new system alongside the old one for a few days before you switch fully",
+          "Test one complete order end to end: customer order, kitchen ticket, bill, and payment",
+        ],
+      },
     ],
     faqs: [
       {
@@ -447,6 +475,10 @@ export const BLOG_POSTS: BlogPost[] = [
       {
         q: "Can I switch from Petpooja without losing my menu?",
         a: "Yes — rebuild your menu by hand, by uploading a photo of your existing paper or printed menu, or with AI-assisted import that reads items in automatically for you to review before saving.",
+      },
+      {
+        q: "Which Petpooja alternative is best for a single small cafe?",
+        a: "For a single outlet that wants to start taking orders quickly without hardware, a browser-based platform with published pricing is usually the lightest fit. The right choice still depends on whether your main need is direct customer ordering, billing, or back-office depth, so use the checklist above rather than a ranked list.",
       },
     ],
   },
@@ -612,6 +644,7 @@ export const BLOG_POSTS: BlogPost[] = [
     description:
       "What a KOT is, why verbal orders fail in a busy kitchen, and what to look for in digital KOT: station routing, timestamps, print or screen.",
     publishedAt: "2026-10-07",
+    updatedAt: "2026-11-18",
     intro: [
       "\"KOT\" shows up on every restaurant software feature list, but it's worth being precise about what it actually is and why it matters, rather than treating it as a checkbox. A Kitchen Order Ticket is the single source of truth between the front of house and the kitchen for exactly what was ordered — and the gap between a restaurant that has one and a restaurant that doesn't shows up fastest on a busy night, not a quiet one.",
     ],
@@ -650,6 +683,51 @@ export const BLOG_POSTS: BlogPost[] = [
         ],
       },
       {
+        heading: "What a good KOT contains",
+        paragraphs: [
+          "A KOT does one job: tell the kitchen exactly what to make, for whom, and when it was ordered. Anything that does not serve that job is clutter on a small slip. A well-designed ticket usually carries:",
+        ],
+        list: [
+          "A ticket or order number the kitchen can call out",
+          "The table number for dine-in, or the order type (takeaway or delivery) so it is plated and packed correctly",
+          "The time the order was placed, so the kitchen can see what has been waiting longest",
+          "Each item with its quantity, written clearly enough to read at a glance",
+          "Customer notes and modifications such as \"no onion\" or \"extra spicy\", placed directly under the item they belong to",
+          "The kitchen station the item is for, if you run more than one",
+        ],
+      },
+      {
+        heading: "KOT is not the bill",
+        paragraphs: [
+          "A common point of confusion: the KOT and the customer's bill are two different documents. The KOT goes to the kitchen and does not need prices; its job is production. The bill or invoice goes to the customer and carries prices, GST, and the total; its job is payment and record-keeping. A system that mixes the two, or only produces a bill, leaves the kitchen working from a document that was never designed for it.",
+        ],
+      },
+      {
+        heading: "KOT and QR table ordering",
+        paragraphs: [
+          "When a guest orders from their own phone by scanning a table QR code, there is no waiter writing the order down, which removes the most common source of KOT errors: transcription. The order the guest placed is the order the kitchen receives, with the table number already attached. The remaining weak point is whatever happens after the ticket prints, which is why timestamps and clear station routing matter more, not less, once orders arrive without a waiter in the loop.",
+        ],
+      },
+      {
+        heading: "Common KOT mistakes",
+        paragraphs: [
+          "Most KOT problems are about process, not software. The ones that come up again and again:",
+        ],
+        list: [
+          "One giant ticket for every station, so each cook hunts for their own items",
+          "No timestamp, so nobody knows which order has been waiting longest",
+          "A printer placed far from the station, so tickets pile up unseen",
+          "No clear rule for what happens when an order changes or is cancelled after the ticket has gone out",
+          "Printing tickets nobody reads, instead of agreeing on one place the kitchen looks first",
+        ],
+      },
+      {
+        heading: "Rolling out KOT in a week",
+        paragraphs: [
+          "You do not need a long project. Write down your stations and which menu items belong to each, decide whether each station gets a printer or a screen, and run one normal service with the new tickets alongside your old way before you switch fully. Ask the kitchen what was unclear on the first day; their answers will tell you whether your station split and ticket layout need adjusting.",
+        ],
+      },
+      {
         heading: "How this works on BhojSetu",
         paragraphs: [
           "Every order — dine-in (including QR table orders), takeaway, delivery, and manually entered counter bills — generates a KOT automatically, routed by kitchen station if stations are set up, with both a live on-screen kitchen board and 80mm thermal print support per station or for the whole order. It's included at every plan tier, not held back as an add-on.",
@@ -669,6 +747,18 @@ export const BLOG_POSTS: BlogPost[] = [
         q: "Does a manually entered counter order (not through the online menu) still generate a KOT?",
         a: "It should — a walk-in counter sale is still a real kitchen order. On BhojSetu, manual bills created from the dashboard generate a KOT the same way an online order does, including station routing when the line items are picked from the existing menu.",
       },
+      {
+        q: "What is the difference between a KOT and a BOT?",
+        a: "A KOT is the Kitchen Order Ticket for food. A BOT, or Bar Order Ticket, is the same idea for drinks, sent to the bar. In a system that routes tickets by station, a bar can simply be one of your stations, so drinks and food from the same order arrive as separate tickets.",
+      },
+      {
+        q: "Is a KOT the same as a bill?",
+        a: "No. A KOT goes to the kitchen to tell them what to make and does not need prices. The bill goes to the customer with prices, tax, and the total. They are generated from the same order but serve different people.",
+      },
+      {
+        q: "Does a small cafe really need KOT?",
+        a: "If one person takes orders and the same person cooks, a KOT adds little. It starts to earn its place once there are two or more people between the order and the plate, or once the kitchen gets busy enough that verbal relays drop items.",
+      },
     ],
   },
   {
@@ -677,6 +767,7 @@ export const BLOG_POSTS: BlogPost[] = [
     description:
       "Why notebook stock tracking fails, what a small restaurant needs from inventory software, and how low-stock alerts and auto-deduction work.",
     publishedAt: "2026-10-07",
+    updatedAt: "2026-11-18",
     intro: [
       "Inventory management sounds like a bigger, more industrial problem than most small restaurants think they have — which is exactly why so many run it on a notebook, a WhatsApp message to the supplier when something looks low, or pure memory. That works until the day it doesn't: a sold-out item gets ordered anyway, or a popular dish quietly stops being offered because nobody noticed stock was fine until it very suddenly wasn't.",
     ],
@@ -694,6 +785,18 @@ export const BLOG_POSTS: BlogPost[] = [
         ],
       },
       {
+        heading: "Start small: what to track first",
+        paragraphs: [
+          "The fastest way to give up on inventory is to try to count everything on day one. A restaurant stockroom has hundreds of small things; the handful that actually cause trouble is much smaller. Start with the items where a miscount hurts most, and add the rest only once the first batch is running smoothly.",
+        ],
+        list: [
+          "Items that sell out most often — the ones where you already say \"sorry, finished\" to customers",
+          "Expensive or high-volume items, where a few wasted portions a week add up to real money",
+          "Perishables with a short shelf life, such as paneer, dairy, bread, and fresh produce",
+          "Bought-in finished goods you resell as-is, like packaged drinks, desserts, and bakery items",
+        ],
+      },
+      {
         heading: "The core mechanic: selling something should move its stock number",
         paragraphs: [
           "This is the part that separates real inventory tracking from a static count somebody updates manually once a week. Every sale — whether it's a customer's online order, a QR table order, or a walk-in counter bill — should reduce the relevant stock count immediately, in the same transaction as the sale itself, not as a separate manual step someone has to remember to do later.",
@@ -705,6 +808,26 @@ export const BLOG_POSTS: BlogPost[] = [
         paragraphs: [
           "A stock count that only gets checked when someone thinks to look at it is informational at best. The actual value shows up when the system proactively flags an item once it crosses a threshold the owner sets — \"warn me when paneer tikka is down to 5 servings\" — so restocking happens before a customer's order fails, not after.",
           "Some setups go a step further and automatically hide or mark an item unavailable once it hits zero, so it can't be ordered at all until restocked. That's a real tradeoff worth thinking about deliberately rather than defaulting into: it guarantees no customer orders something you can't make, but it also means a stock-count mistake can wrongly hide something you actually have — which is why it's usually worth making this an optional setting, not forced behavior.",
+        ],
+      },
+      {
+        heading: "Setting a low-stock level that actually helps",
+        paragraphs: [
+          "A low-stock alert is only useful if it fires early enough to act on. A simple rule of thumb: set the threshold to the number you sell on an average day, multiplied by the number of days your supplier takes to deliver, plus a small buffer for a busy day.",
+          "For example, if you sell about 12 portions of an item a day and your supplier takes two days to deliver, a threshold of around 30 gives you the two days of cover plus a cushion. Too low and the alert arrives after you have already run out; too high and it fires constantly until everyone ignores it. Revisit the number after a few weeks of real sales.",
+        ],
+      },
+      {
+        heading: "The weekly count: where the system meets the shelf",
+        paragraphs: [
+          "Even automatic tracking drifts over time — spillage, over-portioning, a staff meal, a delivery received short. A quick physical count once a week, at your slowest hour, catches that drift while it is still small. Compare what is on the shelf with what the system says, and correct the difference.",
+          "The useful habit is to record wastage and corrections as their own entries rather than quietly overwriting the number. A running tally of what was spoiled, spilled, or adjusted shows you which items leak the most, and that is where the savings usually are.",
+        ],
+      },
+      {
+        heading: "Receiving stock without introducing errors",
+        paragraphs: [
+          "Most inventory mistakes enter at the moment goods arrive, not when they are sold. Check each delivery against the supplier bill before it goes into the stockroom, record what was actually received (not what was ordered), and store new stock behind the old so the oldest gets used first. Entering a bill line by line by hand is slow enough that people skip it, which is why reading the bill from a photo is worth looking for in any tool you evaluate.",
         ],
       },
       {
@@ -722,7 +845,7 @@ export const BLOG_POSTS: BlogPost[] = [
       {
         heading: "How this works on BhojSetu",
         paragraphs: [
-          "Every sellable item can have its own tracked stock count, with a low-stock threshold that triggers a dashboard alert (and an email to the owner, once email is configured). Stock deducts automatically and in the same transaction as the sale — for online orders, QR table orders, and manually entered counter bills alike — and cancelling an order restores the stock it had deducted. An optional setting auto-hides an item once it hits zero stock, off by default so it's a deliberate choice, not a surprise. Restocking (including a photo-scan of a real supplier bill, read automatically) is covered in the dashboard's Inventory section, included at every plan tier.",
+          "Every sellable item can have its own tracked stock count, with a low-stock threshold that triggers a dashboard alert (and an email to the owner, once email is configured). Stock deducts automatically and in the same transaction as the sale — for online orders, QR table orders, and manually entered counter bills alike — and cancelling an order restores the stock it had deducted. An optional setting auto-hides an item once it hits zero stock, off by default so it's a deliberate choice, not a surprise. Each product can start with an opening stock quantity, wastage and manual corrections are logged as separate entries in a stock history, and a CSV import loads an existing product list in bulk. For restocking, you can photograph a supplier bill (up to three pages): it is read automatically, each line is matched to an existing product or set up as a new one, and nothing changes stock until you review and confirm it — a confirmed purchase can be undone for ten minutes. All of this sits in the dashboard's Inventory section, included at every plan tier.",
         ],
       },
     ],
@@ -738,6 +861,18 @@ export const BLOG_POSTS: BlogPost[] = [
       {
         q: "Can I track ingredient-level stock, or only finished menu items?",
         a: "BhojSetu tracks stock directly on sellable items/products (including raw-material-style products bought and sold by the unit, like a bakery ingredient), rather than a separate recipe-based ingredient-deduction layer — selling a product deducts its own stock directly, which is simpler to reason about for most small restaurants than maintaining a recipe for every dish.",
+      },
+      {
+        q: "How often should a small restaurant count its stock?",
+        a: "A light count of your top-selling and most perishable items once a week is enough for most small restaurants, plus a fuller count once a month. Counting at your slowest hour keeps it quick and avoids sales happening mid-count.",
+      },
+      {
+        q: "How do I choose a low-stock level for each item?",
+        a: "Multiply your average daily sales of the item by the number of days your supplier takes to deliver, then add a small buffer for a busy day. Adjust it after a few weeks based on how often you actually ran short.",
+      },
+      {
+        q: "Can I load my existing stock list in bulk instead of typing every item?",
+        a: "On BhojSetu, yes. Products can be imported from a CSV file, and each product can be given an opening stock quantity when it is added, so you do not have to start from zero.",
       },
     ],
   },

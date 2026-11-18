@@ -23,7 +23,7 @@ const FEATURES: { Icon: ComponentType<{ className?: string }>; title: string; de
   {
     Icon: BoxesIcon,
     title: "Inventory & stock alerts",
-    description: "Track ingredients, auto-deduct stock as orders come in, and get low-stock alerts — in every plan.",
+    description: "Track stock on every item, auto-deduct it as orders come in, and get low-stock alerts — in every plan.",
   },
   {
     Icon: TicketIcon,
