@@ -5,6 +5,8 @@ import { BLOG_POSTS, getBlogPost } from "@/lib/blog/posts";
 import { JsonLd } from "@/components/seo/json-ld";
 import { FaqAccordion } from "@/components/shared/faq-accordion";
 import { SITE_URL, SITE_NAME } from "@/lib/site";
+import { renderRichText, createLinkBudget } from "@/components/blog/rich-text";
+import { RELATED_POSTS } from "@/lib/blog/links";
 
 export function generateStaticParams() {
   return BLOG_POSTS.map((post) => ({ slug: post.slug }));
@@ -36,6 +38,7 @@ export async function generateMetadata({
       description: post.description,
       url,
       publishedTime: post.publishedAt,
+      modifiedTime: post.updatedAt ?? post.publishedAt,
     },
     twitter: {
       card: "summary",
@@ -61,7 +64,7 @@ export default async function BlogPostPage({
     headline: post.title,
     description: post.description,
     datePublished: post.publishedAt,
-    dateModified: post.publishedAt,
+    dateModified: post.updatedAt ?? post.publishedAt,
     mainEntityOfPage: url,
     author: { "@type": "Organization", name: SITE_NAME },
     publisher: { "@type": "Organization", name: SITE_NAME, logo: { "@type": "ImageObject", url: `${SITE_URL}/brand/front-page-logo.png` } },
@@ -78,14 +81,47 @@ export default async function BlogPostPage({
 
   const isHindi = post.lang === "hi";
 
+  // Breadcrumbs: Home > Blog > this post (rich-result eligible + clearer site structure).
+  const breadcrumbJsonLd = {
+    "@context": "https://schema.org",
+    "@type": "BreadcrumbList",
+    itemListElement: [
+      { "@type": "ListItem", position: 1, name: SITE_NAME, item: SITE_URL },
+      { "@type": "ListItem", position: 2, name: "Blog", item: `${SITE_URL}/blog` },
+      { "@type": "ListItem", position: 3, name: post.title, item: url },
+    ],
+  };
+
+  // Contextual internal links are English-only: the anchor phrases are English.
+  const budget = createLinkBudget();
+  const linkEnabled = !isHindi;
+
+  const relatedSlugs = RELATED_POSTS[slug] ?? [];
+  const related = relatedSlugs
+    .map((s) => BLOG_POSTS.find((p) => p.slug === s))
+    .filter((p): p is NonNullable<typeof p> => p !== undefined && p.slug !== slug);
+
   return (
     <article className="mx-auto max-w-3xl px-4 py-16" lang={post.lang ?? "en"}>
       <JsonLd data={articleJsonLd} />
       <JsonLd data={faqJsonLd} />
+      <JsonLd data={breadcrumbJsonLd} />
 
-      <Link href="/blog" className="text-sm text-indigo-600 hover:underline dark:text-indigo-400">
-        {isHindi ? "← सभी पोस्ट" : "← All posts"}
-      </Link>
+      <nav aria-label="Breadcrumb" className="text-sm text-gray-500">
+        <ol className="flex flex-wrap items-center gap-1">
+          <li>
+            <Link href="/" className="hover:underline">
+              {isHindi ? "होम" : "Home"}
+            </Link>
+          </li>
+          <li aria-hidden="true">/</li>
+          <li>
+            <Link href="/blog" className="hover:underline">
+              {isHindi ? "ब्लॉग" : "Blog"}
+            </Link>
+          </li>
+        </ol>
+      </nav>
 
       <p className="mt-4 text-xs text-gray-500">
         {new Date(post.publishedAt).toLocaleDateString(isHindi ? "hi-IN" : "en-IN", {
@@ -98,7 +134,9 @@ export default async function BlogPostPage({
 
       <div className="mt-6 space-y-4 text-gray-700 dark:text-gray-300">
         {post.intro.map((p, i) => (
-          <p key={i}>{p}</p>
+          <p key={i}>
+            {renderRichText(p, slug, budget, linkEnabled)}
+          </p>
         ))}
       </div>
 
@@ -107,13 +145,17 @@ export default async function BlogPostPage({
           <h2 className="text-xl font-semibold text-gray-900 dark:text-white">{section.heading}</h2>
           <div className="mt-3 space-y-4 text-gray-700 dark:text-gray-300">
             {section.paragraphs.map((p, i) => (
-              <p key={i}>{p}</p>
+              <p key={i}>
+                {renderRichText(p, slug, budget, linkEnabled)}
+              </p>
             ))}
           </div>
           {section.list && (
             <ul className="mt-4 list-disc space-y-2 pl-5 text-gray-700 dark:text-gray-300">
               {section.list.map((item, i) => (
-                <li key={i}>{item}</li>
+                <li key={i}>
+                  {renderRichText(item, slug, budget, linkEnabled)}
+                </li>
               ))}
             </ul>
           )}
@@ -127,6 +169,27 @@ export default async function BlogPostPage({
           </h2>
           <FaqAccordion faqs={post.faqs} columns={2} />
         </section>
+      )}
+
+      {related.length > 0 && (
+        <aside className="mt-12" aria-label={isHindi ? "और पढ़ें" : "Keep reading"}>
+          <h2 className="text-lg font-semibold text-gray-900 dark:text-white">
+            {isHindi ? "और पढ़ें" : "Keep reading"}
+          </h2>
+          <ul className="mt-3 space-y-3">
+            {related.map((r) => (
+              <li key={r.slug}>
+                <Link
+                  href={`/blog/${r.slug}`}
+                  className="font-medium text-indigo-600 hover:underline dark:text-indigo-400"
+                >
+                  {r.title}
+                </Link>
+                <p className="mt-0.5 text-sm text-gray-600 dark:text-gray-400">{r.description}</p>
+              </li>
+            ))}
+          </ul>
+        </aside>
       )}
 
       <div className="mt-12 rounded-xl border border-gray-200 bg-indigo-50 p-6 text-center dark:border-gray-700 dark:bg-indigo-500/10">
