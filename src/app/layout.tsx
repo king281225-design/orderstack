@@ -3,7 +3,7 @@ import { Geist, Geist_Mono } from "next/font/google";
 import { ThemeInitScript } from "@/components/theme/theme-init-script";
 import { JsonLd } from "@/components/seo/json-ld";
 import { GoogleAnalytics } from "@/components/analytics/google-analytics";
-import { SITE_URL, SITE_NAME } from "@/lib/site";
+import { SITE_URL, SITE_NAME, ORG_JSON_LD_ID } from "@/lib/site";
 import { WHATSAPP_URL, PHONE_TEL, BUSINESS_NAME, BUSINESS_FOUNDER, BUSINESS_EMAIL, BUSINESS_ADDRESS } from "@/lib/contact";
 import "./globals.css";
 
@@ -41,11 +41,6 @@ export const metadata: Metadata = {
     images: ["/brand/front-page-logo.png"],
   },
 };
-
-// Exported so other pages (e.g. the homepage's SoftwareApplication JSON-LD)
-// can reference this exact entity as `publisher: { "@id": ORG_JSON_LD_ID }`
-// instead of repeating the Organization's fields inline.
-export const ORG_JSON_LD_ID = `${SITE_URL}/#org`;
 
 // The legal operating entity is Rajat Digital Agency; BhojSetu is its
 // product/brand name — kept distinct via `brand` (per the visibility audit's

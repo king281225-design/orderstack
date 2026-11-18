@@ -9,8 +9,7 @@ import { PublicPricingTable } from "@/components/marketing/public-pricing-table"
 import { TrustBadges } from "@/components/marketing/trust-badges";
 import { TestimonialsSection, TESTIMONIALS } from "@/components/marketing/testimonials-section";
 import { JsonLd } from "@/components/seo/json-ld";
-import { ORG_JSON_LD_ID } from "@/app/layout";
-import { SITE_URL, SITE_NAME } from "@/lib/site";
+import { SITE_URL, SITE_NAME, ORG_JSON_LD_ID } from "@/lib/site";
 import { PLAN_DEFINITIONS, PLAN_TIERS } from "@/lib/plans";
 
 // The homepage previously had no metadata of its own, silently inheriting
