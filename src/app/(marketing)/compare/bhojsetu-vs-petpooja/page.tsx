@@ -27,7 +27,7 @@ const ROWS: { label: string; bhojsetu: string; petpooja: string }[] = [
   { label: "Per-order commission", bhojsetu: "None — flat monthly fee regardless of order volume", petpooja: "None on its own billing, though third-party aggregator integrations are separate" },
   { label: "Core focus", bhojsetu: "Direct customer ordering — public menu link, QR table ordering, UPI/COD checkout, with inventory and KOT built in", petpooja: "In-house POS/billing — KOT, table management, inventory, staff, and reporting" },
   { label: "Online ordering / QR menu", bhojsetu: "Built in, the product's main focus", petpooja: "Available as part of the broader POS suite" },
-  { label: "Inventory & KOT", bhojsetu: "Included in every plan — ingredient stock with recipe-based auto-deduction and low-stock alerts, plus KOT tickets routed by kitchen station", petpooja: "Included — KOT, raw-material tracking, low-stock alerts" },
+  { label: "Inventory & KOT", bhojsetu: "Included in every plan — stock tracked on each sellable item and deducted automatically on every sale, low-stock alerts, supplier-bill photo scan, plus KOT tickets routed by kitchen station", petpooja: "Included — KOT, raw-material tracking, low-stock alerts" },
   { label: "Payroll & attendance", bhojsetu: "Not offered — out of scope", petpooja: "Included — staff attendance and management" },
   { label: "Best fit", bhojsetu: "Cafes and restaurants that want a direct ordering channel fast, without hardware or a sales call", petpooja: "Larger or multi-outlet restaurants that need a full in-house POS, inventory, and staff-management system" },
 ];
@@ -39,7 +39,7 @@ const FAQS = [
   },
   {
     q: "Does BhojSetu have inventory management and KOT like Petpooja?",
-    a: "Yes, at the core level, in every plan: track raw-material stock, link ingredients to menu items through recipes so stock deducts automatically as orders come in, get low-stock alerts, and send Kitchen Order Tickets to each kitchen station (screen or 80mm print). BhojSetu is still not a full restaurant ERP — there is no staff payroll/attendance, purchase-order management, or multi-outlet stock transfer. If you need those, Petpooja's broader suite covers them.",
+    a: "Yes, at the core level, in every plan: track stock on each sellable item, have it deduct automatically as orders and counter bills come in, get low-stock alerts, restock from a photo of a supplier bill, and send Kitchen Order Tickets to each kitchen station (screen or 80mm print). Stock is tracked per item rather than through ingredient-level recipes. BhojSetu is still not a full restaurant ERP — there is no staff payroll/attendance, purchase-order management, or multi-outlet stock transfer. If you need those, Petpooja's broader suite covers them.",
   },
   {
     q: "Do I need to buy a POS terminal to use BhojSetu?",
@@ -114,7 +114,11 @@ export default function BhojSetuVsPetpoojaPage() {
         <p className="mt-2 text-xs text-gray-500">
           Petpooja doesn&apos;t publish pricing or a full public feature list, so the details above reflect what&apos;s
           publicly documented on their own site and independent reviews as of September 2026 — confirm current
-          specifics directly with Petpooja before deciding.
+          specifics directly with Petpooja before deciding. Still comparing options? See our wider guide to{" "}
+          <Link href="/blog/petpooja-alternatives" className="text-indigo-600 underline dark:text-indigo-400">
+            Petpooja alternatives
+          </Link>
+          .
         </p>
       </div>
 
