@@ -22,6 +22,8 @@ export interface BlogPost {
   title: string;
   description: string;
   publishedAt: string; // ISO date, also used as the display date
+  /** ISO date of the last substantive edit; feeds dateModified. Falls back to publishedAt. */
+  updatedAt?: string;
   /** BCP 47 language tag for this post's body copy. Defaults to "en" when omitted — only set for a non-English post (e.g. "hi"), so the page can set a correct lang attribute on its content for accessibility/SEO instead of inheriting the root layout's hardcoded lang="en". */
   lang?: string;
   intro: string[];
@@ -32,9 +34,9 @@ export interface BlogPost {
 export const BLOG_POSTS: BlogPost[] = [
   {
     slug: "reduce-zomato-swiggy-commission-restaurant",
-    title: "How to Reduce Zomato & Swiggy Commission for Your Restaurant",
+    title: "How to Reduce Zomato & Swiggy Commission",
     description:
-      "Aggregator commission eats into every order. Here's what actually drives that cost, and practical ways Indian restaurants are building a direct, commission-free ordering channel alongside Zomato and Swiggy.",
+      "Zomato and Swiggy commission eats every order. See what drives the cost and how Indian restaurants build a direct, commission-free ordering channel.",
     publishedAt: "2026-09-18",
     intro: [
       "If you run a restaurant in India, you already know the number that keeps showing up smaller than it should on your Zomato or Swiggy payout: your own order total, minus commission, minus payment processing, minus whatever you spent on ads to get listed higher that week.",
@@ -101,9 +103,9 @@ export const BLOG_POSTS: BlogPost[] = [
   },
   {
     slug: "qr-code-table-ordering-guide",
-    title: "QR Code Table Ordering for Restaurants: The Complete Guide",
+    title: "QR Code Table Ordering for Restaurants: Full Guide",
     description:
-      "What QR code table ordering actually is, how it works end to end, and what a restaurant needs to set it up — from a customer scanning a code to the kitchen seeing the order.",
+      "How QR code table ordering works end to end, what a restaurant needs to set it up, and how orders reach the kitchen. Free 7-day trial.",
     publishedAt: "2026-09-18",
     intro: [
       "Walk into most new restaurants and cafes today and you'll see it on the table before the waiter even gets to you: a small printed square, sometimes with \"Scan to order\" underneath. That's QR code table ordering, and it's gone from a pandemic-era workaround to a standard part of how dine-in works.",
@@ -186,9 +188,9 @@ export const BLOG_POSTS: BlogPost[] = [
   },
   {
     slug: "restaurant-billing-ordering-software-india-buyers-guide",
-    title: "Restaurant Billing & Ordering Software in India: A Practical Buyer's Guide (2026)",
+    title: "Restaurant Billing Software in India: Buyer's Guide",
     description:
-      "What actually matters when comparing restaurant billing and ordering software in India — pricing models, GST invoicing, KOT, inventory, and a checklist to run before you sign up for anything.",
+      "What to compare in restaurant billing and ordering software in India: pricing, GST invoicing, KOT, inventory, plus a pre-signup checklist.",
     publishedAt: "2026-09-28",
     intro: [
       "Search for \"restaurant software\" or \"restaurant billing software India\" and you'll get a long list of vendors, most of them claiming to be the best fit for every restaurant everywhere. That's not a useful way to compare anything — a 20-table dine-in restaurant, a delivery-only cloud kitchen, and a bakery counter need genuinely different things.",
@@ -282,9 +284,9 @@ export const BLOG_POSTS: BlogPost[] = [
   },
   {
     slug: "qr-table-ordering-delhi",
-    title: "QR Table Ordering for Cafes and Restaurants in Delhi",
+    title: "QR Table Ordering for Cafes & Restaurants in Delhi",
     description:
-      "How Delhi restaurants and cafes are putting a QR code on every table instead of printed menus and order pads — what it actually changes for a dine-in customer and for the kitchen, with real Delhi restaurants already running it.",
+      "How Delhi cafes and restaurants replace printed menus and order pads with a QR code on every table, and what changes for guests and kitchen.",
     publishedAt: "2026-10-06",
     intro: [
       "Walk into almost any newer cafe in Delhi now and the menu is a code on the table, not a laminated card. For the restaurant, the appeal isn't the novelty — it's that a QR code replaces three things at once: the printed menu (which goes out of date the moment a price changes), the waiter taking down a dine-in order by hand, and the walk between the table and the billing counter.",
@@ -333,9 +335,9 @@ export const BLOG_POSTS: BlogPost[] = [
   },
   {
     slug: "best-restaurant-billing-software-india",
-    title: "Best Restaurant Billing Software for Small Restaurants in India (2026)",
+    title: "Best Restaurant Billing Software in India (2026)",
     description:
-      "An honest roundup of restaurant billing and ordering software in India — Petpooja, Posist, DineOpen, myBillBook, QR-only tools, and where BhojSetu fits — with a price table, not just marketing copy.",
+      "Honest roundup of Petpooja, Posist, DineOpen, myBillBook and BhojSetu for small restaurants in India, with a price comparison table.",
     publishedAt: "2026-10-06",
     intro: [
       "Most \"best restaurant software\" roundups are written by the vendor they end up recommending. This one is too — BhojSetu is included, and we're not pretending otherwise — but it's laid out so you can actually tell who else is worth looking at and why, not just take our word for it.",
@@ -399,9 +401,9 @@ export const BLOG_POSTS: BlogPost[] = [
   },
   {
     slug: "petpooja-alternatives",
-    title: "Petpooja Alternatives for Small Restaurants and Cafes",
+    title: "Petpooja Alternatives for Small Restaurants (2026)",
     description:
-      "If Petpooja's quote-only enterprise POS feels like more system (and sales process) than your restaurant needs, here's what the actual alternatives look like — including BhojSetu.",
+      "Petpooja too heavy or quote-only for your cafe? Compare the real alternatives, including BhojSetu's flat-price plans, before you decide.",
     publishedAt: "2026-10-06",
     intro: [
       "Petpooja is a genuinely capable restaurant POS platform, widely used across India — but it's built around a dedicated POS terminal, a sales-assisted demo-call onboarding, and pricing that isn't published, which is a fit for some restaurants and real friction for others, especially a smaller single-outlet place that just wants to start taking orders.",
@@ -450,9 +452,9 @@ export const BLOG_POSTS: BlogPost[] = [
   },
   {
     slug: "restaurant-software-cost-india",
-    title: "How Much Does Restaurant Software Cost in India?",
+    title: "Restaurant Software Cost in India: Real Prices",
     description:
-      "Flat subscription, quote-only enterprise pricing, or per-order commission — the three real pricing models behind restaurant software in India, what each actually costs, and what the headline price usually doesn't include.",
+      "Flat subscription, quote-only POS or per-order commission: what each restaurant software pricing model really costs in India.",
     publishedAt: "2026-10-06",
     intro: [
       "\"How much does restaurant software cost\" doesn't have one answer, because the vendors in this market don't price the same way at all. Before comparing any two options on cost, it helps to know which of three pricing models you're actually looking at.",
@@ -606,9 +608,9 @@ export const BLOG_POSTS: BlogPost[] = [
   },
   {
     slug: "kitchen-order-tickets-kot-explained",
-    title: "Kitchen Order Tickets (KOT) Explained: What Every Restaurant Should Know",
+    title: "What Is a KOT? Kitchen Order Ticket Guide",
     description:
-      "What a KOT actually is, why a verbal or handwritten order breaks down once a kitchen gets busy, and what to look for in a digital KOT system — station routing, timestamps, and print vs screen.",
+      "What a KOT is, why verbal orders fail in a busy kitchen, and what to look for in digital KOT: station routing, timestamps, print or screen.",
     publishedAt: "2026-10-07",
     intro: [
       "\"KOT\" shows up on every restaurant software feature list, but it's worth being precise about what it actually is and why it matters, rather than treating it as a checkbox. A Kitchen Order Ticket is the single source of truth between the front of house and the kitchen for exactly what was ordered — and the gap between a restaurant that has one and a restaurant that doesn't shows up fastest on a busy night, not a quiet one.",
@@ -671,9 +673,9 @@ export const BLOG_POSTS: BlogPost[] = [
   },
   {
     slug: "restaurant-inventory-management-guide-india",
-    title: "Restaurant Inventory Management: A Simple Guide for Small Restaurants in India",
+    title: "Restaurant Inventory Management Guide for India",
     description:
-      "Why \"we'll track stock on a notebook\" breaks down, what a restaurant actually needs from inventory software versus a full warehouse system, and how low-stock alerts and recipe-based deduction actually work.",
+      "Why notebook stock tracking fails, what a small restaurant needs from inventory software, and how low-stock alerts and auto-deduction work.",
     publishedAt: "2026-10-07",
     intro: [
       "Inventory management sounds like a bigger, more industrial problem than most small restaurants think they have — which is exactly why so many run it on a notebook, a WhatsApp message to the supplier when something looks low, or pure memory. That works until the day it doesn't: a sold-out item gets ordered anyway, or a popular dish quietly stops being offered because nobody noticed stock was fine until it very suddenly wasn't.",
