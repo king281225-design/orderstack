@@ -6,6 +6,7 @@
     "postinstall": "prisma generate",
     "dev": "next dev",
     "build": "prisma migrate deploy && next build",
+    "build:hostinger": "prisma migrate deploy && next build --webpack",
     "start": "next start",
     "lint": "eslint",
     "db:migrate": "prisma migrate dev",
