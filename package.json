@@ -60,6 +60,6 @@
     "tesseract.js@7.0.0": true
   },
   "overrides": {
-    "mariadb": "3.4.8"
+    "mariadb": "3.5.5"
   }
 }
