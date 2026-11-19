@@ -1,6 +1,8 @@
 import type { ReactNode } from "react";
 import { MarketingFooter } from "@/components/marketing/marketing-footer";
 import { WhatsAppFloatButton } from "@/components/marketing/whatsapp-float-button";
+import { WebMcpTools } from "@/components/marketing/webmcp-tools";
+import { getContact, getOverview, getPricing, searchFaq, PUBLIC_PAGES } from "@/lib/agent-info";
 
 /**
  * Shared chrome for the public marketing pages only (homepage + legal/info
@@ -18,6 +20,14 @@ export default function MarketingLayout({ children }: { children: ReactNode }) {
       <div className="flex-1">{children}</div>
       <MarketingFooter />
       <WhatsAppFloatButton />
+      {/* Registers read-only WebMCP tools for in-browser agents (no-op where unsupported). */}
+      <WebMcpTools
+        overview={getOverview()}
+        pricing={getPricing()}
+        contact={getContact()}
+        faqs={searchFaq()}
+        pages={PUBLIC_PAGES.map(({ key, title, path }) => ({ key, title, path }))}
+      />
     </div>
   );
 }
