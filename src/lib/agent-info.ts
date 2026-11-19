@@ -8,6 +8,7 @@ import {
   PHONE_DISPLAY,
   WHATSAPP_URL,
   SUPPORT_RESPONSE_TARGET,
+  DEMO_STOREFRONT_SLUG,
 } from "@/lib/contact";
 import { HOME_FAQS } from "@/lib/home-faqs";
 import { BLOG_POSTS } from "@/lib/blog/posts";
@@ -113,6 +114,7 @@ export const PUBLIC_PAGES: { key: string; title: string; path: string; descripti
   { key: "home", title: "Home", path: "/", description: "What BhojSetu is and who it's for" },
   { key: "pricing", title: "Pricing", path: "/pricing", description: "Starter, Advanced and Business plans, monthly or annual" },
   { key: "signup", title: "Start a free trial", path: "/signup", description: "Create a restaurant account — 7-day free trial, no card" },
+  { key: "demo", title: "Live demo storefront", path: `/r/${DEMO_STOREFRONT_SLUG}`, description: "A working demo restaurant you can browse and order from" },
   { key: "about", title: "About", path: "/about", description: "Who builds and runs BhojSetu" },
   { key: "contact", title: "Contact", path: "/contact", description: "Phone, WhatsApp, email and address" },
   { key: "blog", title: "Blog", path: "/blog", description: "Guides for Indian restaurant owners" },

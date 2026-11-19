@@ -56,7 +56,13 @@ export const BUSINESS_ADDRESS_DISPLAY = `${BUSINESS_ADDRESS.streetAddress}, ${BU
 // apart and each got created by hand instead). Changed to "bhojsetu-demo"
 // on 2026-10-07 to match the tenant that's actually live in production —
 // "demo-restaurant" (the old value) only ever existed locally.
-export const DEMO_STOREFRONT_SLUG = "bhojsetu-demo";
+//
+// Changed again 2026-11-19 to "bhojsetu-demo-2": checking production showed
+// `/r/bhojsetu-demo` returned 404 (the homepage's "live demo" link was dead) —
+// the demo tenant that actually exists in the production database is
+// "bhojsetu-demo-2" ("Bhojsetu Demo Kitchen"). If the demo tenant is ever
+// renamed, change it HERE and in the database together.
+export const DEMO_STOREFRONT_SLUG = "bhojsetu-demo-2";
 
 // What the Help page promises customers about support turnaround. One place to
 // change if the team's real response time changes.
