@@ -5,6 +5,8 @@
  * mechanism. See docs/analytics.md for the full event list and params.
  */
 
+import { isDashboardPath, isInternalTrafficCookieSet } from "./internal-traffic";
+
 declare global {
   interface Window {
     gtag?: (...args: unknown[]) => void;
@@ -29,11 +31,20 @@ export type AnalyticsEventParams = Record<string, string | number | boolean>;
  * tracked link/button must always behave normally even if gtag hasn't
  * loaded yet (ad blockers, very early paint, GA disabled in this
  * environment). Never pass personal data (names/phones/emails) in params.
+ *
+ * Marketing conversion events (trial CTAs, demo clicks, etc.) never fire on
+ * /dashboard or /super-admin routes at all — those components don't render
+ * there anyway, but this is a second, explicit guard. Separately, when the
+ * owner's own `bhojsetu_internal` cookie is set (see InternalTrafficFlag),
+ * a `traffic_type: "internal"` param is added rather than dropping the
+ * event, so GA4's own Internal Traffic data filter can exclude it.
  */
 export function trackEvent(name: AnalyticsEventName, params: AnalyticsEventParams = {}): void {
   try {
     if (typeof window === "undefined" || typeof window.gtag !== "function") return;
-    window.gtag("event", name, params);
+    if (isDashboardPath(window.location.pathname)) return;
+    const payload = isInternalTrafficCookieSet() ? { ...params, traffic_type: "internal" } : params;
+    window.gtag("event", name, payload);
   } catch {
     // analytics must never break the page
   }
