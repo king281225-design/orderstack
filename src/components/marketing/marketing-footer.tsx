@@ -7,7 +7,6 @@ const COMPANY_LINKS = [
   { href: "/about", label: "About Us" },
   { href: "/contact", label: "Contact Us" },
   { href: "/blog", label: "Blog" },
-  { href: "/compare/bhojsetu-vs-petpooja", label: "vs Petpooja" },
 ];
 
 const LEGAL_LINKS = [
@@ -16,13 +15,26 @@ const LEGAL_LINKS = [
   { href: "/refund", label: "Refund / Cancellation Policy" },
 ];
 
+// Direct, sitewide links (every marketing page renders this footer) to the
+// guides that already rank/get impressions for "kitchen order ticket",
+// "restaurant inventory management", and "petpooja alternative" — these
+// previously needed a visitor to go through /blog as an intermediate hop.
+// Also the only footer link to /compare/bhojsetu-vs-dineopen, which was in
+// the sitemap but had zero internal links pointing at it anywhere.
+const RESOURCE_LINKS = [
+  { href: "/blog/kitchen-order-tickets-kot-explained", label: "What Is a KOT?" },
+  { href: "/blog/restaurant-inventory-management-guide-india", label: "Inventory Management Guide" },
+  { href: "/compare/bhojsetu-vs-petpooja", label: "vs Petpooja" },
+  { href: "/compare/bhojsetu-vs-dineopen", label: "vs DineOpen" },
+];
+
 /** The brief's "footer with legal pages" ask — see src/app/(marketing)/layout.tsx. */
 export function MarketingFooter() {
   const year = new Date().getFullYear();
 
   return (
     <footer className="border-t border-gray-200 bg-white dark:border-white/10 dark:bg-[#1a120c]">
-      <div className="mx-auto grid max-w-5xl gap-8 px-4 py-10 text-sm sm:grid-cols-3">
+      <div className="mx-auto grid max-w-5xl gap-8 px-4 py-10 text-sm sm:grid-cols-2 lg:grid-cols-4">
         <div>
           <p className="font-semibold text-gray-900 dark:text-white">{BUSINESS_NAME}</p>
           <p className="mt-2 max-w-xs text-gray-500 dark:text-gray-400">
@@ -50,6 +62,19 @@ export function MarketingFooter() {
           <p className="font-semibold text-gray-900 dark:text-white">Company</p>
           <ul className="mt-2 flex flex-col gap-2 text-gray-500 dark:text-gray-400">
             {COMPANY_LINKS.map((link) => (
+              <li key={link.href}>
+                <Link href={link.href} className="hover:text-indigo-600 dark:hover:text-indigo-400">
+                  {link.label}
+                </Link>
+              </li>
+            ))}
+          </ul>
+        </div>
+
+        <div>
+          <p className="font-semibold text-gray-900 dark:text-white">Resources</p>
+          <ul className="mt-2 flex flex-col gap-2 text-gray-500 dark:text-gray-400">
+            {RESOURCE_LINKS.map((link) => (
               <li key={link.href}>
                 <Link href={link.href} className="hover:text-indigo-600 dark:hover:text-indigo-400">
                   {link.label}
