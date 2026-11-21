@@ -48,7 +48,7 @@ export const metadata: Metadata = {
     images: [{ url: "/brand/front-page-logo.png" }],
   },
   twitter: {
-    card: "summary",
+    card: "summary_large_image",
     title: DEFAULT_TITLE,
     description: DEFAULT_DESCRIPTION,
     images: ["/brand/front-page-logo.png"],

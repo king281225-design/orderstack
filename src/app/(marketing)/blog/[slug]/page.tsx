@@ -41,7 +41,7 @@ export async function generateMetadata({
       modifiedTime: post.updatedAt ?? post.publishedAt,
     },
     twitter: {
-      card: "summary",
+      card: "summary_large_image",
       title: post.title,
       description: post.description,
     },

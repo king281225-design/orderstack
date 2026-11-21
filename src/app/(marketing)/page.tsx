@@ -34,6 +34,7 @@ export const metadata: Metadata = {
     url: SITE_URL,
   },
   twitter: {
+    card: "summary_large_image",
     title: HOME_TITLE,
     description: HOME_DESCRIPTION,
   },
