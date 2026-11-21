@@ -8,9 +8,11 @@ import { formatINR } from "@/lib/money";
 import { buildBreadcrumbJsonLd } from "@/lib/seo/breadcrumb";
 
 export const metadata: Metadata = {
-  title: "BhojSetu vs DineOpen",
+  // title.absolute bypasses the root layout's "%s · BhojSetu" template —
+  // without it this rendered as the redundant "BhojSetu vs DineOpen · BhojSetu".
+  title: { absolute: "BhojSetu vs DineOpen: Pricing & Features Compared" },
   description:
-    "How BhojSetu compares to DineOpen for restaurant ordering and billing — a focused direct-ordering platform vs a broader AI-driven restaurant operating system.",
+    "A focused direct-ordering platform vs DineOpen's broader AI operating system — see which fits. Start your 7-day free trial.",
   alternates: { canonical: "/compare/bhojsetu-vs-dineopen" },
   openGraph: {
     type: "website",
@@ -114,6 +116,7 @@ export default function BhojSetuVsDineOpenPage() {
       </div>
 
       <div className="mx-auto mt-10 max-w-3xl overflow-x-auto px-4">
+        <h2 className="mb-4 text-xl font-semibold text-gray-900 dark:text-white">How {SITE_NAME} and DineOpen compare</h2>
         <table className="w-full border-collapse overflow-hidden rounded-lg border border-gray-200 text-sm dark:border-white/10">
           <thead>
             <tr className="bg-gray-50 dark:bg-white/5">
@@ -155,6 +158,8 @@ export default function BhojSetuVsDineOpenPage() {
           <div className="mt-3 flex flex-wrap items-center justify-center gap-3">
             <Link
               href="/signup"
+              data-ga-event="trial_cta_click"
+              data-ga-params='{"location":"compare_dineopen"}'
               className="inline-block rounded-lg bg-indigo-600 px-5 py-2.5 font-medium text-white hover:bg-indigo-700"
             >
               Start 7-day free trial
