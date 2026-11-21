@@ -1,5 +1,7 @@
 import type { Metadata } from "next";
 import { BUSINESS_NAME, BUSINESS_FOUNDER, BUSINESS_ADDRESS_DISPLAY, BUSINESS_EMAIL } from "@/lib/contact";
+import { JsonLd } from "@/components/seo/json-ld";
+import { buildBreadcrumbJsonLd } from "@/lib/seo/breadcrumb";
 
 export const metadata: Metadata = {
   title: "About Us",
@@ -8,9 +10,12 @@ export const metadata: Metadata = {
   alternates: { canonical: "/about" },
 };
 
+const breadcrumbJsonLd = buildBreadcrumbJsonLd([{ name: "About Us", path: "/about" }]);
+
 export default function AboutPage() {
   return (
     <div className="mx-auto max-w-3xl px-4 py-16 text-gray-700 dark:text-gray-300">
+      <JsonLd data={breadcrumbJsonLd} />
       <h1 className="text-2xl font-bold text-gray-900 dark:text-white">About Us</h1>
 
       <p className="mt-6">

@@ -4,6 +4,7 @@ import { PublicPricingTable } from "@/components/marketing/public-pricing-table"
 import { FaqAccordion } from "@/components/shared/faq-accordion";
 import { JsonLd } from "@/components/seo/json-ld";
 import { SITE_URL, SITE_NAME } from "@/lib/site";
+import { buildBreadcrumbJsonLd } from "@/lib/seo/breadcrumb";
 import { PLAN_DEFINITIONS, PLAN_TIERS } from "@/lib/plans";
 
 export const metadata: Metadata = {
@@ -72,11 +73,14 @@ const faqJsonLd = {
   })),
 };
 
+const breadcrumbJsonLd = buildBreadcrumbJsonLd([{ name: "Pricing", path: "/pricing" }]);
+
 export default function PricingPage() {
   return (
     <div className="pb-16">
       <JsonLd data={productJsonLd} />
       <JsonLd data={faqJsonLd} />
+      <JsonLd data={breadcrumbJsonLd} />
 
       <div className="mx-auto max-w-3xl px-4 pt-16 text-center">
         <h1 className="text-2xl font-bold text-gray-900 dark:text-white sm:text-3xl">

@@ -5,6 +5,7 @@ import { FaqAccordion } from "@/components/shared/faq-accordion";
 import { SITE_URL, SITE_NAME } from "@/lib/site";
 import { PLAN_DEFINITIONS } from "@/lib/plans";
 import { formatINR } from "@/lib/money";
+import { buildBreadcrumbJsonLd } from "@/lib/seo/breadcrumb";
 
 export const metadata: Metadata = {
   title: "BhojSetu vs DineOpen",
@@ -83,10 +84,13 @@ const faqJsonLd = {
   })),
 };
 
+const breadcrumbJsonLd = buildBreadcrumbJsonLd([{ name: "BhojSetu vs DineOpen", path: "/compare/bhojsetu-vs-dineopen" }]);
+
 export default function BhojSetuVsDineOpenPage() {
   return (
     <div className="pb-16">
       <JsonLd data={faqJsonLd} />
+      <JsonLd data={breadcrumbJsonLd} />
 
       <div className="mx-auto max-w-3xl px-4 pt-16 text-center">
         <h1 className="text-2xl font-bold text-gray-900 dark:text-white sm:text-3xl">{SITE_NAME} vs DineOpen</h1>

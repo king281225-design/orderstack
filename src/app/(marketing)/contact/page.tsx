@@ -1,6 +1,8 @@
 import type { Metadata } from "next";
 import { WhatsAppIcon } from "@/components/marketing/whatsapp-icon";
 import { BUSINESS_NAME, BUSINESS_EMAIL, PHONE_DISPLAY, PHONE_TEL, WHATSAPP_URL } from "@/lib/contact";
+import { JsonLd } from "@/components/seo/json-ld";
+import { buildBreadcrumbJsonLd } from "@/lib/seo/breadcrumb";
 
 export const metadata: Metadata = {
   title: "Contact Us",
@@ -8,9 +10,12 @@ export const metadata: Metadata = {
   alternates: { canonical: "/contact" },
 };
 
+const breadcrumbJsonLd = buildBreadcrumbJsonLd([{ name: "Contact Us", path: "/contact" }]);
+
 export default function ContactPage() {
   return (
     <div className="mx-auto max-w-3xl px-4 py-16 text-gray-700 dark:text-gray-300">
+      <JsonLd data={breadcrumbJsonLd} />
       <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Contact Us</h1>
 
       <p className="mt-6">

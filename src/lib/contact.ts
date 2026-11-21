@@ -33,6 +33,12 @@ export function buildTenantWhatsAppUrl(phone: string, message?: string): string 
 export const PHONE_DISPLAY = "+91 97178 21824";
 export const PHONE_TEL = "tel:+919717821824";
 
+// The platform's own social accounts (not a restaurant tenant's — those are
+// per-tenant fields on Tenant, set via the branding form). Used in the
+// Organization JSON-LD's sameAs. Confirmed directly by the user, 2026-11-21.
+export const INSTAGRAM_URL = "https://www.instagram.com/bhoj_setu/";
+export const FACEBOOK_URL = "https://www.facebook.com/profile.php?id=61595483454038";
+
 export const BUSINESS_NAME = "Rajat Digital Agency";
 export const BUSINESS_FOUNDER = "Rajat Mirg";
 export const BUSINESS_EMAIL = "bhojsetu@gmail.com";
