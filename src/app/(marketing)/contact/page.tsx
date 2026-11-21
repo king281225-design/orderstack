@@ -23,6 +23,8 @@ export default function ContactPage() {
           href={WHATSAPP_URL}
           target="_blank"
           rel="noopener noreferrer"
+          data-ga-event="whatsapp_demo_click"
+          data-ga-params='{"location":"contact_page"}'
           className="flex w-fit items-center gap-3 rounded-lg border border-gray-200 bg-white px-4 py-3 shadow-sm hover:-translate-y-0.5 hover:shadow-md dark:bg-[#241d17]"
         >
           <WhatsAppIcon className="flex h-9 w-9 items-center justify-center rounded-full" />
@@ -34,6 +36,7 @@ export default function ContactPage() {
 
         <a
           href={PHONE_TEL}
+          data-ga-event="phone_click"
           className="flex w-fit items-center gap-3 rounded-lg border border-gray-200 bg-white px-4 py-3 shadow-sm hover:-translate-y-0.5 hover:shadow-md dark:bg-[#241d17]"
         >
           <span className="flex h-9 w-9 items-center justify-center rounded-full bg-indigo-100 text-indigo-600 dark:bg-indigo-500/20 dark:text-indigo-300">
