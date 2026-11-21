@@ -155,12 +155,16 @@ export function LandingHero() {
 
       {/* Content column — always above the decoration layer */}
       <div ref={logoRef} className="relative z-10">
-        {/* The source image is opaque (its own off-white background baked
-            in, not transparent) — a rounded card with a shadow makes that
-            look like a deliberate framed logo instead of a stray square
-            floating over the page, especially against the dark gradient. */}
-        <div className="animate-hero-logo overflow-hidden rounded-2xl">
-          <BhojSetuFrontPageLogo width={260} />
+        {/* animate-hero-logo carries the float (translateY) + its own
+            ::after drop-shadow (both transform/opacity only — see
+            globals.css) on a non-clipping wrapper; overflow-hidden lives on
+            the inner div instead, purely to round the source image's own
+            opaque off-white background into a framed card. Splitting these
+            two keeps the shadow from being clipped by overflow-hidden. */}
+        <div className="animate-hero-logo relative">
+          <div className="overflow-hidden rounded-2xl">
+            <BhojSetuFrontPageLogo width={260} />
+          </div>
         </div>
       </div>
 

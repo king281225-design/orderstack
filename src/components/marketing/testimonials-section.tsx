@@ -1,3 +1,4 @@
+import Image from "next/image";
 import type { CSSProperties } from "react";
 
 export type Testimonial = {
@@ -9,6 +10,9 @@ export type Testimonial = {
    * plain initials avatar.
    */
   logoUrl: string | null;
+  /** The logo file's real pixel dimensions — next/image requires these. */
+  logoWidth: number;
+  logoHeight: number;
   /** Backdrop behind the logo: "dark" for light-on-dark logos, "light" for dark-on-light ones. */
   logoTone?: "dark" | "light";
 };
@@ -22,6 +26,8 @@ export const TESTIMONIALS: Testimonial[] = [
     location: "Hari Nagar, New Delhi",
     quote: "Your bhojsetu web app is easy to use and prices is very pocket friendly.",
     logoUrl: "/testimonials/urban-bake-house-logo.png",
+    logoWidth: 480,
+    logoHeight: 180,
     logoTone: "dark",
   },
   {
@@ -30,6 +36,8 @@ export const TESTIMONIALS: Testimonial[] = [
     quote:
       "BhojSetu gave our bakery its own beautiful ordering page in no time. Customers browse the menu, order and pay without any fuss, and we finally see every order in one place. Simple to run, honestly priced and a joy to use.",
     logoUrl: "/testimonials/bake-house-by-ms-logo.png",
+    logoWidth: 287,
+    logoHeight: 300,
     logoTone: "light",
   },
 ];
@@ -79,14 +87,20 @@ export function TestimonialsSection({ testimonials }: { testimonials: Testimonia
             {t.logoUrl && (
               // A dark strip keeps light-on-dark logos legible; dark-on-light
               // logos get a warm cream strip instead.
-              // eslint-disable-next-line @next/next/no-img-element -- small static logo asset, not worth next/image config here
-              <img
-                src={t.logoUrl}
-                alt={`${t.name} logo`}
-                className={`h-28 w-full object-contain p-2 ${
+              <div
+                className={`flex h-28 w-full items-center justify-center p-2 ${
                   t.logoTone === "light" ? "bg-white" : "bg-gray-900"
                 }`}
-              />
+              >
+                <Image
+                  src={t.logoUrl}
+                  alt={`${t.name} logo`}
+                  width={t.logoWidth}
+                  height={t.logoHeight}
+                  className="h-full w-auto object-contain"
+                  loading="lazy"
+                />
+              </div>
             )}
             <div className="flex flex-1 flex-col gap-3 p-5 pt-0">
               <p className="text-sm text-gray-700 dark:text-gray-300">&ldquo;{t.quote}&rdquo;</p>
