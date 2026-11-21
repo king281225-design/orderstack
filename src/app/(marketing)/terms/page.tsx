@@ -87,7 +87,7 @@ export default function TermsPage() {
       <Section title="8. Contact">
         <p>
           Questions about these terms — see our{" "}
-          <a href="/contact" className="text-indigo-600 hover:underline dark:text-indigo-400">
+          <a href="/contact" className="text-indigo-800 underline dark:text-indigo-400">
             Contact Us
           </a>{" "}
           page.

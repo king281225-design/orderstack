@@ -7,6 +7,7 @@ import { FaqAccordion } from "@/components/shared/faq-accordion";
 import { SITE_URL, SITE_NAME } from "@/lib/site";
 import { renderRichText, createLinkBudget } from "@/components/blog/rich-text";
 import { RELATED_POSTS } from "@/lib/blog/links";
+import { buildWhatsAppUrl } from "@/lib/contact";
 
 export function generateStaticParams() {
   return BLOG_POSTS.map((post) => ({ slug: post.slug }));
@@ -41,7 +42,7 @@ export async function generateMetadata({
       modifiedTime: post.updatedAt ?? post.publishedAt,
     },
     twitter: {
-      card: "summary",
+      card: "summary_large_image",
       title: post.title,
       description: post.description,
     },
@@ -198,12 +199,26 @@ export default async function BlogPostPage({
             ? "अपने रेस्टोरेंट का अपना डायरेक्ट ऑर्डरिंग चैनल शुरू करें"
             : "Ready to give your restaurant its own direct ordering channel?"}
         </p>
-        <Link
-          href="/signup"
-          className="mt-3 inline-block rounded-lg bg-indigo-600 px-5 py-2.5 font-medium text-white hover:bg-indigo-700"
-        >
-          {isHindi ? "7 दिन का फ्री ट्रायल शुरू करें" : "Start 7-day free trial"}
-        </Link>
+        <div className="mt-3 flex flex-wrap items-center justify-center gap-3">
+          <Link
+            href="/signup"
+            data-ga-event="trial_cta_click"
+            data-ga-params='{"location":"blog_post"}'
+            className="inline-block rounded-lg bg-indigo-600 px-5 py-2.5 font-medium text-white hover:bg-indigo-700"
+          >
+            {isHindi ? "7 दिन का फ्री ट्रायल शुरू करें" : "Start 7-day free trial"}
+          </Link>
+          <a
+            href={buildWhatsAppUrl("Hi, I'd like to book a demo of BhojSetu for my restaurant.")}
+            target="_blank"
+            rel="noopener noreferrer"
+            data-ga-event="whatsapp_demo_click"
+            data-ga-params='{"location":"blog_post"}'
+            className="inline-block rounded-lg border border-gray-300 px-5 py-2.5 font-medium text-gray-700 hover:border-indigo-400 dark:border-gray-600 dark:text-gray-300"
+          >
+            {isHindi ? "व्हाट्सएप पर डेमो बुक करें" : "Book a demo on WhatsApp"}
+          </a>
+        </div>
       </div>
     </article>
   );

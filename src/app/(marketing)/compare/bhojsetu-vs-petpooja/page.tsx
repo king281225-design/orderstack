@@ -5,11 +5,14 @@ import { FaqAccordion } from "@/components/shared/faq-accordion";
 import { SITE_URL, SITE_NAME } from "@/lib/site";
 import { PLAN_DEFINITIONS } from "@/lib/plans";
 import { formatINR } from "@/lib/money";
+import { buildBreadcrumbJsonLd } from "@/lib/seo/breadcrumb";
 
 export const metadata: Metadata = {
-  title: "BhojSetu vs Petpooja",
+  // title.absolute bypasses the root layout's "%s · BhojSetu" template —
+  // without it this rendered as the redundant "BhojSetu vs Petpooja · BhojSetu".
+  title: { absolute: "BhojSetu vs Petpooja: Pricing & Features Compared" },
   description:
-    "How BhojSetu compares to Petpooja for restaurant ordering and billing — transparent flat pricing vs a quote-only full POS system, and who each one actually fits.",
+    "Transparent flat pricing from ₹499/month vs Petpooja's quote-only POS — see which fits. Start your 7-day free trial.",
   alternates: { canonical: "/compare/bhojsetu-vs-petpooja" },
   openGraph: {
     type: "website",
@@ -65,10 +68,13 @@ const faqJsonLd = {
   })),
 };
 
+const breadcrumbJsonLd = buildBreadcrumbJsonLd([{ name: "BhojSetu vs Petpooja", path: "/compare/bhojsetu-vs-petpooja" }]);
+
 export default function BhojSetuVsPetpoojaPage() {
   return (
     <div className="pb-16">
       <JsonLd data={faqJsonLd} />
+      <JsonLd data={breadcrumbJsonLd} />
 
       <div className="mx-auto max-w-3xl px-4 pt-16 text-center">
         <h1 className="text-2xl font-bold text-gray-900 dark:text-white sm:text-3xl">{SITE_NAME} vs Petpooja</h1>
@@ -93,6 +99,7 @@ export default function BhojSetuVsPetpoojaPage() {
       </div>
 
       <div className="mx-auto mt-10 max-w-3xl overflow-x-auto px-4">
+        <h2 className="mb-4 text-xl font-semibold text-gray-900 dark:text-white">How {SITE_NAME} and Petpooja compare</h2>
         <table className="w-full border-collapse overflow-hidden rounded-lg border border-gray-200 text-sm dark:border-white/10">
           <thead>
             <tr className="bg-gray-50 dark:bg-white/5">
@@ -138,6 +145,8 @@ export default function BhojSetuVsPetpoojaPage() {
           <div className="mt-3 flex flex-wrap items-center justify-center gap-3">
             <Link
               href="/signup"
+              data-ga-event="trial_cta_click"
+              data-ga-params='{"location":"compare_petpooja"}'
               className="inline-block rounded-lg bg-indigo-600 px-5 py-2.5 font-medium text-white hover:bg-indigo-700"
             >
               Start 7-day free trial

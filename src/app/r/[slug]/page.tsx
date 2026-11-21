@@ -5,9 +5,11 @@ import { getTenantBySlug } from "@/lib/data/tenants";
 import { listPublicMenu, getBestsellerItemIds } from "@/lib/data/menu";
 import { MenuBrowser } from "@/components/storefront/menu-browser";
 import { CaptureTableParam } from "@/components/storefront/capture-table-param";
+import { DemoViewPing } from "@/components/storefront/demo-view-ping";
 import { InstagramIcon, FacebookIcon, GoogleIcon } from "@/components/storefront/social-icons";
 import { JsonLd } from "@/components/seo/json-ld";
 import { SITE_URL } from "@/lib/site";
+import { DEMO_STOREFRONT_SLUG } from "@/lib/contact";
 
 export const dynamic = "force-dynamic";
 
@@ -137,6 +139,7 @@ export default async function StorefrontPage({
       <Suspense fallback={null}>
         <CaptureTableParam />
       </Suspense>
+      {slug === DEMO_STOREFRONT_SLUG && <DemoViewPing />}
       {tenant.bannerImageUrl && (
         // eslint-disable-next-line @next/next/no-img-element
         <img

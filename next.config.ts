@@ -1,4 +1,11 @@
 import type { NextConfig } from "next";
+import bundleAnalyzer from "@next/bundle-analyzer";
+
+// Run `ANALYZE=true npm run build` to open the bundle treemap — added to
+// investigate the Nov 2026 PageSpeed audit's "unused JavaScript (~127 KiB)"
+// and "legacy JavaScript (~12 KiB)" findings. A no-op (just passes nextConfig
+// through unchanged) unless ANALYZE is set, so it never affects a normal build.
+const withBundleAnalyzer = bundleAnalyzer({ enabled: process.env.ANALYZE === "true" });
 
 const nextConfig: NextConfig = {
   // Dev-only "N" badge: move it off the bottom-left, where it covers the dashboard rail's account/sign-out button.
@@ -100,4 +107,4 @@ const nextConfig: NextConfig = {
   },
 };
 
-export default nextConfig;
+export default withBundleAnalyzer(nextConfig);

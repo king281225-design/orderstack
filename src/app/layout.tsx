@@ -1,10 +1,23 @@
 import type { Metadata, Viewport } from "next";
+import { Suspense } from "react";
 import { Geist, Geist_Mono } from "next/font/google";
 import { ThemeInitScript } from "@/components/theme/theme-init-script";
 import { JsonLd } from "@/components/seo/json-ld";
 import { GoogleAnalytics } from "@/components/analytics/google-analytics";
+import { AnalyticsClickDelegate } from "@/components/analytics/analytics-click-delegate";
+import { AnalyticsPageviewTracker } from "@/components/analytics/analytics-pageview-tracker";
+import { InternalTrafficFlag } from "@/components/analytics/internal-traffic-flag";
 import { SITE_URL, SITE_NAME, ORG_JSON_LD_ID } from "@/lib/site";
-import { WHATSAPP_URL, PHONE_TEL, BUSINESS_NAME, BUSINESS_FOUNDER, BUSINESS_EMAIL, BUSINESS_ADDRESS } from "@/lib/contact";
+import {
+  WHATSAPP_URL,
+  PHONE_TEL,
+  BUSINESS_NAME,
+  BUSINESS_FOUNDER,
+  BUSINESS_EMAIL,
+  BUSINESS_ADDRESS,
+  INSTAGRAM_URL,
+  FACEBOOK_URL,
+} from "@/lib/contact";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -35,7 +48,7 @@ export const metadata: Metadata = {
     images: [{ url: "/brand/front-page-logo.png" }],
   },
   twitter: {
-    card: "summary",
+    card: "summary_large_image",
     title: DEFAULT_TITLE,
     description: DEFAULT_DESCRIPTION,
     images: ["/brand/front-page-logo.png"],
@@ -60,7 +73,7 @@ const organizationJsonLd = {
     "@type": "PostalAddress",
     ...BUSINESS_ADDRESS,
   },
-  sameAs: [WHATSAPP_URL],
+  sameAs: [WHATSAPP_URL, INSTAGRAM_URL, FACEBOOK_URL],
   contactPoint: {
     "@type": "ContactPoint",
     telephone: PHONE_TEL.replace("tel:", ""),
@@ -91,6 +104,11 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
       <body className="min-h-full flex flex-col">
         {children}
         <GoogleAnalytics />
+        <AnalyticsClickDelegate />
+        <Suspense fallback={null}>
+          <AnalyticsPageviewTracker />
+          <InternalTrafficFlag />
+        </Suspense>
       </body>
     </html>
   );

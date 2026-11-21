@@ -1,10 +1,10 @@
 import type { Metadata } from "next";
+import dynamic from "next/dynamic";
 import { redirect } from "next/navigation";
 import { getSession } from "@/lib/auth";
 import { ThemeToggle } from "@/components/theme/theme-toggle";
 import { LandingHero } from "@/components/landing/landing-hero";
 import { LandingFeatures } from "@/components/landing/landing-features";
-import { LandingFaq } from "@/components/landing/landing-faq";
 import { PublicPricingTable } from "@/components/marketing/public-pricing-table";
 import { TrustBadges } from "@/components/marketing/trust-badges";
 import { TestimonialsSection, TESTIMONIALS } from "@/components/marketing/testimonials-section";
@@ -12,6 +12,24 @@ import { JsonLd } from "@/components/seo/json-ld";
 import { SITE_URL, SITE_NAME, ORG_JSON_LD_ID } from "@/lib/site";
 import { PLAN_DEFINITIONS, PLAN_TIERS } from "@/lib/plans";
 import { HOME_FAQS as FAQS } from "@/lib/home-faqs";
+
+// Below-the-fold and the only remaining client-JS section on the homepage
+// not already needed for an above-the-fold conversion action (FaqAccordion
+// carries real client state/animation logic) — code-split out of the
+// initial bundle. A skeleton matching the section's real shape (heading +
+// two rows of closed accordion cards) keeps CLS at 0 while it loads.
+const LandingFaq = dynamic(() => import("@/components/landing/landing-faq").then((m) => m.LandingFaq), {
+  loading: () => (
+    <section className="mx-auto max-w-3xl px-4 pb-20" aria-hidden="true">
+      <div className="mx-auto mb-6 h-7 w-56 animate-pulse rounded bg-gray-100 dark:bg-white/5" />
+      <div className="grid gap-3 sm:grid-cols-2">
+        {Array.from({ length: 4 }).map((_, i) => (
+          <div key={i} className="h-16 animate-pulse rounded-lg border border-gray-200 bg-gray-50 dark:border-white/10 dark:bg-white/5" />
+        ))}
+      </div>
+    </section>
+  ),
+});
 
 // The homepage previously had no metadata of its own, silently inheriting
 // the root layout's generic default — the single most-visited, most-linked
@@ -34,6 +52,7 @@ export const metadata: Metadata = {
     url: SITE_URL,
   },
   twitter: {
+    card: "summary_large_image",
     title: HOME_TITLE,
     description: HOME_DESCRIPTION,
   },

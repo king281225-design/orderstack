@@ -50,7 +50,7 @@ export function StorefrontFooter({
         </div>
       )}
 
-      <p className="mt-4 text-[11px] text-gray-400">
+      <p className="mt-4 text-[11px] text-gray-500">
         © {new Date(nowMs()).getFullYear()} {name} · Powered by BhojSetu
       </p>
     </footer>

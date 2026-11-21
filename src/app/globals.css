@@ -411,30 +411,65 @@ input[type="radio"] {
    disabled under prefers-reduced-motion (WCAG 2.3.3); the entrance
    animations degrade to a plain opacity fade instead of disappearing. */
 
+/* transform-only now (was also animating box-shadow, which Lighthouse flags
+   as a non-composited animation — box-shadow forces a paint on every frame,
+   unlike transform/opacity which the compositor can handle on their own).
+   The shadow is approximated instead by a ::after pseudo-element animating
+   only opacity/transform in lockstep — see hero-float-logo-shadow below. */
 @keyframes hero-float-logo {
   0% {
     transform: translateY(0);
-    box-shadow: 0 10px 25px -8px rgba(23, 23, 23, 0.15);
   }
   25% {
     transform: translateY(-10px);
-    box-shadow: 0 18px 28px -10px rgba(23, 23, 23, 0.2);
   }
   50% {
     transform: translateY(0);
-    box-shadow: 0 10px 25px -8px rgba(23, 23, 23, 0.15);
   }
   75% {
     transform: translateY(8px);
-    box-shadow: 0 6px 16px -6px rgba(23, 23, 23, 0.12);
   }
   100% {
     transform: translateY(0);
-    box-shadow: 0 10px 25px -8px rgba(23, 23, 23, 0.15);
   }
 }
 .animate-hero-logo {
   animation: hero-float-logo 5.5s ease-in-out infinite;
+}
+.animate-hero-logo::after {
+  content: "";
+  position: absolute;
+  left: 8%;
+  right: 8%;
+  bottom: -14px;
+  height: 20px;
+  border-radius: 999px;
+  background: rgba(23, 23, 23, 0.35);
+  filter: blur(8px);
+  z-index: -1;
+  animation: hero-float-logo-shadow 5.5s ease-in-out infinite;
+}
+@keyframes hero-float-logo-shadow {
+  0% {
+    opacity: 0.55;
+    transform: translateY(0) scaleX(1);
+  }
+  25% {
+    opacity: 0.75;
+    transform: translateY(-2px) scaleX(0.85);
+  }
+  50% {
+    opacity: 0.55;
+    transform: translateY(0) scaleX(1);
+  }
+  75% {
+    opacity: 0.4;
+    transform: translateY(2px) scaleX(1.08);
+  }
+  100% {
+    opacity: 0.55;
+    transform: translateY(0) scaleX(1);
+  }
 }
 
 @keyframes hero-float-fork {
@@ -619,6 +654,9 @@ input[type="radio"] {
     opacity: 0.65;
   }
   .hero-badge-shimmer::after {
+    animation: none;
+  }
+  .animate-hero-logo::after {
     animation: none;
   }
   .animate-hero-badge,
