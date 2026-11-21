@@ -3,6 +3,7 @@ import { Geist, Geist_Mono } from "next/font/google";
 import { ThemeInitScript } from "@/components/theme/theme-init-script";
 import { JsonLd } from "@/components/seo/json-ld";
 import { GoogleAnalytics } from "@/components/analytics/google-analytics";
+import { AnalyticsClickDelegate } from "@/components/analytics/analytics-click-delegate";
 import { SITE_URL, SITE_NAME, ORG_JSON_LD_ID } from "@/lib/site";
 import { WHATSAPP_URL, PHONE_TEL, BUSINESS_NAME, BUSINESS_FOUNDER, BUSINESS_EMAIL, BUSINESS_ADDRESS } from "@/lib/contact";
 import "./globals.css";
@@ -91,6 +92,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
       <body className="min-h-full flex flex-col">
         {children}
         <GoogleAnalytics />
+        <AnalyticsClickDelegate />
       </body>
     </html>
   );

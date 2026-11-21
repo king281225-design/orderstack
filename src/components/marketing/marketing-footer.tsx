@@ -29,13 +29,15 @@ export function MarketingFooter() {
             Real ordering for real restaurants — menus, orders, and billing on your own storefront.
           </p>
           <div className="mt-3 flex flex-col gap-2 text-gray-500 dark:text-gray-400">
-            <a href={PHONE_TEL} className="hover:text-indigo-600 dark:hover:text-indigo-400">
+            <a href={PHONE_TEL} data-ga-event="phone_click" className="hover:text-indigo-600 dark:hover:text-indigo-400">
               {PHONE_DISPLAY}
             </a>
             <a
               href={WHATSAPP_URL}
               target="_blank"
               rel="noopener noreferrer"
+              data-ga-event="whatsapp_demo_click"
+              data-ga-params='{"location":"footer"}'
               className="flex items-center gap-1.5 hover:text-indigo-600 dark:hover:text-indigo-400"
             >
               <WhatsAppIcon className="flex h-4 w-4 items-center justify-center rounded-full" />

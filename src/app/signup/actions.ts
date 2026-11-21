@@ -71,5 +71,8 @@ export async function signupAction(_prev: SignupState, formData: FormData): Prom
     sid,
   });
 
-  redirect("/dashboard/menu");
+  // ?welcome=1 is a one-shot flag for the client-side signup_complete GA4
+  // event (see SignupWelcomePing) — there's no client-visible "thank you"
+  // page to fire it from otherwise, since this redirect happens server-side.
+  redirect("/dashboard/menu?welcome=1");
 }

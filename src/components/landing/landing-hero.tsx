@@ -189,6 +189,8 @@ export function LandingHero() {
       <div className="animate-hero-cta relative z-10 mt-2 flex flex-wrap justify-center gap-3" style={{ animationDelay: "550ms" }}>
         <Link
           href="/signup"
+          data-ga-event="trial_cta_click"
+          data-ga-params='{"location":"hero"}'
           className="rounded-md bg-gradient-to-r from-indigo-600 to-violet-600 px-5 py-2.5 text-sm font-semibold text-white shadow-md shadow-indigo-200 transition-all duration-300 ease-out hover:-translate-y-0.5 hover:scale-[1.02] hover:from-indigo-700 hover:to-violet-700 hover:shadow-[0_10px_25px_-5px_rgba(232,93,4,0.45)] active:scale-[0.98] dark:shadow-none"
         >
           Start your 7-day free trial
@@ -197,12 +199,15 @@ export function LandingHero() {
           href={buildWhatsAppUrl("Hi, I'd like to book a demo of BhojSetu for my restaurant.")}
           target="_blank"
           rel="noopener noreferrer"
+          data-ga-event="whatsapp_demo_click"
+          data-ga-params='{"location":"hero"}'
           className="rounded-md border border-indigo-300 bg-indigo-50 px-5 py-2.5 text-sm font-semibold text-indigo-700 transition-all duration-[250ms] ease-out hover:-translate-y-0.5 hover:bg-indigo-100 dark:border-indigo-400/40 dark:bg-indigo-500/10 dark:text-indigo-300 dark:hover:bg-indigo-500/20"
         >
           Book a demo
         </a>
         <Link
           href="/login"
+          data-ga-event="login_click"
           className="rounded-md border border-gray-300 bg-white px-5 py-2.5 text-sm font-semibold text-gray-700 transition-all duration-[250ms] ease-out hover:-translate-y-0.5 hover:border-indigo-400 hover:bg-indigo-50/60 dark:bg-[#241d17] dark:hover:bg-[#2e2016]"
         >
           Sign in

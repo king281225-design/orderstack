@@ -14,6 +14,8 @@ export function WhatsAppFloatButton() {
       target="_blank"
       rel="noopener noreferrer"
       aria-label="Chat on WhatsApp"
+      data-ga-event="whatsapp_demo_click"
+      data-ga-params='{"location":"float_button"}'
       className="fixed bottom-5 right-5 z-30 flex h-14 w-14 items-center justify-center rounded-full shadow-lg shadow-black/20 transition-transform hover:scale-105"
       style={{ bottom: "max(1.25rem, env(safe-area-inset-bottom, 0px))" }}
     >
