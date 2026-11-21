@@ -205,7 +205,7 @@ export function LandingHero() {
           rel="noopener noreferrer"
           data-ga-event="whatsapp_demo_click"
           data-ga-params='{"location":"hero"}'
-          className="rounded-md border border-indigo-300 bg-indigo-50 px-5 py-2.5 text-sm font-semibold text-indigo-700 transition-all duration-[250ms] ease-out hover:-translate-y-0.5 hover:bg-indigo-100 dark:border-indigo-400/40 dark:bg-indigo-500/10 dark:text-indigo-300 dark:hover:bg-indigo-500/20"
+          className="rounded-md border border-indigo-300 bg-indigo-50 px-5 py-2.5 text-sm font-semibold text-indigo-800 transition-all duration-[250ms] ease-out hover:-translate-y-0.5 hover:bg-indigo-100 dark:border-indigo-400/40 dark:bg-indigo-500/10 dark:text-indigo-300 dark:hover:bg-indigo-500/20"
         >
           Book a demo
         </a>

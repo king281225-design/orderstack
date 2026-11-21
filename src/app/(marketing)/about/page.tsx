@@ -43,7 +43,7 @@ export default function AboutPage() {
 
       <p className="mt-4">
         Reach us at{" "}
-        <a href={`mailto:${BUSINESS_EMAIL}`} className="text-indigo-600 hover:underline dark:text-indigo-400">
+        <a href={`mailto:${BUSINESS_EMAIL}`} className="text-indigo-800 underline dark:text-indigo-400">
           {BUSINESS_EMAIL}
         </a>
         .
@@ -51,7 +51,7 @@ export default function AboutPage() {
 
       <p className="mt-4">
         Have questions before signing up? See our{" "}
-        <a href="/contact" className="text-indigo-600 hover:underline dark:text-indigo-400">
+        <a href="/contact" className="text-indigo-800 underline dark:text-indigo-400">
           Contact Us
         </a>{" "}
         page.

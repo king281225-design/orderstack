@@ -100,11 +100,11 @@ export default function PricingPage() {
 
         <p className="mt-8 text-sm text-gray-500">
           Questions about a plan? See our{" "}
-          <Link href="/contact" className="text-indigo-600 hover:underline dark:text-indigo-400">
+          <Link href="/contact" className="text-indigo-800 underline dark:text-indigo-400">
             Contact Us
           </Link>{" "}
           page, or read the{" "}
-          <Link href="/refund" className="text-indigo-600 hover:underline dark:text-indigo-400">
+          <Link href="/refund" className="text-indigo-800 underline dark:text-indigo-400">
             refund &amp; cancellation policy
           </Link>
           .

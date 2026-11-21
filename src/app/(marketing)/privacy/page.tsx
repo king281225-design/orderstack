@@ -62,7 +62,7 @@ export default function PrivacyPage() {
       <Section title="5. Contact">
         <p>
           Privacy questions or requests — see our{" "}
-          <a href="/contact" className="text-indigo-600 hover:underline dark:text-indigo-400">
+          <a href="/contact" className="text-indigo-800 underline dark:text-indigo-400">
             Contact Us
           </a>{" "}
           page. BhojSetu is operated by {BUSINESS_NAME}.

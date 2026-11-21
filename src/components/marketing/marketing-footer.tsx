@@ -97,7 +97,7 @@ export function MarketingFooter() {
           </ul>
         </div>
       </div>
-      <div className="border-t border-gray-100 px-4 py-4 text-center text-xs text-gray-400 dark:border-white/5">
+      <div className="border-t border-gray-100 px-4 py-4 text-center text-xs text-gray-500 dark:border-white/5">
         © {year} {BUSINESS_NAME}. All rights reserved.
       </div>
     </footer>

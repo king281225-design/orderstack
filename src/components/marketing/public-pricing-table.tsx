@@ -53,7 +53,7 @@ export function PublicPricingTable() {
               setPeriod("MONTHLY");
               trackEvent("pricing_toggle", { billing_period: "MONTHLY" });
             }}
-            className={`rounded px-3 py-1 ${period === "MONTHLY" ? "bg-indigo-600 text-white" : "text-gray-600"}`}
+            className={`rounded px-3 py-1 ${period === "MONTHLY" ? "bg-indigo-700 text-white" : "text-gray-600"}`}
           >
             Monthly
           </button>
@@ -63,7 +63,7 @@ export function PublicPricingTable() {
               setPeriod("ANNUAL");
               trackEvent("pricing_toggle", { billing_period: "ANNUAL" });
             }}
-            className={`rounded px-3 py-1 ${period === "ANNUAL" ? "bg-indigo-600 text-white" : "text-gray-600"}`}
+            className={`rounded px-3 py-1 ${period === "ANNUAL" ? "bg-indigo-700 text-white" : "text-gray-600"}`}
           >
             Annual
           </button>

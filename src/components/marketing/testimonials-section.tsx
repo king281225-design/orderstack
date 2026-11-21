@@ -50,7 +50,7 @@ function InitialsAvatar({ name }: { name: string }) {
     .join("")
     .toUpperCase();
   return (
-    <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-indigo-100 text-sm font-semibold text-indigo-700 dark:bg-indigo-500/20 dark:text-indigo-300">
+    <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-indigo-100 text-sm font-semibold text-indigo-800 dark:bg-indigo-500/20 dark:text-indigo-300">
       {initials}
     </span>
   );
