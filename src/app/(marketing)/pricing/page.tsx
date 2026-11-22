@@ -49,6 +49,7 @@ const productJsonLd = {
   "@type": "Product",
   name: `${SITE_NAME} — Restaurant Ordering Platform`,
   description: "Restaurant ordering, menu, billing, and QR table ordering software for restaurants in India.",
+  image: `${SITE_URL}/brand/front-page-logo.png`,
   brand: { "@type": "Brand", name: SITE_NAME },
   offers: PLAN_TIERS.map((tier) => {
     const def = PLAN_DEFINITIONS[tier];
