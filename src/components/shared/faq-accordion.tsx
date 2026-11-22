@@ -3,6 +3,7 @@
 import { useState } from "react";
 import type { CSSProperties } from "react";
 import { useScrollReveal } from "@/components/landing/use-scroll-reveal";
+import { trackEvent } from "@/lib/analytics/track-event";
 
 type Faq = { q: string; a: string };
 
@@ -34,7 +35,10 @@ export function FaqAccordion({ faqs, columns = 2 }: { faqs: Faq[]; columns?: 1 |
               type="button"
               aria-expanded={open}
               aria-controls={`faq-panel-${columns}-${i}`}
-              onClick={() => setOpenIndex(open ? null : i)}
+              onClick={() => {
+                if (!open) trackEvent("faq_open", { question_index: i });
+                setOpenIndex(open ? null : i);
+              }}
               className="group flex w-full items-start justify-between gap-2 text-left text-sm font-semibold text-gray-900 dark:text-white"
             >
               {faq.q}

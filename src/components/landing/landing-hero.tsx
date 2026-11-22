@@ -155,12 +155,16 @@ export function LandingHero() {
 
       {/* Content column — always above the decoration layer */}
       <div ref={logoRef} className="relative z-10">
-        {/* The source image is opaque (its own off-white background baked
-            in, not transparent) — a rounded card with a shadow makes that
-            look like a deliberate framed logo instead of a stray square
-            floating over the page, especially against the dark gradient. */}
-        <div className="animate-hero-logo overflow-hidden rounded-2xl">
-          <BhojSetuFrontPageLogo width={260} />
+        {/* animate-hero-logo carries the float (translateY) + its own
+            ::after drop-shadow (both transform/opacity only — see
+            globals.css) on a non-clipping wrapper; overflow-hidden lives on
+            the inner div instead, purely to round the source image's own
+            opaque off-white background into a framed card. Splitting these
+            two keeps the shadow from being clipped by overflow-hidden. */}
+        <div className="animate-hero-logo relative">
+          <div className="overflow-hidden rounded-2xl">
+            <BhojSetuFrontPageLogo width={260} />
+          </div>
         </div>
       </div>
 
@@ -189,6 +193,8 @@ export function LandingHero() {
       <div className="animate-hero-cta relative z-10 mt-2 flex flex-wrap justify-center gap-3" style={{ animationDelay: "550ms" }}>
         <Link
           href="/signup"
+          data-ga-event="trial_cta_click"
+          data-ga-params='{"location":"hero"}'
           className="rounded-md bg-gradient-to-r from-indigo-600 to-violet-600 px-5 py-2.5 text-sm font-semibold text-white shadow-md shadow-indigo-200 transition-all duration-300 ease-out hover:-translate-y-0.5 hover:scale-[1.02] hover:from-indigo-700 hover:to-violet-700 hover:shadow-[0_10px_25px_-5px_rgba(232,93,4,0.45)] active:scale-[0.98] dark:shadow-none"
         >
           Start your 7-day free trial
@@ -197,12 +203,15 @@ export function LandingHero() {
           href={buildWhatsAppUrl("Hi, I'd like to book a demo of BhojSetu for my restaurant.")}
           target="_blank"
           rel="noopener noreferrer"
-          className="rounded-md border border-indigo-300 bg-indigo-50 px-5 py-2.5 text-sm font-semibold text-indigo-700 transition-all duration-[250ms] ease-out hover:-translate-y-0.5 hover:bg-indigo-100 dark:border-indigo-400/40 dark:bg-indigo-500/10 dark:text-indigo-300 dark:hover:bg-indigo-500/20"
+          data-ga-event="whatsapp_demo_click"
+          data-ga-params='{"location":"hero"}'
+          className="rounded-md border border-indigo-300 bg-indigo-50 px-5 py-2.5 text-sm font-semibold text-indigo-800 transition-all duration-[250ms] ease-out hover:-translate-y-0.5 hover:bg-indigo-100 dark:border-indigo-400/40 dark:bg-indigo-500/10 dark:text-indigo-300 dark:hover:bg-indigo-500/20"
         >
           Book a demo
         </a>
         <Link
           href="/login"
+          data-ga-event="login_click"
           className="rounded-md border border-gray-300 bg-white px-5 py-2.5 text-sm font-semibold text-gray-700 transition-all duration-[250ms] ease-out hover:-translate-y-0.5 hover:border-indigo-400 hover:bg-indigo-50/60 dark:bg-[#241d17] dark:hover:bg-[#2e2016]"
         >
           Sign in

@@ -1,6 +1,8 @@
 import type { Metadata } from "next";
 import { WhatsAppIcon } from "@/components/marketing/whatsapp-icon";
 import { BUSINESS_NAME, BUSINESS_EMAIL, PHONE_DISPLAY, PHONE_TEL, WHATSAPP_URL } from "@/lib/contact";
+import { JsonLd } from "@/components/seo/json-ld";
+import { buildBreadcrumbJsonLd } from "@/lib/seo/breadcrumb";
 
 export const metadata: Metadata = {
   title: "Contact Us",
@@ -8,9 +10,12 @@ export const metadata: Metadata = {
   alternates: { canonical: "/contact" },
 };
 
+const breadcrumbJsonLd = buildBreadcrumbJsonLd([{ name: "Contact Us", path: "/contact" }]);
+
 export default function ContactPage() {
   return (
     <div className="mx-auto max-w-3xl px-4 py-16 text-gray-700 dark:text-gray-300">
+      <JsonLd data={breadcrumbJsonLd} />
       <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Contact Us</h1>
 
       <p className="mt-6">
@@ -23,6 +28,8 @@ export default function ContactPage() {
           href={WHATSAPP_URL}
           target="_blank"
           rel="noopener noreferrer"
+          data-ga-event="whatsapp_demo_click"
+          data-ga-params='{"location":"contact_page"}'
           className="flex w-fit items-center gap-3 rounded-lg border border-gray-200 bg-white px-4 py-3 shadow-sm hover:-translate-y-0.5 hover:shadow-md dark:bg-[#241d17]"
         >
           <WhatsAppIcon className="flex h-9 w-9 items-center justify-center rounded-full" />
@@ -34,6 +41,7 @@ export default function ContactPage() {
 
         <a
           href={PHONE_TEL}
+          data-ga-event="phone_click"
           className="flex w-fit items-center gap-3 rounded-lg border border-gray-200 bg-white px-4 py-3 shadow-sm hover:-translate-y-0.5 hover:shadow-md dark:bg-[#241d17]"
         >
           <span className="flex h-9 w-9 items-center justify-center rounded-full bg-indigo-100 text-indigo-600 dark:bg-indigo-500/20 dark:text-indigo-300">

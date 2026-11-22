@@ -1,5 +1,7 @@
 import type { Metadata } from "next";
 import { BUSINESS_NAME, BUSINESS_FOUNDER, BUSINESS_ADDRESS_DISPLAY, BUSINESS_EMAIL } from "@/lib/contact";
+import { JsonLd } from "@/components/seo/json-ld";
+import { buildBreadcrumbJsonLd } from "@/lib/seo/breadcrumb";
 
 export const metadata: Metadata = {
   title: "About Us",
@@ -8,9 +10,12 @@ export const metadata: Metadata = {
   alternates: { canonical: "/about" },
 };
 
+const breadcrumbJsonLd = buildBreadcrumbJsonLd([{ name: "About Us", path: "/about" }]);
+
 export default function AboutPage() {
   return (
     <div className="mx-auto max-w-3xl px-4 py-16 text-gray-700 dark:text-gray-300">
+      <JsonLd data={breadcrumbJsonLd} />
       <h1 className="text-2xl font-bold text-gray-900 dark:text-white">About Us</h1>
 
       <p className="mt-6">
@@ -38,7 +43,7 @@ export default function AboutPage() {
 
       <p className="mt-4">
         Reach us at{" "}
-        <a href={`mailto:${BUSINESS_EMAIL}`} className="text-indigo-600 hover:underline dark:text-indigo-400">
+        <a href={`mailto:${BUSINESS_EMAIL}`} className="text-indigo-800 underline dark:text-indigo-400">
           {BUSINESS_EMAIL}
         </a>
         .
@@ -46,7 +51,7 @@ export default function AboutPage() {
 
       <p className="mt-4">
         Have questions before signing up? See our{" "}
-        <a href="/contact" className="text-indigo-600 hover:underline dark:text-indigo-400">
+        <a href="/contact" className="text-indigo-800 underline dark:text-indigo-400">
           Contact Us
         </a>{" "}
         page.

@@ -1,5 +1,7 @@
 import Link from "next/link";
+import { Suspense } from "react";
 import { requireTenantSession } from "@/lib/auth";
+import { SignupWelcomePing } from "@/components/dashboard/signup-welcome-ping";
 import { listMenuForTenant } from "@/lib/data/menu";
 import { getTenantById } from "@/lib/data/tenants";
 import { AddCategoryForm } from "@/components/menu/add-category-form";
@@ -50,6 +52,9 @@ export default async function MenuPage() {
 
   return (
     <div className="flex flex-col gap-8">
+      <Suspense fallback={null}>
+        <SignupWelcomePing />
+      </Suspense>
       <section className="rounded-lg border border-gray-200 bg-white dark:bg-[#241d17] p-4">
         <h2 className="mb-3 text-lg font-semibold text-gray-900">Categories</h2>
         <AddCategoryForm />

@@ -88,17 +88,15 @@ export default async function StorefrontLayout({
 
         <PromoBar coupons={activeCoupons} />
 
-        <div className="flex-1 pb-20">
-          {children}
-          <StorefrontFooter
-            name={tenant.name}
-            tagline={tenant.tagline}
-            businessAddress={tenant.businessAddress}
-            instagramUrl={tenant.instagramUrl}
-            facebookUrl={tenant.facebookUrl}
-            googleReviewUrl={tenant.googleReviewUrl}
-          />
-        </div>
+        <main className="flex-1 pb-20">{children}</main>
+        <StorefrontFooter
+          name={tenant.name}
+          tagline={tenant.tagline}
+          businessAddress={tenant.businessAddress}
+          instagramUrl={tenant.instagramUrl}
+          facebookUrl={tenant.facebookUrl}
+          googleReviewUrl={tenant.googleReviewUrl}
+        />
 
         <WaiterCallButton slug={slug} />
         <CartBar slug={slug} isOpen={tenant.isOpen} />

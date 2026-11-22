@@ -35,6 +35,28 @@ const RESERVED_PREFIXES = [
   "/refund",
 ];
 
+// Public pages that also have a Markdown representation (see the negotiation
+// block at the end of proxy()). Path -> /md/<page>.
+const MARKDOWN_PAGES: Record<string, string> = { "/": "home", "/pricing": "pricing" };
+
+// True when the client asks for Markdown at least as strongly as HTML, e.g.
+// "text/markdown", "text/markdown, */*" or "text/markdown, text/html;q=0.9".
+// A normal browser Accept header never contains text/markdown, so it is false.
+function prefersMarkdown(accept: string | null): boolean {
+  if (!accept) return false;
+  let markdown = -1;
+  let html = -1;
+  for (const part of accept.split(",")) {
+    const [type, ...params] = part.trim().toLowerCase().split(";");
+    const qParam = params.map((p) => p.trim()).find((p) => p.startsWith("q="));
+    const q = qParam ? Number(qParam.slice(2)) : 1;
+    if (Number.isNaN(q)) continue;
+    if (type === "text/markdown") markdown = Math.max(markdown, q);
+    else if (type === "text/html" || type === "application/xhtml+xml") html = Math.max(html, q);
+  }
+  return markdown > 0 && markdown >= html;
+}
+
 // Edge-level gate on the two authenticated areas. This is defense in depth —
 // every dashboard/super-admin page and server action also re-checks the
 // session itself (see requireRole / requireTenantSession in lib/auth.ts),
@@ -118,6 +140,28 @@ export async function proxy(request: NextRequest) {
       url.pathname = `/r/${tenant.slug}${pathname === "/" ? "" : pathname}`;
       return NextResponse.rewrite(url);
     }
+  }
+
+  // Content negotiation for AI agents: the homepage and /pricing also exist as
+  // Markdown (src/app/md/[page]/route.ts, built from the same data as the
+  // pages) and are served for `Accept: text/markdown`. Placed AFTER the
+  // custom-domain branch on purpose — on a restaurant's own domain "/" is that
+  // restaurant's storefront and must never be answered with BhojSetu's
+  // marketing Markdown. Browsers never send text/markdown, so they keep
+  // getting HTML. `Vary: Accept` tells caches the two are different
+  // representations of the same URL.
+  const markdownPage = MARKDOWN_PAGES[pathname];
+  if (markdownPage && (request.method === "GET" || request.method === "HEAD")) {
+    if (prefersMarkdown(request.headers.get("accept"))) {
+      const url = request.nextUrl.clone();
+      url.pathname = `/md/${markdownPage}`;
+      const response = NextResponse.rewrite(url);
+      response.headers.set("Vary", "Accept");
+      return response;
+    }
+    const response = NextResponse.next();
+    response.headers.append("Vary", "Accept");
+    return response;
   }
 
   return NextResponse.next();

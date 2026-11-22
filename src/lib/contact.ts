@@ -33,6 +33,12 @@ export function buildTenantWhatsAppUrl(phone: string, message?: string): string 
 export const PHONE_DISPLAY = "+91 97178 21824";
 export const PHONE_TEL = "tel:+919717821824";
 
+// The platform's own social accounts (not a restaurant tenant's — those are
+// per-tenant fields on Tenant, set via the branding form). Used in the
+// Organization JSON-LD's sameAs. Confirmed directly by the user, 2026-11-21.
+export const INSTAGRAM_URL = "https://www.instagram.com/bhoj_setu/";
+export const FACEBOOK_URL = "https://www.facebook.com/profile.php?id=61595483454038";
+
 export const BUSINESS_NAME = "Rajat Digital Agency";
 export const BUSINESS_FOUNDER = "Rajat Mirg";
 export const BUSINESS_EMAIL = "bhojsetu@gmail.com";
@@ -56,7 +62,13 @@ export const BUSINESS_ADDRESS_DISPLAY = `${BUSINESS_ADDRESS.streetAddress}, ${BU
 // apart and each got created by hand instead). Changed to "bhojsetu-demo"
 // on 2026-10-07 to match the tenant that's actually live in production —
 // "demo-restaurant" (the old value) only ever existed locally.
-export const DEMO_STOREFRONT_SLUG = "bhojsetu-demo";
+//
+// Changed again 2026-11-19 to "bhojsetu-demo-2": checking production showed
+// `/r/bhojsetu-demo` returned 404 (the homepage's "live demo" link was dead) —
+// the demo tenant that actually exists in the production database is
+// "bhojsetu-demo-2" ("Bhojsetu Demo Kitchen"). If the demo tenant is ever
+// renamed, change it HERE and in the database together.
+export const DEMO_STOREFRONT_SLUG = "bhojsetu-demo-2";
 
 // What the Help page promises customers about support turnaround. One place to
 // change if the team's real response time changes.

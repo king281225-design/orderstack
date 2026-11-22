@@ -1,12 +1,13 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import type { CSSProperties } from "react";
 import type { BillingPeriod } from "@prisma/client";
 import { PLAN_DEFINITIONS, PLAN_TIERS } from "@/lib/plans";
 import { PlanPrice } from "@/components/billing/plan-price";
 import { useScrollReveal } from "@/components/landing/use-scroll-reveal";
+import { trackEvent } from "@/lib/analytics/track-event";
 
 /**
  * A public, read-only pricing table for the homepage — reuses the same
@@ -21,6 +22,25 @@ export function PublicPricingTable() {
   const { ref, visible } = useScrollReveal<HTMLDivElement>();
   const [period, setPeriod] = useState<BillingPeriod>("MONTHLY");
 
+  // Fires once per page load the first time the pricing section scrolls
+  // into view — reuses the same ref useScrollReveal already attaches to
+  // the section below, via its own independent IntersectionObserver.
+  useEffect(() => {
+    const node = ref.current;
+    if (!node) return;
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting) {
+          trackEvent("pricing_view");
+          observer.disconnect();
+        }
+      },
+      { threshold: 0.3 },
+    );
+    observer.observe(node);
+    return () => observer.disconnect();
+  }, [ref]);
+
   return (
     <section ref={ref} id="pricing" className="mx-auto max-w-5xl px-4 pb-16">
       <div className={`reveal text-center ${visible ? "is-visible" : ""}`}>
@@ -29,15 +49,21 @@ export function PublicPricingTable() {
         <div className="mt-4 inline-flex rounded-md border border-gray-300 p-0.5 text-xs font-medium">
           <button
             type="button"
-            onClick={() => setPeriod("MONTHLY")}
-            className={`rounded px-3 py-1 ${period === "MONTHLY" ? "bg-indigo-600 text-white" : "text-gray-600"}`}
+            onClick={() => {
+              setPeriod("MONTHLY");
+              trackEvent("pricing_toggle", { billing_period: "MONTHLY" });
+            }}
+            className={`rounded px-3 py-1 ${period === "MONTHLY" ? "bg-indigo-700 text-white" : "text-gray-600"}`}
           >
             Monthly
           </button>
           <button
             type="button"
-            onClick={() => setPeriod("ANNUAL")}
-            className={`rounded px-3 py-1 ${period === "ANNUAL" ? "bg-indigo-600 text-white" : "text-gray-600"}`}
+            onClick={() => {
+              setPeriod("ANNUAL");
+              trackEvent("pricing_toggle", { billing_period: "ANNUAL" });
+            }}
+            className={`rounded px-3 py-1 ${period === "ANNUAL" ? "bg-indigo-700 text-white" : "text-gray-600"}`}
           >
             Annual
           </button>
@@ -62,6 +88,8 @@ export function PublicPricingTable() {
               </ul>
               <Link
                 href="/signup"
+                data-ga-event="trial_cta_click"
+                data-ga-params={JSON.stringify({ location: "pricing", plan: tier })}
                 className="mt-2 rounded-md bg-gradient-to-r from-indigo-600 to-violet-600 px-4 py-2 text-center text-sm font-semibold text-white transition-transform hover:-translate-y-0.5"
               >
                 Start 7-day free trial

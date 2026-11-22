@@ -1,17 +1,35 @@
 import type { Metadata } from "next";
+import dynamic from "next/dynamic";
 import { redirect } from "next/navigation";
 import { getSession } from "@/lib/auth";
 import { ThemeToggle } from "@/components/theme/theme-toggle";
 import { LandingHero } from "@/components/landing/landing-hero";
 import { LandingFeatures } from "@/components/landing/landing-features";
-import { LandingFaq } from "@/components/landing/landing-faq";
 import { PublicPricingTable } from "@/components/marketing/public-pricing-table";
 import { TrustBadges } from "@/components/marketing/trust-badges";
 import { TestimonialsSection, TESTIMONIALS } from "@/components/marketing/testimonials-section";
 import { JsonLd } from "@/components/seo/json-ld";
-import { ORG_JSON_LD_ID } from "@/app/layout";
-import { SITE_URL, SITE_NAME } from "@/lib/site";
+import { SITE_URL, SITE_NAME, ORG_JSON_LD_ID } from "@/lib/site";
 import { PLAN_DEFINITIONS, PLAN_TIERS } from "@/lib/plans";
+import { HOME_FAQS as FAQS } from "@/lib/home-faqs";
+
+// Below-the-fold and the only remaining client-JS section on the homepage
+// not already needed for an above-the-fold conversion action (FaqAccordion
+// carries real client state/animation logic) — code-split out of the
+// initial bundle. A skeleton matching the section's real shape (heading +
+// two rows of closed accordion cards) keeps CLS at 0 while it loads.
+const LandingFaq = dynamic(() => import("@/components/landing/landing-faq").then((m) => m.LandingFaq), {
+  loading: () => (
+    <section className="mx-auto max-w-3xl px-4 pb-20" aria-hidden="true">
+      <div className="mx-auto mb-6 h-7 w-56 animate-pulse rounded bg-gray-100 dark:bg-white/5" />
+      <div className="grid gap-3 sm:grid-cols-2">
+        {Array.from({ length: 4 }).map((_, i) => (
+          <div key={i} className="h-16 animate-pulse rounded-lg border border-gray-200 bg-gray-50 dark:border-white/10 dark:bg-white/5" />
+        ))}
+      </div>
+    </section>
+  ),
+});
 
 // The homepage previously had no metadata of its own, silently inheriting
 // the root layout's generic default — the single most-visited, most-linked
@@ -34,41 +52,11 @@ export const metadata: Metadata = {
     url: SITE_URL,
   },
   twitter: {
+    card: "summary_large_image",
     title: HOME_TITLE,
     description: HOME_DESCRIPTION,
   },
 };
-
-const FAQS = [
-  {
-    q: "What is BhojSetu?",
-    a: "A complete ordering platform for restaurants — a public menu page for your customers, a live order dashboard for your team, and a kitchen/staff/billing toolkit behind it. You get a real storefront link (bhojsetu.in/r/your-restaurant) in minutes.",
-  },
-  {
-    q: "How do customers place an order — do they need to download an app?",
-    a: "No app needed. Customers open your storefront link (or scan a table QR code for dine-in), browse your menu, and check out in the browser. They can pay via UPI QR code or cash on delivery.",
-  },
-  {
-    q: "How do I get my own restaurant set up?",
-    a: "Sign up, add your menu (type items in by hand, upload a photo/PDF of your paper menu, or let AI read it in for you), set your brand colors and logo, and your storefront is live.",
-  },
-  {
-    q: "Can I use this for dine-in with table QR codes?",
-    a: "Yes — generate a QR code per table from your dashboard. Scanning it opens your menu with the table number pre-filled at checkout, no typing needed.",
-  },
-  {
-    q: "What does it cost?",
-    a: "Plans start at ₹499/month (menu, orders & billing, QR table ordering, inventory & stock tracking, KOT tickets, UPI/COD checkout), with Advanced and Business tiers adding coupons, analytics, a kitchen display, and staff logins as you grow. Every new account starts with a 7-day free trial — no credit card required.",
-  },
-  {
-    q: "Is my restaurant's data kept separate from other restaurants?",
-    a: "Yes — every restaurant's menu, orders, and customers are fully isolated at the database level. Nothing is ever shared or mixed between restaurants.",
-  },
-  {
-    q: "Does this work with my POS system or kitchen printer?",
-    a: "There's no separate POS terminal to buy — bills, invoices, and KOT (kitchen order tickets, split by station) print straight from your browser to any printer you already use, including thermal/receipt printers, right from your Orders and Billing pages. If you need a deeper integration with a specific POS system, get in touch and we'll see what's possible.",
-  },
-];
 
 const faqJsonLd = {
   "@context": "https://schema.org",

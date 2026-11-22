@@ -1,4 +1,11 @@
 import type { NextConfig } from "next";
+import bundleAnalyzer from "@next/bundle-analyzer";
+
+// Run `ANALYZE=true npm run build` to open the bundle treemap — added to
+// investigate the Nov 2026 PageSpeed audit's "unused JavaScript (~127 KiB)"
+// and "legacy JavaScript (~12 KiB)" findings. A no-op (just passes nextConfig
+// through unchanged) unless ANALYZE is set, so it never affects a normal build.
+const withBundleAnalyzer = bundleAnalyzer({ enabled: process.env.ANALYZE === "true" });
 
 const nextConfig: NextConfig = {
   // Dev-only "N" badge: move it off the bottom-left, where it covers the dashboard rail's account/sign-out button.
@@ -52,6 +59,12 @@ const nextConfig: NextConfig = {
     // statically traceable, so both are force-included for that route only.
     "/api/dashboard/analytics/report": ["node_modules/pdfkit/**/*", "node_modules/fontkit/**/*", "assets/fonts/**/*"],
     "/*": [
+      // pdf-parse -> pdfjs-dist loads its worker (pdf.worker.mjs) by a runtime
+      // path the file tracer can't see; without these the standalone output on
+      // Hostinger fails with "Cannot find module .../pdf.worker.mjs".
+      "node_modules/pdfjs-dist/**/*",
+      "node_modules/pdf-parse/**/*",
+      "node_modules/@napi-rs/**/*",
       "node_modules/tesseract.js/**/*",
       "node_modules/tesseract.js-core/**/*",
       "node_modules/bmp-js/**/*",
@@ -64,6 +77,12 @@ const nextConfig: NextConfig = {
     ],
   },
   experimental: {
+    // Managed hosts (Hostinger) report the physical server's CPU count (63 on
+    // the staging box), so Next starts that many build workers and the host
+    // kills them (SIGABRT, "Collecting page data using 63 workers"). Setting
+    // NEXT_BUILD_CPUS in the host's env vars caps it. Unset = Next's default,
+    // so Vercel/local builds are unchanged.
+    ...(process.env.NEXT_BUILD_CPUS ? { cpus: Number(process.env.NEXT_BUILD_CPUS) } : {}),
     serverActions: {
       // Menu-photo/logo/hardcopy-menu-document uploads all go through Server
       // Actions as multipart/form-data (see src/lib/storage.ts) — the 1MB
@@ -88,4 +107,4 @@ const nextConfig: NextConfig = {
   },
 };
 
-export default nextConfig;
+export default withBundleAnalyzer(nextConfig);

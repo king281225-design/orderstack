@@ -4,6 +4,7 @@ import { PublicPricingTable } from "@/components/marketing/public-pricing-table"
 import { FaqAccordion } from "@/components/shared/faq-accordion";
 import { JsonLd } from "@/components/seo/json-ld";
 import { SITE_URL, SITE_NAME } from "@/lib/site";
+import { buildBreadcrumbJsonLd } from "@/lib/seo/breadcrumb";
 import { PLAN_DEFINITIONS, PLAN_TIERS } from "@/lib/plans";
 
 export const metadata: Metadata = {
@@ -48,6 +49,7 @@ const productJsonLd = {
   "@type": "Product",
   name: `${SITE_NAME} — Restaurant Ordering Platform`,
   description: "Restaurant ordering, menu, billing, and QR table ordering software for restaurants in India.",
+  image: `${SITE_URL}/brand/front-page-logo.png`,
   brand: { "@type": "Brand", name: SITE_NAME },
   offers: PLAN_TIERS.map((tier) => {
     const def = PLAN_DEFINITIONS[tier];
@@ -72,11 +74,14 @@ const faqJsonLd = {
   })),
 };
 
+const breadcrumbJsonLd = buildBreadcrumbJsonLd([{ name: "Pricing", path: "/pricing" }]);
+
 export default function PricingPage() {
   return (
     <div className="pb-16">
       <JsonLd data={productJsonLd} />
       <JsonLd data={faqJsonLd} />
+      <JsonLd data={breadcrumbJsonLd} />
 
       <div className="mx-auto max-w-3xl px-4 pt-16 text-center">
         <h1 className="text-2xl font-bold text-gray-900 dark:text-white sm:text-3xl">
@@ -96,11 +101,11 @@ export default function PricingPage() {
 
         <p className="mt-8 text-sm text-gray-500">
           Questions about a plan? See our{" "}
-          <Link href="/contact" className="text-indigo-600 hover:underline dark:text-indigo-400">
+          <Link href="/contact" className="text-indigo-800 underline dark:text-indigo-400">
             Contact Us
           </Link>{" "}
           page, or read the{" "}
-          <Link href="/refund" className="text-indigo-600 hover:underline dark:text-indigo-400">
+          <Link href="/refund" className="text-indigo-800 underline dark:text-indigo-400">
             refund &amp; cancellation policy
           </Link>
           .

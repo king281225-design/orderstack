@@ -24,7 +24,10 @@ export function AutoRefresh({ intervalMs = 8000 }: { intervalMs?: number }) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
   const isPendingRef = useRef(isPending);
-  isPendingRef.current = isPending;
+  // Sync the ref in an effect, not during render (newer react-hooks lint rule).
+  useEffect(() => {
+    isPendingRef.current = isPending;
+  }, [isPending]);
 
   useEffect(() => {
     const id = setInterval(() => {
