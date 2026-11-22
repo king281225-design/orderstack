@@ -44,6 +44,14 @@ export const AUTO_LINKS: AutoLink[] = [
     href: "/pricing",
     phrases: ["BhojSetu pricing", "flat monthly plan"],
   },
+  {
+    href: "/blog/restaurant-billing-software-gst-invoice-checklist",
+    phrases: ["GST invoice", "GST-compliant invoice"],
+  },
+  {
+    href: "/blog/kot-vs-kds-kitchen-display-system-difference",
+    phrases: ["kitchen display system", "KDS"],
+  },
 ];
 
 /** Max contextual links injected into a single post, so the copy never reads as link-stuffed. */
@@ -73,8 +81,9 @@ export const RELATED_POSTS: Record<string, string[]> = {
   ],
   "best-restaurant-billing-software-india": [
     "petpooja-alternatives",
+    "restaurant-billing-software-gst-invoice-checklist",
+    "free-restaurant-billing-software-india-whats-really-free",
     "restaurant-software-cost-india",
-    "restaurant-billing-ordering-software-india-buyers-guide",
   ],
   "petpooja-alternatives": [
     "best-restaurant-billing-software-india",
@@ -92,13 +101,34 @@ export const RELATED_POSTS: Record<string, string[]> = {
     "qr-code-table-ordering-guide",
   ],
   "kitchen-order-tickets-kot-explained": [
+    "kot-vs-kds-kitchen-display-system-difference",
+    "best-kot-software-small-restaurants-india",
     "restaurant-inventory-management-guide-india",
     "qr-code-table-ordering-guide",
-    "restaurant-billing-ordering-software-india-buyers-guide",
   ],
   "restaurant-inventory-management-guide-india": [
     "kitchen-order-tickets-kot-explained",
     "restaurant-billing-ordering-software-india-buyers-guide",
     "best-restaurant-billing-software-india",
+  ],
+  "best-kot-software-small-restaurants-india": [
+    "kitchen-order-tickets-kot-explained",
+    "kot-vs-kds-kitchen-display-system-difference",
+    "restaurant-billing-ordering-software-india-buyers-guide",
+  ],
+  "kot-vs-kds-kitchen-display-system-difference": [
+    "kitchen-order-tickets-kot-explained",
+    "best-kot-software-small-restaurants-india",
+    "restaurant-inventory-management-guide-india",
+  ],
+  "restaurant-billing-software-gst-invoice-checklist": [
+    "best-restaurant-billing-software-india",
+    "free-restaurant-billing-software-india-whats-really-free",
+    "restaurant-billing-ordering-software-india-buyers-guide",
+  ],
+  "free-restaurant-billing-software-india-whats-really-free": [
+    "best-restaurant-billing-software-india",
+    "restaurant-billing-software-gst-invoice-checklist",
+    "petpooja-alternatives",
   ],
 };

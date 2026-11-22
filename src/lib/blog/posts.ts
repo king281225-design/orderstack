@@ -697,6 +697,26 @@ export const BLOG_POSTS: BlogPost[] = [
         ],
       },
       {
+        heading: "A typical KOT format, line by line",
+        paragraphs: [
+          "It helps to see what a real ticket actually looks like rather than just a list of requirements. A basic dine-in ticket for one table usually reads, top to bottom:",
+        ],
+        list: [
+          "KOT #142 · Table 7 · Dine-in",
+          "Time: 7:42 PM",
+          "2x Paneer Tikka — extra spicy",
+          "1x Butter Naan",
+          "1x Veg Biryani — no onion",
+          "Station: Grill",
+        ],
+      },
+      {
+        heading: "How the format changes by order type",
+        paragraphs: [
+          "The fields above cover dine-in; takeaway and delivery tickets carry the same core information with the table number swapped for the order type and, for delivery, a customer name or order number instead. A cancelled or modified order should reprint or update the same ticket rather than leaving the kitchen to work from a stale one — worth confirming that explicitly with any software before relying on it during a busy service.",
+        ],
+      },
+      {
         heading: "KOT is not the bill",
         paragraphs: [
           "A common point of confusion: the KOT and the customer's bill are two different documents. The KOT goes to the kitchen and does not need prices; its job is production. The bill or invoice goes to the customer and carries prices, GST, and the total; its job is payment and record-keeping. A system that mixes the two, or only produces a bill, leaves the kitchen working from a document that was never designed for it.",
@@ -782,6 +802,13 @@ export const BLOG_POSTS: BlogPost[] = [
           "Have that number go down automatically as items sell, not rely on someone remembering to update it",
           "Get warned before something runs out, not after a customer's order fails",
           "Optionally, stop customers from even seeing/ordering something that's genuinely at zero stock",
+        ],
+      },
+      {
+        heading: "Built for one restaurant, not a chain or a warehouse",
+        paragraphs: [
+          "Most inventory software still gets built for the larger end of the market — chains with multiple outlets, central kitchens, and someone whose full-time job is purchasing. If you're running a single restaurant, cafe, or cloud kitchen, that complexity is overhead you don't need: extra screens, a longer setup, and a steeper learning curve for a problem that's genuinely simpler at your scale.",
+          "What actually matters for a single-location restaurant is narrower: setup measured in minutes rather than a vendor onboarding call, stock that updates itself from sales you're already recording, and alerts that reach you directly instead of sitting in a report nobody opens.",
         ],
       },
       {
@@ -873,6 +900,264 @@ export const BLOG_POSTS: BlogPost[] = [
       {
         q: "Can I load my existing stock list in bulk instead of typing every item?",
         a: "On BhojSetu, yes. Products can be imported from a CSV file, and each product can be given an opening stock quantity when it is added, so you do not have to start from zero.",
+      },
+    ],
+  },
+  {
+    slug: "best-kot-software-small-restaurants-india",
+    title: "Best KOT Software for Small Restaurants & Cafes in India",
+    description:
+      "What actually matters when choosing KOT software for a small restaurant or cafe — station routing, print vs screen, and whether it's bundled or a separate cost.",
+    publishedAt: "2026-11-22",
+    intro: [
+      "\"Best KOT software\" lists usually get written for a chain evaluating a dozen vendors, not for the owner of one restaurant or cafe who just wants orders to stop getting lost between the counter and the kitchen. The criteria that actually matter are different at that scale — this is a checklist for that smaller, more common situation, not a ranked top-10.",
+    ],
+    sections: [
+      {
+        heading: "What \"best\" means for a single-location restaurant",
+        paragraphs: [
+          "A chain evaluating KOT software cares about things a single restaurant mostly doesn't: multi-outlet reporting, central-kitchen routing, head-office permissions. None of that makes a ticket print faster at one counter. For a single restaurant or cafe, \"best\" comes down to a shorter, more concrete list: does it route correctly to your actual stations, does it work the way your kitchen already operates (print or screen), and is it already part of what you're paying for, or a separate line item to track.",
+        ],
+      },
+      {
+        heading: "Standalone KOT apps vs KOT bundled into your ordering platform",
+        paragraphs: [
+          "A real decision worth making deliberately: some tools are built purely as a KOT app, sold on its own as one more thing to set up alongside your ordering and billing. Others bundle KOT into the same platform that already takes the order and generates the bill, so a ticket is a byproduct of an order that already exists rather than a separate system you have to feed.",
+          "The bundled approach is usually simpler to operate day to day — there's one place an order lives, not two systems that need to agree with each other. The tradeoff worth checking: does the bundled KOT actually do real station routing, or is it the basic version with the ordering platform's billing getting most of the attention? Ask to see it handle an order with items across two stations before deciding either way.",
+        ],
+      },
+      {
+        heading: "A concrete checklist before choosing",
+        paragraphs: [
+          "Whichever route you're considering, these are the questions that actually separate a tool that works from one that looks fine in a demo:",
+        ],
+        list: [
+          "Does it route tickets by kitchen station, or print one ticket with everything on it regardless of your layout?",
+          "Print, screen, or both — and does that match how your kitchen actually operates today, not how a salesperson assumes it does?",
+          "Is there a timestamp on every ticket, so the kitchen can see what's been waiting longest?",
+          "Does a manually entered counter order (a walk-in, not placed through an app) still generate a proper ticket?",
+          "Is KOT included in what you're already paying for ordering/billing, or a separate subscription with its own cost and its own login?",
+          "Can you actually try it against a real busy service before committing, not just a quiet demo?",
+        ],
+      },
+      {
+        heading: "Setup time matters more than feature count",
+        paragraphs: [
+          "A small restaurant doesn't have a dedicated person to run a multi-week software rollout. The practical test isn't how many features a tool lists — it's whether you can set up your actual stations and menu items, print one real ticket, and have your kitchen staff understand it, all in a single afternoon. If a tool needs a sales call and a scheduled onboarding session just to see your own menu working, that's a real cost even before you've paid a rupee.",
+        ],
+      },
+      {
+        heading: "How this works on BhojSetu",
+        paragraphs: [
+          "KOT is built into the same platform that takes the order — not a separate app or add-on. Every order (dine-in including QR table orders, takeaway, delivery, and manually entered counter bills) generates a ticket automatically, routed by kitchen station once stations are set up, with both live on-screen tickets and 80mm thermal print support per station or for the whole order. It's included at every plan tier, including the ₹499/month Starter plan — there's no separate KOT subscription to track.",
+        ],
+      },
+    ],
+    faqs: [
+      {
+        q: "Do I need separate KOT software if my ordering/billing platform already claims to have it?",
+        a: "Check first whether it does real station routing and timestamps, not just a generic print-out. If it does, a separate standalone KOT app is usually redundant cost and complexity — one more system that has to stay in sync with the one actually taking the order.",
+      },
+      {
+        q: "Is screen-based KOT better than printed tickets for a small kitchen?",
+        a: "Neither is objectively better — it depends on your kitchen. Screens avoid paper and show live status; printed tickets work well where hands are wet or floury and a physical slip can be spiked as a visual record. Many small kitchens use a mix by station.",
+      },
+      {
+        q: "How long does it actually take to set up KOT for a small restaurant?",
+        a: "If your menu and stations are already decided, setup is realistically an afternoon's work: enter your stations, assign menu items to them, and run one real ticket through before full rollout — not a multi-week project.",
+      },
+      {
+        q: "Does KOT software need its own hardware, like a special printer?",
+        a: "A standard thermal/receipt printer (the same kind used for billing) works for printed KOT — no specialized kitchen hardware required. Screen-based KOT just needs a tablet or monitor per station.",
+      },
+    ],
+  },
+  {
+    slug: "restaurant-billing-software-gst-invoice-checklist",
+    title: "Restaurant Billing Software with GST Invoice: A Quick Checklist",
+    description:
+      "The GST invoice fields a restaurant bill actually needs — GSTIN, HSN/SAC, CGST/SGST split — and how to check whether your billing software gets them right.",
+    publishedAt: "2026-11-22",
+    intro: [
+      "A restaurant bill that doesn't carry the right GST fields isn't really an invoice — it's a receipt that happens to have a tax number printed on it somewhere. This is a practical checklist for what a GST-compliant restaurant invoice actually needs, and what to check before trusting any billing software to generate it correctly.",
+    ],
+    sections: [
+      {
+        heading: "What a GST invoice needs that a plain bill doesn't",
+        paragraphs: [
+          "A restaurant's GST invoice is a specific document, not just a bill with a tax line added. At minimum, it should carry:",
+        ],
+        list: [
+          "Your GSTIN, and the customer's GSTIN if they've provided one for a business expense",
+          "A sequential invoice number — one continuous series, not one that resets or skips",
+          "The invoice date and, for dine-in/takeaway, usually the order or table reference",
+          "Each item's taxable value separately from the tax charged on it",
+          "The GST rate applied, split correctly as CGST + SGST for an intra-state sale (or IGST for inter-state, though that's unusual for a dine-in restaurant)",
+          "The final total, inclusive of tax",
+        ],
+      },
+      {
+        heading: "Why the CGST/SGST split specifically trips people up",
+        paragraphs: [
+          "A restaurant bill showing a single combined \"GST\" line, rather than the tax split into its CGST and SGST halves, is a common and avoidable mistake. For most restaurants selling within their own state, GST is charged as two equal halves — central and state — not one combined figure, and an invoice that doesn't show that split isn't formatted correctly even if the total tax amount happens to be right.",
+        ],
+      },
+      {
+        heading: "Setting the right rate, and keeping it consistent",
+        paragraphs: [
+          "Restaurants don't all fall under the same GST rate, and the applicable rate can depend on factors like whether the establishment has air conditioning or serves alcohol — this is genuinely a tax question, not a software one, and worth confirming with an accountant rather than assuming software has guessed correctly. What software can reasonably do is let you set your actual rate once, apply it consistently to every invoice, and make it easy to change if your situation changes, rather than hand-typing a tax amount on every single bill.",
+        ],
+      },
+      {
+        heading: "A checklist before trusting any billing software's invoice",
+        paragraphs: [
+          "Before relying on a tool's GST invoice for real, check:",
+        ],
+        list: [
+          "Does it let you set your GSTIN and business address once, so every invoice carries them automatically?",
+          "Does it split tax into CGST/SGST correctly, not just show one combined GST figure?",
+          "Is the invoice number sequential across all your bills, including manually created ones at the counter — not just online orders?",
+          "Can you reprint or re-access an old invoice later, for your own records or a customer's request?",
+          "Does a discount applied to an order get reflected correctly in the taxable value, not just subtracted from the final total after tax was already calculated on the full amount?",
+        ],
+      },
+      {
+        heading: "How this works on BhojSetu",
+        paragraphs: [
+          "Your GST rate, GSTIN, and business address are set once in Settings and applied automatically to every invoice after that — for storefront orders, QR table orders, and manually created counter bills alike, all sharing one sequential invoice number series. Each printed invoice shows the tax split and itemized total, with a thermal-receipt-width option alongside the standard A4 layout for printing directly from the dashboard.",
+        ],
+      },
+    ],
+    faqs: [
+      {
+        q: "Is a restaurant required to issue a GST invoice for every order?",
+        a: "This is a tax-compliance question specific to your registration and turnover, best confirmed with an accountant rather than assumed from software behavior. What software can do is make issuing one correctly formatted invoice, every time, effortless once you've set it up.",
+      },
+      {
+        q: "What's the difference between CGST, SGST, and IGST on a restaurant bill?",
+        a: "CGST and SGST together apply to a sale within the same state the restaurant is registered in — split as two equal halves of the total GST rate. IGST applies to an inter-state sale, which is uncommon for a dine-in or local-delivery restaurant.",
+      },
+      {
+        q: "Does a discount or coupon change how GST is calculated?",
+        a: "It should reduce the taxable value before tax is calculated, not just get subtracted from the final total afterward — worth specifically checking how any billing software handles this, since the two approaches give different tax amounts.",
+      },
+      {
+        q: "Can I change my GST rate later if my registration status changes?",
+        a: "On BhojSetu, yes — the rate is a setting, not hard-coded per invoice, so changing it applies to every invoice generated afterward without needing to reconfigure anything else.",
+      },
+    ],
+  },
+  {
+    slug: "free-restaurant-billing-software-india-whats-really-free",
+    title: "Free Restaurant Billing Software in India: What's Actually Free",
+    description:
+      "Before picking a \"free\" restaurant billing app, check what counts as a bill, how many you get, and what's locked behind a paid tier — a practical checklist.",
+    publishedAt: "2026-11-22",
+    intro: [
+      "\"Free\" billing software for a restaurant is rarely free in the way the word implies. That's not a criticism — running billing infrastructure costs money somewhere, and a free tier is usually a genuine, reasonable way to let you try before you commit. The part worth doing carefully is checking exactly what \"free\" actually includes before you build your daily operations around it.",
+    ],
+    sections: [
+      {
+        heading: "The usual shapes a \"free\" limit takes",
+        paragraphs: [
+          "A free billing tier almost always has a real limit somewhere, even when the marketing doesn't lead with it. The common patterns:",
+        ],
+        list: [
+          "A cap on the number of bills or invoices per month, after which you're blocked or asked to upgrade mid-month",
+          "A single device or single login, which breaks down the moment you add a second counter or a second staff member",
+          "Core billing is free, but GST invoices, reports, or multi-user access sit behind a paid tier",
+          "Ads or a visible watermark on customer-facing bills",
+          "No real customer support — you're on your own if something breaks during service",
+        ],
+      },
+      {
+        heading: "The question to ask before you rely on any free tier",
+        paragraphs: [
+          "Not \"is it free\" but \"what happens on the day I outgrow the free limit, mid-month, with customers waiting.\" A free tool that quietly stops letting you bill on the 28th of the month because you hit a cap is a worse outcome than paying a known, predictable amount from day one. Ask specifically what the free tier's exact limit is — in bills, devices, or users — and what happens the moment you cross it.",
+        ],
+      },
+      {
+        heading: "Why flat, transparent pricing is worth comparing against \"free\"",
+        paragraphs: [
+          "A flat monthly fee with no per-order commission and no hidden bill cap is a genuinely different model from a free tier with limits, and it's worth comparing the two honestly rather than assuming free always wins. A ₹499/month flat plan with unlimited billing is cheaper, in practice, than a \"free\" tool the moment you're paying to remove a bill cap, add a second device, or unlock GST invoices — which is exactly when most restaurants discover the free tier's real cost.",
+        ],
+      },
+      {
+        heading: "How this works on BhojSetu",
+        paragraphs: [
+          "There's no separate \"free\" tier with a bill cap to hit — the Starter plan is ₹499/month flat, with no per-order commission, no limit on the number of bills or invoices you create, and GST-aware invoices included rather than gated behind a higher tier. Every new restaurant also gets a 7-day free trial of the full dashboard to actually test it against a real service before paying anything.",
+        ],
+      },
+    ],
+    faqs: [
+      {
+        q: "Is there a genuinely free way to bill a restaurant with no limits at all?",
+        a: "Realistically, no — running billing software, even a simple version, costs something to operate, so a truly unlimited free tier is rare and usually temporary or funded by something else (ads, data, or a loss-leader strategy). Worth treating any \"unlimited and free forever\" claim with a healthy amount of skepticism and checking the fine print.",
+      },
+      {
+        q: "What should I check before committing my daily billing to a free app?",
+        a: "The exact numeric limit (bills per month, devices, users), what happens the moment you cross it, and whether GST-compliant invoices are actually included or sit behind a paid unlock. Ask these as direct questions rather than assuming from the marketing page.",
+      },
+      {
+        q: "Is a 7-day free trial the same as a free tier?",
+        a: "No — a trial is a time-limited preview of the full paid product, meant to let you test it properly before paying. A free tier is a permanently limited version. BhojSetu offers the former: a full 7-day trial of the complete dashboard, not a capped-forever free plan.",
+      },
+    ],
+  },
+  {
+    slug: "kot-vs-kds-kitchen-display-system-difference",
+    title: "KOT vs KDS: What's the Difference?",
+    description:
+      "A Kitchen Order Ticket and a Kitchen Display System solve related but different problems — here's how to tell which one your restaurant actually needs.",
+    publishedAt: "2026-11-22",
+    intro: [
+      "KOT and KDS get used almost interchangeably in restaurant-software marketing, which is unhelpful, because they're not quite the same thing. Getting the distinction straight makes it much easier to tell what you're actually being sold, and whether you need one, the other, or both.",
+    ],
+    sections: [
+      {
+        heading: "What a KOT is",
+        paragraphs: [
+          "A Kitchen Order Ticket is the individual record of one order (or one station's part of an order) — a printed slip or a single on-screen ticket listing what was ordered, for which table or order number, with any notes. Its job is production: tell the kitchen exactly what to make.",
+        ],
+      },
+      {
+        heading: "What a KDS is",
+        paragraphs: [
+          "A Kitchen Display System is a broader view, typically a larger screen or board showing every active ticket at once across the kitchen (or per station), often with status tracking as each one moves through new, in progress, and ready. Where a KOT is one order's instructions, a KDS is the whole kitchen's live queue in one place.",
+        ],
+      },
+      {
+        heading: "The practical difference, in one line",
+        paragraphs: [
+          "A KOT is the individual ticket; a KDS is the dashboard that shows all of them together. A kitchen can run on printed or on-screen KOTs with no KDS at all — plenty of small kitchens do, successfully. A KDS adds a layer on top: visibility into everything in progress at once, which matters more as a kitchen gets busier or runs more stations in parallel.",
+        ],
+      },
+      {
+        heading: "Do you actually need a KDS, or just KOT?",
+        paragraphs: [
+          "A single-station kitchen with low-to-moderate order volume usually gets by fine on KOT alone — one cook, one or a few tickets at a time, nothing that needs a bird's-eye view. A KDS starts earning its keep once a kitchen has multiple stations running in parallel, busy enough that someone (a chef, a manager) genuinely benefits from seeing every ticket's status at a glance instead of walking the kitchen to check.",
+          "If you're not sure which camp you're in: start with KOT alone, and revisit a KDS once you notice yourself (or your head chef) wishing there were one consolidated view of what's in progress across stations.",
+        ],
+      },
+      {
+        heading: "How this works on BhojSetu",
+        paragraphs: [
+          "KOT — individual tickets, routed by kitchen station, print or on-screen — is included at every plan tier, from Starter upward. A separate Kitchen board, the larger Kanban-style overview showing every active order across New, Accepted, Preparing, and Ready in one view, is available on the Business plan for kitchens that have outgrown ticket-by-ticket tracking.",
+        ],
+      },
+    ],
+    faqs: [
+      {
+        q: "Can I use a KDS without KOT, or do they always come together?",
+        a: "In practice they're usually paired, since a KDS is typically built as an overview layer on top of the same tickets a KOT system generates — but conceptually they answer different questions, and it's worth evaluating whether a tool's KOT itself (station routing, print/screen, timestamps) is solid before caring about its KDS overview.",
+      },
+      {
+        q: "Is a KDS worth paying extra for a small restaurant?",
+        a: "Usually not yet — a small kitchen with one or two stations typically gets everything it needs from KOT alone. It's worth revisiting once you're running enough stations or volume that a consolidated live view would genuinely save time, not before.",
+      },
+      {
+        q: "Does switching from printed KOT to a KDS mean giving up printed tickets entirely?",
+        a: "Not necessarily — many kitchens mix both, using printed tickets at stations where hands are wet or floury and a screen-based view where that's less of a concern. The two aren't mutually exclusive.",
       },
     ],
   },
