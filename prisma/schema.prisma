@@ -257,9 +257,8 @@ model Tenant {
   // overrides at all (the common case). Set from /super-admin.
   featureOverrides        Json?
   // Owner-picked prize pool for the "Christmas Spin & Win" game (gated by the
-  // "christmasCampaign" Feature, which is in no tier's default set — only
-  // reachable via featureOverrides). A JSON array of this tenant's own
-  // Coupon ids; re-validated against live Coupon rows on every read
+  // "christmasCampaign" Feature, see src/lib/seasonal.ts). A JSON array of
+  // this tenant's own Coupon ids; re-validated against live Coupon rows on every read
   // (src/lib/data/christmas.ts getSpinPool), same "nullable JSON config,
   // re-checked, never trusted blindly" pattern as featureOverrides itself.
   christmasSpinCouponIds  Json?
@@ -576,10 +575,10 @@ model Coupon {
 }
 
 // "Christmas Spin & Win" — a minimal seasonal game, gated by the
-// "christmasCampaign" Feature (src/lib/plans.ts), off for every tenant by
-// default. One row per successful spin; the prize is always a real Coupon
-// row that already passed tryRedeemCoupon's atomic redemption-limit check at
-// spin time (src/app/r/[slug]/christmas-actions.ts) — never an invented
+// "christmasCampaign" Feature (src/lib/seasonal.ts). One row per successful
+// spin; the prize is always a real, currently redeemable Coupon row, counted
+// as redeemed only when an order uses it (src/lib/data/christmas.ts) — never
+// an invented
 // discount. Exists as its own table (rather than reusing Coupon/Customer
 // alone) because a spin needs to record who got which specific prize, and
 // whether a given device/phone has already spun, before any Order or

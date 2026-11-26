@@ -2,6 +2,7 @@ import { notFound } from "next/navigation";
 import Link from "next/link";
 import { getTenantBySlug } from "@/lib/data/tenants";
 import { getActivePromotableCoupons } from "@/lib/data/coupons";
+import { getSpinPool } from "@/lib/data/christmas";
 import { CartProvider } from "@/lib/cart";
 import { CartBar } from "@/components/storefront/cart-bar";
 import { PromoBar } from "@/components/storefront/promo-bar";
@@ -30,9 +31,12 @@ export default async function StorefrontLayout({
   if (!tenant || tenant.status === "SUSPENDED") notFound();
 
   const activeCoupons = await getActivePromotableCoupons(tenant.id);
-  // Off for every tenant unless a super-admin explicitly turns it on via
-  // featureOverrides — see src/lib/plans.ts's "christmasCampaign" note.
+  // On for every restaurant during the season unless a super-admin forced it
+  // off — see src/lib/seasonal.ts.
   const christmasOn = tenantHasFeature(tenant, "christmasCampaign");
+  // Spin & Win is offered only once the owner has picked prize coupons, so a
+  // restaurant that never set it up doesn't show a wheel with nothing to win.
+  const hasSpinPrizes = christmasOn && (await getSpinPool(tenant.id)).length > 0;
 
   const themeVars = {
     "--brand-primary": tenant.colorPrimary,
@@ -112,7 +116,7 @@ export default async function StorefrontLayout({
         />
 
         <WaiterCallButton slug={slug} />
-        {christmasOn && <SpinEntryPoint slug={slug} />}
+        {hasSpinPrizes && <SpinEntryPoint slug={slug} />}
         <CartBar slug={slug} isOpen={tenant.isOpen} />
       </div>
     </CartProvider>

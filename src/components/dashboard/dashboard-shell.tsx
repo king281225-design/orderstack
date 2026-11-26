@@ -226,8 +226,8 @@ export function DashboardShell({
   /** Business accounts only: the "Current store" dropdown. */
   storeSwitcher?: ReactNode;
   /**
-   * Off for every tenant unless a super-admin explicitly turns on
-   * "christmasCampaign" (src/lib/plans.ts) — deliberately the most
+   * The "christmasCampaign" feature (seasonal, see src/lib/seasonal.ts).
+   * Deliberately the most
    * restrained of the three theme surfaces (storefront/marketing/dashboard):
    * no snow, no animation, no change to any color that carries real meaning
    * (order-status badges, nav active state). Just a thin candy-cane divider

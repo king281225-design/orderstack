@@ -406,8 +406,8 @@ input[type="radio"] {
 }
 
 /* Christmas campaign (src/components/storefront/christmas/*) — a seasonal
-   layer gated by the "christmasCampaign" Feature (src/lib/plans.ts), off for
-   every tenant unless a super-admin explicitly turns it on. Snow + confetti
+   layer gated by the "christmasCampaign" Feature (src/lib/seasonal.ts).
+   Snow + confetti
    are both disabled (not just shortened) under prefers-reduced-motion, same
    discipline as the marquee/fade-in-up rules above. */
 .christmas-snowfall-layer {

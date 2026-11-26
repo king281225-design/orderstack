@@ -1,4 +1,5 @@
 import type { BillingPeriod, PlanTier } from "@prisma/client";
+import { CHRISTMAS_THEME_ENABLED } from "@/lib/seasonal";
 
 /** Free dashboard trial length — measured from the tenant's createdAt (see src/proxy.ts). */
 export const TRIAL_DAYS = 7;
@@ -197,15 +198,16 @@ export const FEATURE_LABELS: Record<Feature, string> = {
   christmasCampaign: "Christmas campaign (seasonal — Spin & Win, snow theme)",
 };
 
-// "christmasCampaign" is deliberately in NONE of the sets below — it is a
-// seasonal layer (src/app/dashboard/christmas, src/components/storefront/
-// christmas/*) that must stay off for every real tenant by default. The
-// only way it's ever on is a super-admin explicitly setting
-// featureOverrides.christmasCampaign = true for one specific tenant.
+// The seasonal Christmas layer (src/app/dashboard/christmas, src/components/
+// storefront/christmas/*) is on for every restaurant on every plan while the
+// season switch is on (src/lib/seasonal.ts). A super-admin "Force off"
+// override still removes it from one restaurant.
+const SEASONAL_FEATURES: Feature[] = CHRISTMAS_THEME_ENABLED ? ["christmasCampaign"] : [];
 const FEATURES_BY_TIER: Record<PlanTier, ReadonlySet<Feature>> = {
-  STARTER: new Set(["menu", "orders", "tables", "billing", "inventory", "kot"]),
-  ADVANCED: new Set(["menu", "orders", "tables", "billing", "inventory", "kot", "coupons", "loyalty", "analytics", "multiStore"]),
+  STARTER: new Set([...SEASONAL_FEATURES, "menu", "orders", "tables", "billing", "inventory", "kot"]),
+  ADVANCED: new Set([...SEASONAL_FEATURES, "menu", "orders", "tables", "billing", "inventory", "kot", "coupons", "loyalty", "analytics", "multiStore"]),
   BUSINESS: new Set([
+    ...SEASONAL_FEATURES,
     "menu",
     "orders",
     "tables",

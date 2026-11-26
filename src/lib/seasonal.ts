@@ -1,10 +1,12 @@
 /**
- * The ONE switch for the public marketing site's Christmas theme
- * (src/app/(marketing)/layout.tsx) — unlike the storefront/dashboard theme,
- * which is gated per-tenant via the "christmasCampaign" Feature
- * (src/lib/plans.ts), the marketing site has no tenant to gate by: it's
- * BhojSetu's own platform site. Flip this back to false (or delete the
- * season entirely) once the campaign ends — every place that reads it
- * reverts to the plain site with no other code change needed.
+ * The ONE switch for the Christmas season. While true:
+ * - the public marketing site shows its Christmas theme, and
+ * - every restaurant's storefront and dashboard get it too, via the
+ *   "christmasCampaign" Feature (src/lib/plans.ts). A super-admin can still
+ *   "Force off" a single restaurant.
+ *
+ * Flip to false once the season ends — everything reverts with no other code
+ * change (a restaurant explicitly "Forced on" keeps its theme until that
+ * override is cleared).
  */
 export const CHRISTMAS_THEME_ENABLED = true;

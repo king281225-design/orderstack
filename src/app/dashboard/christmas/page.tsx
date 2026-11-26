@@ -10,11 +10,9 @@ export default async function ChristmasCampaignPage() {
   const tenant = await getTenantById(session.tenantId);
   if (!tenant) return null;
 
-  // "christmasCampaign" is in no tier's default set (src/lib/plans.ts) — the
-  // ONLY way a tenant reaches this page's real content is a super-admin
-  // explicitly setting featureOverrides.christmasCampaign = true for them.
-  // Deliberately not UpgradeRequired (that component assumes a real paid
-  // tier unlocks the feature, which isn't true here).
+  // Off only outside the season or when a super-admin forced it off for this
+  // restaurant (src/lib/seasonal.ts). Deliberately not UpgradeRequired (that
+  // component assumes a paid tier unlocks the feature, which isn't true here).
   if (!tenantHasFeature(tenant, "christmasCampaign")) {
     return (
       <div className="rounded-lg border border-dashed border-gray-300 bg-white dark:bg-[#241d17] p-6 text-center">
@@ -37,8 +35,9 @@ export default async function ChristmasCampaignPage() {
       <section>
         <h2 className="mb-1 text-lg font-semibold text-gray-900">🎄 Christmas Spin &amp; Win</h2>
         <p className="mb-3 text-sm text-gray-500">
-          Pick which of your existing coupons customers can win by spinning the wheel on your storefront. Every
-          spin wins one of these coupons, and each device gets one spin (it&apos;s a simple limit, not a
+          Pick which of your existing coupons customers can win by spinning the wheel on your storefront. The
+          Spin &amp; Win button appears on your storefront once you save at least one coupon here. Every spin wins
+          one of these coupons, and each device gets one spin (it&apos;s a simple limit, not a
           guarantee — someone using a different phone or browser can spin again). A coupon&apos;s redemption
           limit counts <strong>orders</strong> that use it, not spins. Once the limit is reached it leaves the
           wheel, and winners who haven&apos;t used it yet can&apos;t — so give wheel coupons a generous limit, or

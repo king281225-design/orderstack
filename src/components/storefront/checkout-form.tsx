@@ -40,7 +40,7 @@ export function CheckoutForm({
   businessState: string | null;
   /** Null if the owner hasn't set a delivery radius — the whole zone check is then a no-op. */
   deliveryZone: DeliveryZone | null;
-  /** Off for every tenant unless a super-admin explicitly turns on "christmasCampaign" — gates the Spin & Win prize auto-apply and the festive loyalty-tier label below. */
+  /** The seasonal "christmasCampaign" feature — gates the Spin & Win prize auto-apply and the festive loyalty-tier label below. */
   christmasOn?: boolean;
 }) {
   const { lines, totalCents, clear, tableLabel } = useCart();
