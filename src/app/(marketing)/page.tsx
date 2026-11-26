@@ -12,6 +12,9 @@ import { JsonLd } from "@/components/seo/json-ld";
 import { SITE_URL, SITE_NAME, ORG_JSON_LD_ID } from "@/lib/site";
 import { PLAN_DEFINITIONS, PLAN_TIERS } from "@/lib/plans";
 import { HOME_FAQS as FAQS } from "@/lib/home-faqs";
+import { CHRISTMAS_THEME_ENABLED } from "@/lib/seasonal";
+import { XmasHomeBanner } from "@/components/christmas/xmas-home-banner";
+import { SantaLoader } from "@/components/storefront/christmas/santa-loader";
 
 // Below-the-fold and the only remaining client-JS section on the homepage
 // not already needed for an above-the-fold conversion action (FaqAccordion
@@ -106,6 +109,13 @@ export default async function Home() {
       <div className="absolute right-4 top-4 z-20">
         <ThemeToggle />
       </div>
+      {CHRISTMAS_THEME_ENABLED && (
+        <>
+          {/* Widest homepage section is max-w-5xl (1024px) — the scene uses it to decide whether the side trees fit. */}
+          <SantaLoader contentWidthPx={1024} />
+          <XmasHomeBanner />
+        </>
+      )}
       <LandingHero />
       <LandingFeatures />
       <PublicPricingTable />

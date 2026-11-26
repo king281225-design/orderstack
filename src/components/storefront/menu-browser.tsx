@@ -373,7 +373,7 @@ export function MenuBrowser({ categories }: { categories: PublicCategory[] }) {
           </h2>
           {category.items.length > 0 && (
             <div
-              className="flex flex-col divide-y overflow-hidden rounded-lg border shadow-sm"
+              className="xmas-card-accent flex flex-col divide-y overflow-hidden rounded-lg border shadow-sm"
               style={{
                 backgroundColor: "var(--brand-card-bg)",
                 borderColor: "color-mix(in srgb, var(--brand-card-bg) 85%, black)",
@@ -396,7 +396,7 @@ export function MenuBrowser({ categories }: { categories: PublicCategory[] }) {
             <div key={sub.id} className="mt-3 pl-2">
               <h3 className="mb-1.5 text-sm font-semibold text-gray-700">{sub.name}</h3>
               <div
-                className="flex flex-col divide-y overflow-hidden rounded-lg border shadow-sm"
+                className="xmas-card-accent flex flex-col divide-y overflow-hidden rounded-lg border shadow-sm"
                 style={{
                   backgroundColor: "var(--brand-card-bg)",
                   borderColor: "color-mix(in srgb, var(--brand-card-bg) 85%, black)",

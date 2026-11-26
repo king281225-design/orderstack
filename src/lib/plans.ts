@@ -159,7 +159,8 @@ export type Feature =
   | "kitchen"
   | "staff"
   | "deliveryAggregator"
-  | "multiStore";
+  | "multiStore"
+  | "christmasCampaign";
 
 /** Every gateable feature, in the order the super-admin's per-tenant override panel shows them. */
 export const ALL_FEATURES: Feature[] = [
@@ -176,6 +177,7 @@ export const ALL_FEATURES: Feature[] = [
   "staff",
   "deliveryAggregator",
   "multiStore",
+  "christmasCampaign",
 ];
 
 export const FEATURE_LABELS: Record<Feature, string> = {
@@ -192,8 +194,14 @@ export const FEATURE_LABELS: Record<Feature, string> = {
   staff: "Staff logins",
   deliveryAggregator: "Zomato / Swiggy integration",
   multiStore: "Multi-store (several outlets, one account)",
+  christmasCampaign: "Christmas campaign (seasonal — Spin & Win, snow theme)",
 };
 
+// "christmasCampaign" is deliberately in NONE of the sets below — it is a
+// seasonal layer (src/app/dashboard/christmas, src/components/storefront/
+// christmas/*) that must stay off for every real tenant by default. The
+// only way it's ever on is a super-admin explicitly setting
+// featureOverrides.christmasCampaign = true for one specific tenant.
 const FEATURES_BY_TIER: Record<PlanTier, ReadonlySet<Feature>> = {
   STARTER: new Set(["menu", "orders", "tables", "billing", "inventory", "kot"]),
   ADVANCED: new Set(["menu", "orders", "tables", "billing", "inventory", "kot", "coupons", "loyalty", "analytics", "multiStore"]),

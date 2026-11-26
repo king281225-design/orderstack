@@ -58,6 +58,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
     ? await listAccessibleStores(session.sub, session.tenantId)
     : { business: null, stores: [] };
   const showBusinessNav = isOwnerSelf && (tenantHasFeature(tenant, "multiStore") || Boolean(business));
+  const christmasOn = tenantHasFeature(tenant, "christmasCampaign");
 
   const links: DashboardNavLink[] = [
     { href: "/dashboard", label: "Orders" },
@@ -76,6 +77,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
           { href: "/dashboard/branding", label: "Settings" },
           ...(tenantHasFeature(tenant, "coupons") ? [{ href: "/dashboard/coupons", label: "Coupons" }] : []),
           { href: "/dashboard/tables/board", label: "Tables" },
+          ...(tenantHasFeature(tenant, "christmasCampaign") ? [{ href: "/dashboard/christmas", label: "🎄 Christmas" }] : []),
           ...(tenantHasFeature(tenant, "staff") ? [{ href: "/dashboard/staff", label: "Staff" }] : []),
           ...(tenantHasFeature(tenant, "deliveryAggregator")
             ? [{ href: "/dashboard/integrations", label: "Integrations" }]
@@ -93,6 +95,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
         tenantName={tenant.name}
         tenantSlug={tenant.slug}
         isOpen={tenant.isOpen}
+        christmasOn={christmasOn}
         roleLabel={isOwner ? "Owner" : "Staff"}
         links={links}
         logoutAction={logoutAction}

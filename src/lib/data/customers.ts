@@ -116,7 +116,7 @@ export async function adjustCustomerForOrderEdit(
 export async function getCustomerLoyaltySnapshot(
   tenantId: string,
   phone: string,
-): Promise<{ pointsBalance: number; rupeesPerPoint: number } | null> {
+): Promise<{ pointsBalance: number; rupeesPerPoint: number; totalSpentCents: number } | null> {
   const trimmed = phone.trim();
   if (!trimmed) return null;
 
@@ -129,6 +129,10 @@ export async function getCustomerLoyaltySnapshot(
   return {
     pointsBalance: customer.pointsBalance,
     rupeesPerPoint: tenant?.loyaltyRupeesPerPoint ?? 10,
+    // Purely for the optional cosmetic Christmas-campaign tier label
+    // (src/lib/loyalty-tiers.ts) — never affects pointsBalance/redemption
+    // math, which is untouched by this field's presence.
+    totalSpentCents: customer.totalSpentCents,
   };
 }
 

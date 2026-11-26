@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { getTenantBySlug } from "@/lib/data/tenants";
 import { isRazorpayConfigured, isCustomerCheckoutRazorpayEnabled } from "@/lib/payments/razorpay";
+import { tenantHasFeature } from "@/lib/plans";
 import { CheckoutForm } from "@/components/storefront/checkout-form";
 
 export const dynamic = "force-dynamic";
@@ -29,6 +30,7 @@ export default async function CheckoutPage({
         hasRazorpay={isCustomerCheckoutRazorpayEnabled() && isRazorpayConfigured()}
         gstRate={tenant.gstRate}
         businessState={tenant.businessState}
+        christmasOn={tenantHasFeature(tenant, "christmasCampaign")}
         deliveryZone={
           tenant.latitude != null && tenant.longitude != null && tenant.deliveryRadiusKm != null
             ? { latitude: tenant.latitude, longitude: tenant.longitude, radiusKm: tenant.deliveryRadiusKm }

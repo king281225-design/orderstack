@@ -10,7 +10,7 @@ export function CartBar({ slug, isOpen }: { slug: string; isOpen: boolean }) {
   if (itemCount === 0) return null;
 
   return (
-    <div className="fixed inset-x-0 bottom-0 border-t border-black/10 bg-white p-3 shadow-[0_-2px_10px_rgba(0,0,0,0.06)]">
+    <div className="fixed inset-x-0 bottom-0 z-10 border-t border-black/10 bg-white p-3 shadow-[0_-2px_10px_rgba(0,0,0,0.06)]">
       <div className="mx-auto flex max-w-xl items-center justify-between gap-3">
         <div className="text-sm text-gray-700">
           <span className="font-semibold">{itemCount}</span> item{itemCount === 1 ? "" : "s"} ·{" "}

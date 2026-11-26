@@ -10,6 +10,7 @@ import { InstagramIcon, FacebookIcon, GoogleIcon } from "@/components/storefront
 import { JsonLd } from "@/components/seo/json-ld";
 import { SITE_URL } from "@/lib/site";
 import { DEMO_STOREFRONT_SLUG } from "@/lib/contact";
+import { tenantHasFeature } from "@/lib/plans";
 
 export const dynamic = "force-dynamic";
 
@@ -140,6 +141,20 @@ export default async function StorefrontPage({
         <CaptureTableParam />
       </Suspense>
       {slug === DEMO_STOREFRONT_SLUG && <DemoViewPing />}
+      {tenantHasFeature(tenant, "christmasCampaign") && (
+        <div
+          className="px-4 pb-4 pt-6 text-center"
+          style={{ background: "linear-gradient(180deg, var(--xmas-teal, #1e4d4a), var(--xmas-navy, #0a1830))" }}
+        >
+          <p className="text-xs font-semibold uppercase tracking-[0.2em]" style={{ color: "var(--xmas-gold, #e8b64a)" }}>
+            Season&apos;s Greetings
+          </p>
+          <h2 className="xmas-heading mt-1 text-2xl font-bold sm:text-3xl">Merry Christmas!</h2>
+          <p className="mt-1 text-sm" style={{ color: "var(--xmas-cream, #f6ecd9)" }}>
+            From all of us at {tenant.name} — enjoy a little festive cheer with your order. 🎁
+          </p>
+        </div>
+      )}
       {tenant.bannerImageUrl && (
         // eslint-disable-next-line @next/next/no-img-element
         <img

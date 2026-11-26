@@ -405,6 +405,259 @@ input[type="radio"] {
   }
 }
 
+/* Christmas campaign (src/components/storefront/christmas/*) — a seasonal
+   layer gated by the "christmasCampaign" Feature (src/lib/plans.ts), off for
+   every tenant unless a super-admin explicitly turns it on. Snow + confetti
+   are both disabled (not just shortened) under prefers-reduced-motion, same
+   discipline as the marquee/fade-in-up rules above. */
+.christmas-snowfall-layer {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 30;
+  overflow: hidden;
+}
+.christmas-snowflake {
+  position: absolute;
+  top: -10px;
+  color: #ffffff;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.25);
+  animation-name: christmas-snowfall;
+  animation-timing-function: linear;
+  animation-iteration-count: infinite;
+}
+@keyframes christmas-snowfall {
+  0% {
+    transform: translate(0, -10px) rotate(0deg);
+    opacity: 0;
+  }
+  10% {
+    opacity: 0.9;
+  }
+  50% {
+    transform: translate(12px, 50vh) rotate(180deg);
+  }
+  90% {
+    opacity: 0.9;
+  }
+  100% {
+    transform: translate(-12px, 100vh) rotate(360deg);
+    opacity: 0;
+  }
+}
+
+.christmas-confetti-piece {
+  position: absolute;
+  animation-name: christmas-confetti;
+  animation-timing-function: ease-out;
+  animation-fill-mode: forwards;
+}
+@keyframes christmas-confetti {
+  0% {
+    transform: translate(0, 0) rotate(0deg);
+    opacity: 1;
+  }
+  100% {
+    transform: translate(var(--confetti-x, 0px), 160px) rotate(var(--confetti-rotate, 180deg));
+    opacity: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .christmas-snowflake {
+    animation: none;
+    opacity: 0.35;
+    top: 20%;
+  }
+  .christmas-confetti-piece {
+    animation: none;
+    opacity: 0;
+  }
+}
+
+/* Decorative-only accent for the festive theme touch — never overrides the
+   tenant's own --brand-* branding variables, only adds trim around them.
+   The header's own candy-cane divider is now the real <XmasDivider />
+   component rendered right after it (src/app/r/[slug]/layout.tsx), not a
+   CSS border — this variable is kept for the few places (e.g. the static
+   Santa fallback) that still reference it. */
+.christmas-theme {
+  --christmas-accent: #1a7a3c;
+}
+
+/* Static Santa fallback (no-WebGL / reduced-motion path) — a slow drift
+   across the top strip, deliberately not used at all when reduced-motion is
+   set (see static-santa-fallback.tsx's own reducedMotion prop). */
+@keyframes christmas-santa-drift {
+  from {
+    transform: translateX(-20vw);
+  }
+  to {
+    transform: translateX(120vw);
+  }
+}
+.christmas-santa-drift {
+  display: inline-block;
+  animation: christmas-santa-drift 18s linear infinite;
+}
+
+/* ---------------------------------------------------------------------
+   Full Christmas design system — shared tokens + motifs used across the
+   storefront (.christmas-theme, gated per-tenant), the public marketing
+   site (.christmas-theme-marketing, gated by CHRISTMAS_THEME_ENABLED in
+   src/lib/seasonal.ts), and the owner dashboard (.christmas-theme-subtle,
+   same per-tenant gate as the storefront, deliberately the most restrained
+   of the three — no motion, no color reassignment of anything that carries
+   real meaning like order-status badges).
+   Palette loosely inspired by a cream/maroon/forest-green/gold holiday-sale
+   aesthetic (deep night-sky gradient reserved for the storefront hero banner
+   only) — never replaces a tenant's own --brand-* colors or the marketing
+   site's indigo/violet conversion elements, only adds seasonal trim around
+   them. --------------------------------------------------------------- */
+:root {
+  --xmas-cream: #f6ecd9;
+  --xmas-cream-deep: #efe0c2;
+  --xmas-maroon: #7a2323;
+  --xmas-maroon-deep: #5c1a1a;
+  --xmas-green: #1f6b3f;
+  --xmas-green-deep: #123524;
+  --xmas-gold: #e8b64a;
+  --xmas-navy: #0a1830;
+  --xmas-teal: #1e4d4a;
+}
+
+/* Candy-cane dotted divider — a thin strip of alternating gold dashes and
+   maroon dots, the same motif under the header on the reference design.
+   Pure CSS (two repeating-linear-gradient layers), no extra DOM per dot. */
+.xmas-divider {
+  height: 8px;
+  background-image:
+    repeating-linear-gradient(90deg, var(--xmas-maroon) 0 10px, transparent 10px 20px),
+    repeating-linear-gradient(90deg, var(--xmas-gold) 4px 14px, transparent 14px 24px);
+  background-size: 20px 3px, 24px 3px;
+  background-repeat: repeat-x;
+  background-position: center top, center bottom;
+  opacity: 0.9;
+}
+
+/* Pill buttons — an additive style class (opt-in per button via
+   .xmas-pill-btn / .xmas-pill-btn-outline), never force-applied over a
+   tenant's own --brand-primary-colored buttons; those instead get the
+   softer glow ring below so their real brand color still shows through. */
+.xmas-pill-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4em;
+  border-radius: 999px;
+  padding: 0.6em 1.4em;
+  font-weight: 600;
+  background: linear-gradient(135deg, var(--xmas-gold), color-mix(in srgb, var(--xmas-gold) 70%, white));
+  color: var(--xmas-maroon-deep);
+  box-shadow: 0 4px 14px -4px color-mix(in srgb, var(--xmas-maroon) 45%, transparent);
+}
+.xmas-pill-btn-outline {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4em;
+  border-radius: 999px;
+  padding: 0.6em 1.4em;
+  font-weight: 600;
+  border: 1.5px solid var(--xmas-cream-deep);
+  background: transparent;
+}
+
+/* A soft festive glow ring around a tenant's own brand-colored buttons —
+   additive, never overrides the button's real background color. */
+.christmas-theme button[type="submit"],
+.christmas-theme-marketing .xmas-cta-ring {
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--xmas-gold) 35%, transparent);
+}
+
+/* A small corner ribbon badge for cards (menu item rows, category blocks) —
+   opt-in via a marker class on the card itself, see menu-browser.tsx. */
+.christmas-theme .xmas-card-accent {
+  position: relative;
+  border-top: 3px dashed var(--xmas-gold);
+}
+.christmas-theme .xmas-card-accent::before {
+  content: "🎄";
+  position: absolute;
+  top: -0.65em;
+  left: 0.75em;
+  font-size: 0.85em;
+  line-height: 1;
+}
+
+/* Festive gold-gradient heading treatment — reuses whatever font is already
+   loaded on the page (no new font dependency), just a gradient fill + glow. */
+.xmas-heading {
+  background: linear-gradient(180deg, #fff7df, var(--xmas-gold) 55%, color-mix(in srgb, var(--xmas-gold) 70%, #9a6a1a));
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  text-shadow: 0 2px 18px color-mix(in srgb, var(--xmas-gold) 35%, transparent);
+}
+
+/* A slim seasonal announcement strip — used on the public marketing site
+   only (not gated per tenant, since it's the platform's own banner). */
+.xmas-top-banner {
+  background: linear-gradient(90deg, var(--xmas-green-deep), var(--xmas-green));
+  color: var(--xmas-cream);
+}
+
+/* Marketing homepage Christmas banner (src/components/christmas/xmas-home-banner.tsx):
+   a night-sky panel with twinkling stars. Twinkle is opacity-only and is
+   switched off entirely under prefers-reduced-motion. */
+.xmas-sky {
+  background:
+    radial-gradient(ellipse 70% 55% at 50% 0%, color-mix(in srgb, #2dd4bf 28%, transparent), transparent 70%),
+    radial-gradient(ellipse 40% 40% at 12% 18%, color-mix(in srgb, var(--xmas-gold) 14%, transparent), transparent 70%),
+    linear-gradient(180deg, var(--xmas-teal), #0f2a47 55%, var(--xmas-navy));
+}
+.xmas-star {
+  position: absolute;
+  border-radius: 999px;
+  background: #fff7df;
+  animation: xmas-twinkle 3.2s ease-in-out infinite;
+}
+@keyframes xmas-twinkle {
+  0%,
+  100% {
+    opacity: 0.25;
+    transform: scale(0.8);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1.15);
+  }
+}
+.xmas-moon {
+  background: radial-gradient(circle at 35% 35%, #fffdf2, #f6e7b4 60%, #e8d28a);
+  box-shadow:
+    0 0 30px 6px color-mix(in srgb, var(--xmas-gold) 35%, transparent),
+    0 0 90px 20px color-mix(in srgb, #fff7df 12%, transparent);
+}
+.xmas-count-box {
+  background: color-mix(in srgb, #ffffff 7%, transparent);
+  border: 1px solid color-mix(in srgb, var(--xmas-gold) 55%, transparent);
+  box-shadow: inset 0 1px 0 color-mix(in srgb, #ffffff 12%, transparent);
+  backdrop-filter: blur(4px);
+}
+@media (prefers-reduced-motion: reduce) {
+  .xmas-star {
+    animation: none;
+    opacity: 0.7;
+  }
+}
+
+/* Owner dashboard — deliberately the most restrained surface: a single
+   festive-colored header border, no motion, no change to anything that
+   carries real meaning (order-status colors, nav active state untouched). */
+.christmas-theme-subtle header {
+  border-bottom-color: var(--xmas-gold);
+  border-bottom-width: 3px;
+}
+
 /* Landing-page hero + FAQ motion (src/components/landing/*) — load-once
    entrance animation in the hero, scroll-triggered entrance + a custom
    accordion in the FAQ section. All decorative/floating animation is

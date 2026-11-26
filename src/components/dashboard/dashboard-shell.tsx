@@ -208,6 +208,7 @@ export function DashboardShell({
   banner,
   notices,
   storeSwitcher,
+  christmasOn,
   children,
 }: {
   tenantName: string;
@@ -224,6 +225,15 @@ export function DashboardShell({
   notices?: ReactNode;
   /** Business accounts only: the "Current store" dropdown. */
   storeSwitcher?: ReactNode;
+  /**
+   * Off for every tenant unless a super-admin explicitly turns on
+   * "christmasCampaign" (src/lib/plans.ts) — deliberately the most
+   * restrained of the three theme surfaces (storefront/marketing/dashboard):
+   * no snow, no animation, no change to any color that carries real meaning
+   * (order-status badges, nav active state). Just a thin candy-cane divider
+   * and a small emoji next to the restaurant name.
+   */
+  christmasOn?: boolean;
   children: ReactNode;
 }) {
   const pathname = usePathname();
@@ -261,7 +271,7 @@ export function DashboardShell({
     }`;
 
   return (
-    <div className="ds flex min-h-screen bg-[var(--ds-bg)] text-[var(--ds-text)]">
+    <div className={`ds flex min-h-screen bg-[var(--ds-bg)] text-[var(--ds-text)] ${christmasOn ? "christmas-theme-subtle" : ""}`}>
       {/* LEFT RAIL (md and up) */}
       <aside className="sticky top-0 hidden h-screen w-[76px] shrink-0 flex-col items-center gap-1.5 bg-[var(--ds-rail)] py-5 md:flex print:hidden">
         <Link
@@ -407,7 +417,10 @@ export function DashboardShell({
         {/* DESKTOP TOP BAR */}
         <header className="hidden min-h-[68px] shrink-0 flex-wrap items-center gap-x-[18px] gap-y-2 py-2 border-b border-[var(--ds-border)] bg-[var(--ds-bg)] px-7 md:flex print:hidden">
           <div className="flex min-w-0 flex-col gap-px">
-            <h1 className="ds-serif m-0 truncate text-xl font-semibold tracking-[-0.01em]">{tenantName}</h1>
+            <h1 className="ds-serif m-0 truncate text-xl font-semibold tracking-[-0.01em]">
+              {christmasOn && <span aria-hidden="true">🎄 </span>}
+              {tenantName}
+            </h1>
             <span className="text-xs text-[var(--ds-muted)]">
               {roleLabel} · {activeLabel}
             </span>
@@ -443,7 +456,10 @@ export function DashboardShell({
               {initial}
             </Link>
             <div className="min-w-0 flex-1">
-              <div className="ds-serif truncate text-base font-semibold leading-[1.1]">{tenantName}</div>
+              <div className="ds-serif truncate text-base font-semibold leading-[1.1]">
+                {christmasOn && <span aria-hidden="true">🎄 </span>}
+                {tenantName}
+              </div>
               <div className="text-[11px] text-[var(--ds-muted)]">{activeLabel}</div>
             </div>
             <NotificationBell

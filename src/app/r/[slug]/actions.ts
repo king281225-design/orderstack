@@ -69,7 +69,7 @@ export type PlaceOrderResult = {
 
 export type PreviewCouponResult = { error?: string; discountCents?: number; code?: string };
 
-export type PreviewLoyaltyResult = { pointsBalance: number; rupeesPerPoint: number } | null;
+export type PreviewLoyaltyResult = { pointsBalance: number; rupeesPerPoint: number; totalSpentCents: number } | null;
 
 /**
  * Live preview only, called when the customer asks to check their points

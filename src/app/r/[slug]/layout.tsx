@@ -7,6 +7,12 @@ import { CartBar } from "@/components/storefront/cart-bar";
 import { PromoBar } from "@/components/storefront/promo-bar";
 import { WaiterCallButton } from "@/components/storefront/waiter-call-button";
 import { StorefrontFooter } from "@/components/storefront/storefront-footer";
+import { tenantHasFeature } from "@/lib/plans";
+import { Snowfall } from "@/components/storefront/christmas/snowfall";
+import { SpinEntryPoint } from "@/components/storefront/christmas/spin-entry-point";
+import { SantaLoader } from "@/components/storefront/christmas/santa-loader";
+import { XmasDivider } from "@/components/christmas/xmas-divider";
+import { XmasSkyline } from "@/components/christmas/xmas-skyline";
 
 // Always render at request time — this reads live tenant/menu/order data
 // from Postgres, which build-time static generation has no access to.
@@ -24,6 +30,9 @@ export default async function StorefrontLayout({
   if (!tenant || tenant.status === "SUSPENDED") notFound();
 
   const activeCoupons = await getActivePromotableCoupons(tenant.id);
+  // Off for every tenant unless a super-admin explicitly turns it on via
+  // featureOverrides — see src/lib/plans.ts's "christmasCampaign" note.
+  const christmasOn = tenantHasFeature(tenant, "christmasCampaign");
 
   const themeVars = {
     "--brand-primary": tenant.colorPrimary,
@@ -48,8 +57,10 @@ export default async function StorefrontLayout({
               }
             : {}),
         }}
-        className="flex min-h-screen flex-col bg-[var(--brand-accent)]"
+        className={`flex min-h-screen flex-col bg-[var(--brand-accent)] ${christmasOn ? "christmas-theme" : ""}`}
       >
+        {christmasOn && <Snowfall />}
+        {christmasOn && <SantaLoader />}
         {/* Depth via a gradient + shadow derived from the tenant's own colorPrimary
             (color-mix, not a hardcoded color) rather than a flat fill — richer
             without overriding what the owner actually picked in branding. */}
@@ -85,10 +96,12 @@ export default async function StorefrontLayout({
             {tenant.isOpen ? "Open now" : "Closed"}
           </span>
         </header>
+        {christmasOn && <XmasDivider />}
 
         <PromoBar coupons={activeCoupons} />
 
         <main className="flex-1 pb-20">{children}</main>
+        {christmasOn && <XmasSkyline />}
         <StorefrontFooter
           name={tenant.name}
           tagline={tenant.tagline}
@@ -99,6 +112,7 @@ export default async function StorefrontLayout({
         />
 
         <WaiterCallButton slug={slug} />
+        {christmasOn && <SpinEntryPoint slug={slug} />}
         <CartBar slug={slug} isOpen={tenant.isOpen} />
       </div>
     </CartProvider>

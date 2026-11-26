@@ -13,6 +13,7 @@ import {
 } from "@/app/r/[slug]/actions";
 import { loadRazorpayCheckout, openRazorpayCheckout, PREFER_UPI_METHOD } from "@/lib/razorpay-client";
 import { haversineDistanceKm } from "@/lib/geo";
+import { loyaltyTierLabel } from "@/lib/loyalty-tiers";
 
 type DeliveryZone = { latitude: number; longitude: number; radiusKm: number };
 type ZoneCheck =
@@ -27,6 +28,7 @@ export function CheckoutForm({
   gstRate,
   businessState,
   deliveryZone,
+  christmasOn,
 }: {
   slug: string;
   restaurantName: string;
@@ -38,6 +40,8 @@ export function CheckoutForm({
   businessState: string | null;
   /** Null if the owner hasn't set a delivery radius — the whole zone check is then a no-op. */
   deliveryZone: DeliveryZone | null;
+  /** Off for every tenant unless a super-admin explicitly turns on "christmasCampaign" — gates the Spin & Win prize auto-apply and the festive loyalty-tier label below. */
+  christmasOn?: boolean;
 }) {
   const { lines, totalCents, clear, tableLabel } = useCart();
   const router = useRouter();
@@ -112,10 +116,50 @@ export function CheckoutForm({
   const [couponError, setCouponError] = useState<string | null>(null);
   const [isApplyingCoupon, startCouponTransition] = useTransition();
 
+  // A Christmas Spin & Win prize (src/components/storefront/christmas/
+  // spin-and-win-modal.tsx) stashes its code in localStorage right after a
+  // win — pre-fill and auto-apply it here, once, so the customer doesn't
+  // have to retype what they just won. Still goes through the exact same
+  // previewCouponAction/validateCoupon path as any manually typed code — no
+  // second discount mechanism, this only pre-types a real one into the box
+  // that already exists. Waits for a non-zero total: on a direct load of
+  // /checkout the cart hydrates after this component mounts, and previewing
+  // against a zero subtotal showed the prize as ₹0 off.
+  const prizeAppliedRef = useRef(false);
+  useEffect(() => {
+    if (!christmasOn || totalCents <= 0 || prizeAppliedRef.current) return;
+    prizeAppliedRef.current = true;
+    let stashedCode: string | null = null;
+    try {
+      stashedCode = window.localStorage.getItem(`bhojsetu_christmas_prize_${slug}`);
+    } catch {
+      // ignore blocked storage
+    }
+    if (!stashedCode) return;
+    // One-time hydration from an external store (localStorage) — window isn't
+    // available during SSR, so this can't be a lazy useState initializer
+    // instead. Same exception as CartProvider's own hydration effect
+    // (src/lib/cart.tsx).
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setCouponInput(stashedCode);
+    startCouponTransition(async () => {
+      const result = await previewCouponAction(slug, stashedCode!, totalCents);
+      if (result.error) {
+        setCouponError(result.error);
+        return;
+      }
+      setAppliedCoupon({ code: result.code!, discountCents: result.discountCents! });
+    });
+  }, [slug, christmasOn, totalCents]);
+
   // Loyalty points — checked on demand (not auto-looked-up as the customer
   // types) so a stray keystroke in the phone field never fires a lookup.
   const phoneRef = useRef<HTMLInputElement>(null);
-  const [loyalty, setLoyalty] = useState<{ pointsBalance: number; rupeesPerPoint: number } | null>(null);
+  const [loyalty, setLoyalty] = useState<{
+    pointsBalance: number;
+    rupeesPerPoint: number;
+    totalSpentCents: number;
+  } | null>(null);
   const [loyaltyChecked, setLoyaltyChecked] = useState(false);
   const [useLoyaltyPoints, setUseLoyaltyPoints] = useState(false);
   const [isCheckingLoyalty, startLoyaltyTransition] = useTransition();
@@ -403,6 +447,11 @@ export function CheckoutForm({
               className="mt-0.5"
             />
             <span>
+              {christmasOn && (
+                <>
+                  🎄 You&apos;re a <strong>{loyaltyTierLabel(loyalty.totalSpentCents)} member</strong>!{" "}
+                </>
+              )}
               You have <strong>{loyalty.pointsBalance} points</strong> (worth{" "}
               {formatINR(loyalty.pointsBalance * loyalty.rupeesPerPoint * 100)}) — redeem them for a discount on
               this order?

@@ -8,6 +8,7 @@ import { formatINR } from "@/lib/money";
 import { getRazorpayKeyId } from "@/lib/payments/razorpay";
 import { OrderStatusView } from "@/components/storefront/order-status-view";
 import { RazorpayPayNowButton } from "@/components/storefront/razorpay-pay-now-button";
+import { tenantHasFeature } from "@/lib/plans";
 
 // Order-specific data, not content — never indexed.
 export const metadata: Metadata = { robots: { index: false, follow: false } };
@@ -69,6 +70,9 @@ export default async function OrderStatusPage({
   return (
     <div className="mx-auto flex max-w-xl flex-col gap-6 px-4 py-6">
       <div>
+        {tenantHasFeature(tenant, "christmasCampaign") && (
+          <p className="xmas-heading mb-1 text-sm font-bold">🎄 Thank you &amp; Merry Christmas!</p>
+        )}
         <h1 className="text-lg font-semibold text-gray-900">Order #{order.orderNumber}</h1>
         <p className="text-sm text-gray-500">Thanks, {order.customerName} — we&apos;ll keep this updated.</p>
       </div>
