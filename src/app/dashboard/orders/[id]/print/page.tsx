@@ -6,7 +6,6 @@ import { invoiceCode } from "@/lib/kot";
 import { InvoiceView } from "@/components/orders/invoice-view";
 import { buildUpiQr } from "@/lib/upi";
 import { paymentSourceDisplay } from "@/lib/payment-sources";
-import { isThermalWidth } from "@/lib/print-prefs";
 
 const PAYMENT_METHOD_LABEL: Record<string, string> = {
   UPI: "UPI",
@@ -29,10 +28,10 @@ export default async function PrintInvoicePage({
   searchParams,
 }: {
   params: Promise<{ id: string }>;
-  searchParams: Promise<{ thermal?: string; autoprint?: string; width?: string }>;
+  searchParams: Promise<{ thermal?: string; autoprint?: string }>;
 }) {
   const session = await requireTenantSession();
-  const [{ id }, { thermal, autoprint, width }] = await Promise.all([params, searchParams]);
+  const [{ id }, { thermal, autoprint }] = await Promise.all([params, searchParams]);
 
   // getOrderForPrint filters by tenantId — an order id from another
   // restaurant simply doesn't match and 404s, never leaking billing data
@@ -80,10 +79,9 @@ export default async function PrintInvoicePage({
       paymentStatus={PAYMENT_STATUS_LABEL[order.paymentStatus] ?? order.paymentStatus}
       paymentSource={order.paymentStatus === "PAID" && order.paymentSource ? paymentSourceDisplay(order) : null}
       upiQr={upiQr}
-      kotHref={`/dashboard/orders/${order.id}/kot?autoprint=1${isThermalWidth(width) ? `&width=${width}` : ""}`}
+      kotHref={`/dashboard/orders/${order.id}/kot?autoprint=1`}
       forceThermal={thermal === "1"}
       autoPrint={autoprint === "1"}
-      forceWidth={isThermalWidth(width) ? width : undefined}
     />
   );
 }

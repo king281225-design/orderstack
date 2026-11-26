@@ -10,6 +10,8 @@ import { invoiceEscPosBase64 } from "@/lib/escpos-client";
 
 /** Only a placeholder for the brief on-screen moment before the real content height is measured — see useThermalPageHeightMm. Auto-print waits for the real measurement and never prints against this. */
 const FALLBACK_THERMAL_HEIGHT_MM = 1000;
+/** Lets the saved roll width apply and the receipt re-measure before auto-print fires. */
+const AUTOPRINT_SETTLE_MS = 250;
 
 type InvoiceLine = { id: string; nameSnapshot: string; priceCentsSnapshot: number; quantity: number };
 
@@ -66,7 +68,6 @@ export function InvoiceView({
   kotHref,
   forceThermal,
   autoPrint,
-  forceWidth,
 }: {
   tenantName: string;
   businessAddress: string | null;
@@ -98,8 +99,6 @@ export function InvoiceView({
   forceThermal?: boolean;
   /** From a one-click print link (?autoprint=1) — fires window.print() itself once the requested layout has actually rendered, no manual Print click needed. */
   autoPrint?: boolean;
-  /** From a one-click print link's ?width=58|80 — overrides the persisted roll-width preference for this visit, same relationship forceThermal has to the thermal preference. */
-  forceWidth?: ThermalWidth;
 }) {
   // A dine-in/walk-in customer is always in the same state as the
   // restaurant, so once a state is on file this is always an intra-state
@@ -133,10 +132,12 @@ export function InvoiceView({
     }
   }
 
-  // Same override-wins-over-persisted-preference shape as thermal above.
+  // The saved roll width is only ever changed by the owner pressing Save —
+  // no link or URL parameter can override or rewrite it. widthOverride just
+  // re-renders this visit right after a save.
   const persistedWidth = useThermalWidthPref();
   const [widthOverride, setWidthOverride] = useState<ThermalWidth | null>(null);
-  const width = widthOverride ?? forceWidth ?? persistedWidth;
+  const width = widthOverride ?? persistedWidth;
 
   function setWidth(next: ThermalWidth) {
     setWidthOverride(next);
@@ -144,22 +145,22 @@ export function InvoiceView({
   }
 
   useEffect(() => {
-    // A one-click thermal print link is also the clearest possible signal
-    // of the owner's actual printer — remember it exactly like an explicit
-    // checkbox click would, so a later plain /print visit (opened from
-    // somewhere that doesn't know to force it) already defaults right. No
-    // setState here, just an external-system write, which is what this
+    // A one-click thermal print link is a good first guess at the owner's
+    // printer, so a later plain /print visit defaults right — but only when
+    // nothing has been chosen yet; it never overwrites an explicit choice.
+    // No setState here, just an external-system write, which is what this
     // project's own react-hooks/set-state-in-effect rule allows effects to
     // do — only a setState call directly inside an effect is disallowed.
     if (forceThermal) {
       try {
-        localStorage.setItem(INVOICE_THERMAL_STORAGE_KEY, "true");
+        if (localStorage.getItem(INVOICE_THERMAL_STORAGE_KEY) === null) {
+          localStorage.setItem(INVOICE_THERMAL_STORAGE_KEY, "true");
+        }
       } catch {
         // Private-browsing/blocked storage — nothing else depends on this.
       }
     }
-    if (forceWidth) setPersistedThermalWidth(forceWidth);
-  }, [forceThermal, forceWidth]);
+  }, [forceThermal]);
 
   const contentRef = useRef<HTMLDivElement>(null);
   const measuredHeightMm = useThermalPageHeightMm(contentRef);
@@ -207,9 +208,14 @@ export function InvoiceView({
     // useThermalPageHeightMm's own comment on why this can't be a plain
     // setState-in-effect instead.
     if (thermal && measuredHeightMm == null) return;
-    hasAutoPrintedRef.current = true;
-    void printOrFallback(escPosBase64);
-  }, [autoPrint, thermal, measuredHeightMm, escPosBase64]);
+    // Restarted whenever the width or measured height changes, so the print
+    // only fires once the saved width has applied and the layout has settled.
+    const timer = setTimeout(() => {
+      hasAutoPrintedRef.current = true;
+      void printOrFallback(escPosBase64);
+    }, AUTOPRINT_SETTLE_MS);
+    return () => clearTimeout(timer);
+  }, [autoPrint, thermal, width, measuredHeightMm, escPosBase64]);
 
   const pageCss = thermal
     ? thermalPageCss(width, measuredHeightMm ?? FALLBACK_THERMAL_HEIGHT_MM)

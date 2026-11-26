@@ -33,7 +33,7 @@ export function SilentPrintButton({
   className,
   children,
 }: {
-  /** Computed at click time (not a static href) so it can read a just-set localStorage preference, e.g. the thermal paper width. */
+  /** Returns the print page URL, called at click time. */
   buildHref: () => string;
   ariaLabel: string;
   title: string;

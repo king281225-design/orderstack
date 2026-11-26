@@ -7,7 +7,6 @@ import { PAYMENT_SOURCES } from "@/lib/payment-sources";
 import { advanceOrderStatusAction, markOrderPaidAction } from "@/app/dashboard/actions";
 import { stopOrderAlertSound } from "@/components/dashboard/notification-bell";
 import { SilentPrintButton } from "@/components/orders/silent-print-button";
-import { getPersistedThermalWidth } from "@/lib/print-prefs-client";
 
 /**
  * The bottom of an order card in the Orders board: total, the small icon
@@ -96,7 +95,7 @@ export function OrderCardFooter({
             `/print` href with no forced query params.
           */}
           <SilentPrintButton
-            buildHref={() => `/dashboard/orders/${orderId}/print?thermal=1&autoprint=1&width=${getPersistedThermalWidth()}`}
+            buildHref={() => `/dashboard/orders/${orderId}/print?thermal=1&autoprint=1`}
             ariaLabel="Print bill"
             title="Print bill (one click, thermal)"
             className={iconBtn}
@@ -108,7 +107,7 @@ export function OrderCardFooter({
             </svg>
           </SilentPrintButton>
           <SilentPrintButton
-            buildHref={() => `/dashboard/orders/${orderId}/kot?autoprint=1&width=${getPersistedThermalWidth()}`}
+            buildHref={() => `/dashboard/orders/${orderId}/kot?autoprint=1`}
             ariaLabel="Print KOT"
             title="Print KOT (one click)"
             className={iconBtn}

@@ -37,16 +37,21 @@ export function PrintControls({
   // away a keystroke early, silently keep the old value, and never know).
   // Now nothing commits until Save is clicked, which also gives a plain
   // "Saved" confirmation instead of a value changing invisibly.
-  const [draft, setDraft] = useState(width);
+  // null = not being edited, so the box shows the saved width. Seeding state
+  // from `width` instead would freeze the server-render default (80) in the
+  // box even after the saved value loaded, and Save would then overwrite it.
+  const [edit, setDraft] = useState<string | null>(null);
+  const draft = edit ?? width;
   const [justSaved, setJustSaved] = useState(false);
   const canSave = isThermalWidth(draft) && draft !== width;
 
   function handleSave() {
     if (!isThermalWidth(draft)) {
-      setDraft(width);
+      setDraft(null);
       return;
     }
     onWidthChange(draft);
+    setDraft(null);
     setJustSaved(true);
     setTimeout(() => setJustSaved(false), 2000);
   }

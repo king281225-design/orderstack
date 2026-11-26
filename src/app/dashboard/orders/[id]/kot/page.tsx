@@ -5,12 +5,12 @@ import { getTenantById } from "@/lib/data/tenants";
 import { KotPrintControls } from "@/components/orders/kot-print-controls";
 import { ThermalTicketFrame } from "@/components/orders/thermal-ticket-frame";
 import { formatKotTimestamp } from "@/lib/kot";
-import { DEFAULT_THERMAL_WIDTH, isThermalWidth, thermalContentWidthMm } from "@/lib/print-prefs";
 import type { KotTicketData } from "@/lib/escpos";
 
 /**
- * Kitchen Order Ticket slip — an 80mm (or ?width=58, see print-prefs.ts)
- * thermal roll layout, one per station when ?station=<id|none> is given
+ * Kitchen Order Ticket slip — a thermal roll layout at the width saved on
+ * this device (80mm until one is saved, see print-prefs-client.ts), one per
+ * station when ?station=<id|none> is given
  * (only that station's items), or the whole order otherwise. Tenant-scoped
  * like the invoice print page. Never shows prices/totals — the kitchen
  * only needs dish names and quantities, not what the customer is billed.
@@ -20,11 +20,10 @@ export default async function KotSlipPage({
   searchParams,
 }: {
   params: Promise<{ id: string }>;
-  searchParams: Promise<{ station?: string; autoprint?: string; width?: string }>;
+  searchParams: Promise<{ station?: string; autoprint?: string }>;
 }) {
   const session = await requireTenantSession();
-  const [{ id }, { station, autoprint, width }] = await Promise.all([params, searchParams]);
-  const paperWidth = isThermalWidth(width) ? width : DEFAULT_THERMAL_WIDTH;
+  const [{ id }, { station, autoprint }] = await Promise.all([params, searchParams]);
   const [order, tenant] = await Promise.all([
     getOrderForPrint(session.tenantId, id),
     getTenantById(session.tenantId),
@@ -47,21 +46,14 @@ export default async function KotSlipPage({
     items: items.map((i) => ({ nameSnapshot: i.nameSnapshot, quantity: i.quantity })),
     notes: order.notes,
   };
-  const forceWidth = isThermalWidth(width) ? width : undefined;
 
   return (
-    <div className="mx-auto" style={{ maxWidth: `${thermalContentWidthMm(paperWidth)}mm` }}>
-      <KotPrintControls
-        billHref={`/dashboard/orders/${id}/print?width=${paperWidth}`}
-        forceWidth={forceWidth}
-        kotData={kotData}
-      />
+    <div>
+      <KotPrintControls billHref={`/dashboard/orders/${id}/print`} kotData={kotData} />
       <ThermalTicketFrame
-        width={paperWidth}
         className="kot-ticket"
         style={{ fontSize: 18 }}
         autoPrint={autoprint === "1"}
-        forceWidth={forceWidth}
         kotData={kotData}
       >
         {/* Plain "Label: value" header block + one "Name (qty)" line per

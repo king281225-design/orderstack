@@ -1,7 +1,6 @@
 /**
- * Thermal-printer receipt-width math — pure, so both server print pages
- * (which only ever see a `width` query-string value) and client components
- * (which also persist the choice — see print-prefs-client.ts) can use it.
+ * Thermal-printer receipt-width math — pure. The chosen width is saved per
+ * device by print-prefs-client.ts and changes only when the owner saves it.
  *
  * This is a free-form mm value, not a fixed 58/80 choice — thermal printers
  * come in plenty of roll widths (a Decode DCMP21, for example, is 50mm; 58mm
